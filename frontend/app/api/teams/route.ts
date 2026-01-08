@@ -90,9 +90,9 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json(team, { status: 201 });
-    } catch (error: any) {
+    } catch (error) {
         console.error("Error creating team:", error);
-        if (error.code === 'P2002') {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
             return NextResponse.json({ error: "Unique constraint failed" }, { status: 409 });
         }
         return NextResponse.json({ error: "Failed to create team" }, { status: 500 });

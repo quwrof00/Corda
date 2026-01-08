@@ -7,7 +7,15 @@ import { Loader2, Plus, Save, User, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProfileClientProps {
-    initialUser: string;
+    initialUser: {
+        id: string;
+        name: string | null;
+        email: string | null;
+        skills: string[];
+        workload: number;
+        role: string | null;
+        teams: { id: string; name: string }[];
+    } | null;
     userId: string;
 }
 

@@ -51,7 +51,11 @@ export async function PUT(
 
         const { name, skills } = await req.json();
 
-        const dataToUpdate: any = {};
+        const dataToUpdate: {
+            name?: string;
+            skills?: string[];
+        } = {};
+
         if (name !== undefined) dataToUpdate.name = name;
         if (skills !== undefined) {
             dataToUpdate.skills = Array.isArray(skills)

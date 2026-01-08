@@ -12,7 +12,7 @@ export const getAuthOptions = (): NextAuthOptions => ({
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials: Record<string, string> | undefined) {
         if (!credentials?.email || !credentials.password) {
           throw new Error("Missing email or password");
         }
@@ -31,11 +31,18 @@ export const getAuthOptions = (): NextAuthOptions => ({
             throw new Error("Invalid password");
           }
 
-          return { ...user, id: user.id.toString(), accessToken: "session" }; // accessToken is just a placeholder here, meaningful data is user id
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+            role: user.role || undefined,
+          };
 
-        } catch (error: any) {
+        } catch (error) {
           console.error("Auth error:", error);
-          throw new Error(error.message || "Login failed");
+          const message = error instanceof Error ? error.message : "Login failed";
+          throw new Error(message);
         }
       },
     }),
@@ -72,21 +79,21 @@ export const getAuthOptions = (): NextAuthOptions => ({
             }
 
             token.id = dbUser.id;
-            token.role = dbUser.role;
-            token.name = dbUser.name;
-            token.image = dbUser.image;
+            token.role = dbUser.role || undefined;
+            token.name = dbUser.name || undefined;
+            token.image = dbUser.image || undefined;
 
           } catch (error) {
             console.error("Google Auth Sync Error:", error);
             // Fallback
-            token.name = user.name;
-            token.image = user.image;
+            token.name = user.name || null;
+            token.image = user.image || null;
           }
         } else {
           // Credentials login (user object from authorize return)
           token.id = user.id;
-          token.name = user.name;
-          token.image = user.image;
+          token.name = user.name || null;
+          token.image = user.image || null;
           // role might be missing if not added in authorize return, but we can fetch or assume it's there if authorize returned it.
           // Let's ensure authorize returns role if needed, or we fetch it here.
           // For optimization, let's assume authorize returns it or we fetch if crucial.
@@ -94,8 +101,8 @@ export const getAuthOptions = (): NextAuthOptions => ({
           // Fix: authorize doesn't return role in my simplified code above. I should add it.
 
           // If I cast user to any to access role
-          if ((user as any).role) {
-            token.role = (user as any).role;
+          if (user.role) {
+            token.role = user.role;
           }
         }
 

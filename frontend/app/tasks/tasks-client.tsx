@@ -29,7 +29,9 @@ export default function TasksClient({ initialTasks }) {
 
     // Use the hook with initialData
     const { data: tasksData, isLoading, refetch } = useTasks(undefined, { initialData: initialTasks });
-    const tasks = (tasksData as Task[]) || [];
+
+    // Memoize tasks to prevent dependency changes on every render
+    const tasks = useMemo(() => (tasksData as Task[]) || [], [tasksData]);
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     // Remove local fetchTasks, use refetch from hook

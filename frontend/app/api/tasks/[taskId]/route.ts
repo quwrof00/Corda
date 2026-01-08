@@ -74,14 +74,25 @@ export async function PUT(
                 }
             }
 
-            const updateData: any = {};
+            const updateData: {
+                title?: string;
+                desc?: string;
+                difficulty?: number;
+                requiredSkill?: string;
+                priority?: string;
+                status?: string;
+                assignedToId?: string | null;
+            } = {};
+
             if (title) updateData.title = title;
             if (description !== undefined) updateData.desc = description;
             if (difficulty) updateData.difficulty = parseInt(difficulty);
             if (requiredSkill) updateData.requiredSkill = getCanonicalSkill(requiredSkill) || formatSkill(requiredSkill);
             if (priority) updateData.priority = priority;
             if (status) updateData.status = status;
-            if (assignedToId !== undefined) updateData.assignedToId = assignedToId;
+            if (assignedToId !== undefined) {
+                updateData.assignedToId = assignedToId;
+            }
 
             if (assignedToId) {
                 const effectiveStatus = updateData.status || existingTask.status;
@@ -122,10 +133,11 @@ export async function PUT(
         });
 
         return NextResponse.json(updatedTask);
-    } catch (error: any) {
+    } catch (error) {
         console.error("Error updating task:", error);
-        if (error.message === "Task not found") return NextResponse.json({ error: "Task not found" }, { status: 404 });
-        if (error.message.includes("Not authorized") || error.message.includes("Only team leader")) return NextResponse.json({ error: error.message }, { status: 403 });
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        if (errorMessage === "Task not found") return NextResponse.json({ error: "Task not found" }, { status: 404 });
+        if (errorMessage.includes("Not authorized") || errorMessage.includes("Only team leader")) return NextResponse.json({ error: errorMessage }, { status: 403 });
         return NextResponse.json({ error: "Failed to update task" }, { status: 500 });
     }
 }
@@ -169,10 +181,11 @@ export async function DELETE(
         });
 
         return NextResponse.json(result);
-    } catch (error: any) {
+    } catch (error) {
         console.error("Error deleting task:", error);
-        if (error.message === "Task not found") return NextResponse.json({ error: "Task not found" }, { status: 404 });
-        if (error.message.includes("Only team leader")) return NextResponse.json({ error: error.message }, { status: 403 });
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        if (errorMessage === "Task not found") return NextResponse.json({ error: "Task not found" }, { status: 404 });
+        if (errorMessage.includes("Only team leader")) return NextResponse.json({ error: errorMessage }, { status: 403 });
         return NextResponse.json({ error: "Failed to delete task" }, { status: 500 });
     }
 }
