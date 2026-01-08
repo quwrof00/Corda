@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  /* Control Machine Theme - Less Extreme Dark */
+  --background: #131316;
+  /* Slightly lighter than Zinc 950 */
+  --foreground: #e4e4e7;
+  /* Zinc 200 */
+
+  --card: #1c1c1f;
+  /* Dark grey, distinguishable from bg */
+  --card-foreground: #e4e4e7;
+
+  --popover: #1c1c1f;
+  --popover-foreground: #e4e4e7;
+
+  --primary: #fafafa;
+  /* White for high contrast actions */
+  --primary-foreground: #18181b;
+  /* Zinc 900 */
+
+  --secondary: #2a2a2d;
+  /* Slightly lighter than original */
+  --secondary-foreground: #fafafa;
+
+  --muted: #2a2a2d;
+  --muted-foreground: #a1a1aa;
+  /* Zinc 400 */
+
+  --accent: #2a2a2d;
+  --accent-foreground: #fafafa;
+
+  --destructive: #7f1d1d;
+  /* Red 900 */
+  --destructive-foreground: #fecaca;
+  /* Red 200 */
+
+  --success: #064e3b;
+  /* Emerald 900 */
+  --warning: #78350f;
+  /* Amber 900 */
+
+  --border: #2e2e32;
+  /* Slightly lighter border */
+  --input: #2e2e32;
+  --ring: #52525b;
+  /* Zinc 600 */
+
+  --radius: 0.25rem;
+  /* Sharper corners for industrial feel */
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  /* Use Geist if available */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* Utilities */
+.scrollbar-custom::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+}
