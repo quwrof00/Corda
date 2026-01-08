@@ -17,6 +17,15 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        // Use localhost:5000 for local development (matches npm start in backend)
+        destination: 'http://localhost:5000/api/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

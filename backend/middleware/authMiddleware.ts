@@ -1,28 +1,35 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import { getToken } from "next-auth/jwt";
 
 interface AuthRequest extends Request {
     user?: any;
 }
 
-export const authenticateToken = (
+export const authenticateToken = async (
     req: AuthRequest,
     res: Response,
     next: NextFunction
 ) => {
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
-
-    if (!token) return res.status(401).json({ error: "Access denied. No token provided." });
-
     try {
-        const verified = jwt.verify(
-            token,
-            process.env.JWT_SECRET || "fallbacksecret"
-        );
-        req.user = verified;
+        const token = await getToken({
+            req: req as any,
+            secret: process.env.NEXTAUTH_SECRET
+        });
+
+        if (!token) {
+            return res.status(401).json({ error: "Unauthorized: No session" });
+        }
+
+        // Map NextAuth token fields to req.user expected structure
+        req.user = {
+            id: token.sub || token.id,
+            email: token.email,
+            ...token
+        };
+
         next();
     } catch (err) {
-        res.status(403).json({ error: "Invalid token" });
+        console.error("Auth Error:", err);
+        res.status(401).json({ error: "Authentication failed" });
     }
 };
