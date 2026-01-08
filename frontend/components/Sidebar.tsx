@@ -47,7 +47,7 @@ export default function Sidebar() {
                                         ? "bg-zinc-900 border-white text-white"
                                         : "border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50 hover:border-zinc-700"
                                 )}
-                                prefetch
+                                prefetch={false}
                             >
                                 <item.icon className={clsx("h-4 w-4", isActive ? "text-white" : "text-zinc-600 group-hover:text-zinc-400")} />
                                 {item.name}

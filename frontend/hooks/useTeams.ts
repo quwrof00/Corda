@@ -27,7 +27,7 @@ export const useTeams = (options?: any) => {
     const { data } = await api.get("/teams");
     return data;
   };
-  return useQuery<Team[], Error>({ queryKey: ["teams"], queryFn: fetchTeams, ...options });
+  return useQuery<Team[], Error>({ queryKey: ["teams"], queryFn: fetchTeams, initialData: options?.initialData, ...options });
 };
 
 // Fetch a single team by ID

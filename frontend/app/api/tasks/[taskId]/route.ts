@@ -1,0 +1,178 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+import { getCurrentUser } from "@/lib/session";
+import { getCanonicalSkill, formatSkill } from "@/lib/skills";
+
+// GET /api/tasks/[taskId]
+export async function GET(
+    req: Request,
+    props: { params: Promise<{ taskId: string }> }
+) {
+    try {
+        const params = await props.params;
+        const { taskId } = params;
+
+        const task = await prisma.task.findUnique({
+            where: { id: taskId },
+            include: {
+                team: true,
+                assignedTo: {
+                    select: { id: true, name: true, email: true }
+                }
+            }
+        });
+
+        if (!task) return NextResponse.json({ error: "Task not found" }, { status: 404 });
+        return NextResponse.json(task);
+    } catch (error) {
+        console.error("Error fetching task:", error);
+        return NextResponse.json({ error: "Failed to fetch task" }, { status: 500 });
+    }
+}
+
+// PUT /api/tasks/[taskId]
+export async function PUT(
+    req: Request,
+    props: { params: Promise<{ taskId: string }> }
+) {
+    try {
+        const params = await props.params;
+        const { taskId } = params;
+        const user = await getCurrentUser();
+
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        const {
+            title,
+            description,
+            difficulty,
+            requiredSkill,
+            priority,
+            status,
+            assignedToId
+        } = await req.json();
+
+        const updatedTask = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            const existingTask = await tx.task.findUnique({
+                where: { id: taskId },
+                include: { team: true }
+            });
+
+            if (!existingTask) throw new Error("Task not found");
+
+            const isLeader = existingTask.team.leaderId === user.id;
+            const isAssignee = existingTask.assignedToId === user.id;
+
+            if (!isLeader && !isAssignee) {
+                throw new Error("Not authorized to update this task");
+            }
+
+            if (!isLeader) {
+                if (title || description || difficulty || requiredSkill || priority || assignedToId) {
+                    throw new Error("Only team leader can edit task details. You can only update status.");
+                }
+            }
+
+            const updateData: any = {};
+            if (title) updateData.title = title;
+            if (description !== undefined) updateData.desc = description;
+            if (difficulty) updateData.difficulty = parseInt(difficulty);
+            if (requiredSkill) updateData.requiredSkill = getCanonicalSkill(requiredSkill) || formatSkill(requiredSkill);
+            if (priority) updateData.priority = priority;
+            if (status) updateData.status = status;
+            if (assignedToId !== undefined) updateData.assignedToId = assignedToId;
+
+            if (assignedToId) {
+                const effectiveStatus = updateData.status || existingTask.status;
+                if (effectiveStatus === 'pending') {
+                    updateData.status = 'active';
+                }
+            } else if (assignedToId === null) {
+                updateData.status = 'pending';
+            }
+
+            // Workload
+            if (assignedToId !== undefined && assignedToId !== existingTask.assignedToId) {
+                if (existingTask.assignedToId) {
+                    await tx.user.update({
+                        where: { id: existingTask.assignedToId },
+                        data: { workload: { decrement: 1 } }
+                    });
+                }
+                if (assignedToId) {
+                    await tx.user.update({
+                        where: { id: assignedToId },
+                        data: { workload: { increment: 1 } }
+                    });
+                }
+            }
+
+            return await tx.task.update({
+                where: { id: taskId },
+                data: updateData,
+                include: {
+                    assignedTo: {
+                        select: { id: true, name: true, email: true }
+                    }
+                }
+            });
+        }, {
+            timeout: 10000
+        });
+
+        return NextResponse.json(updatedTask);
+    } catch (error: any) {
+        console.error("Error updating task:", error);
+        if (error.message === "Task not found") return NextResponse.json({ error: "Task not found" }, { status: 404 });
+        if (error.message.includes("Not authorized") || error.message.includes("Only team leader")) return NextResponse.json({ error: error.message }, { status: 403 });
+        return NextResponse.json({ error: "Failed to update task" }, { status: 500 });
+    }
+}
+
+// DELETE /api/tasks/[taskId]
+export async function DELETE(
+    req: Request,
+    props: { params: Promise<{ taskId: string }> }
+) {
+    try {
+        const params = await props.params;
+        const { taskId } = params;
+        const user = await getCurrentUser();
+
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            const existingTask = await tx.task.findUnique({
+                where: { id: taskId },
+                include: { team: true }
+            });
+
+            if (!existingTask) throw new Error("Task not found");
+
+            if (existingTask.team.leaderId !== user.id) {
+                throw new Error("Only team leader can delete tasks");
+            }
+
+            if (existingTask.assignedToId) {
+                await tx.user.update({
+                    where: { id: existingTask.assignedToId },
+                    data: { workload: { decrement: 1 } }
+                });
+            }
+
+            await tx.task.delete({ where: { id: taskId } });
+
+            return { message: "Task deleted successfully" };
+        }, {
+            timeout: 10000
+        });
+
+        return NextResponse.json(result);
+    } catch (error: any) {
+        console.error("Error deleting task:", error);
+        if (error.message === "Task not found") return NextResponse.json({ error: "Task not found" }, { status: 404 });
+        if (error.message.includes("Only team leader")) return NextResponse.json({ error: error.message }, { status: 403 });
+        return NextResponse.json({ error: "Failed to delete task" }, { status: 500 });
+    }
+}

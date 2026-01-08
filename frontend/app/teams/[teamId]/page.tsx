@@ -185,7 +185,7 @@ export default function TeamDetailsPage() {
                 setAllocating(true);
                 setConfirmModal(prev => ({ ...prev, isOpen: false }));
                 try {
-                    await api.post(`/allocator/${teamId}/allocate`);
+                    await api.post(`/allocator/${teamId}`);
                     queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
                     queryClient.invalidateQueries({ queryKey: ["teamMembers", teamId] });
                     toast.success("Allocation process completed");
@@ -360,9 +360,10 @@ export default function TeamDetailsPage() {
                                     {isLeader && (
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleRemoveMember(member.id); }}
-                                            className="absolute top-2 right-2 p-1 text-zinc-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 rounded"
+                                            disabled={removeMemberMutation.isPending}
+                                            className="absolute top-2 right-2 p-1 text-zinc-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 rounded disabled:opacity-50"
                                         >
-                                            <UserMinus className="w-3 h-3" />
+                                            {removeMemberMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserMinus className="w-3 h-3" />}
                                         </button>
                                     )}
                                 </div>
@@ -458,7 +459,14 @@ export default function TeamDetailsPage() {
                                 <input type="email" placeholder="Email Address" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm outline-none focus:border-zinc-500 rounded-xl" required />
                                 <div className="flex justify-end gap-3 pt-2">
                                     <button type="button" onClick={() => setInviteModalOpen(false)} className="px-4 py-2 text-xs text-zinc-500 hover:text-zinc-300">Cancel</button>
-                                    <button type="submit" disabled={inviteLoading} className="px-4 py-2 bg-white text-black text-xs font-bold hover:bg-zinc-200 rounded-lg">{inviteLoading ? "Sending..." : "Send Invite"}</button>
+                                    <button
+                                        type="submit"
+                                        disabled={inviteLoading}
+                                        className="px-4 py-2 bg-white text-black text-xs font-bold hover:bg-zinc-200 rounded-lg flex items-center gap-2"
+                                    >
+                                        {inviteLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                                        {inviteLoading ? "Sending..." : "Send Invite"}
+                                    </button>
                                 </div>
                             </form>
                         ) : (
@@ -493,7 +501,14 @@ export default function TeamDetailsPage() {
                                 <textarea value={editingTeamDesc} onChange={e => setEditingTeamDesc(e.target.value)} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm h-32 rounded-xl resize-none" placeholder="Description" />
                                 <div className="flex justify-end gap-3 pt-2">
                                     <button type="button" onClick={() => setTeamModalOpen(false)} className="text-zinc-500 hover:text-zinc-300 text-xs">Cancel</button>
-                                    <button type="submit" className="bg-white text-black px-4 py-2 text-xs font-bold rounded-lg">Save</button>
+                                    <button
+                                        type="submit"
+                                        disabled={updateTeamMutation.isPending}
+                                        className="bg-white text-black px-4 py-2 text-xs font-bold rounded-lg flex items-center gap-2"
+                                    >
+                                        {updateTeamMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                                        Save
+                                    </button>
                                 </div>
                             </form>
                         )}
@@ -507,7 +522,14 @@ export default function TeamDetailsPage() {
                                 </select>
                                 <div className="flex justify-end gap-3 pt-2">
                                     <button type="button" onClick={() => setTaskModalOpen(false)} className="text-zinc-500 hover:text-zinc-300 text-xs">Cancel</button>
-                                    <button type="submit" className="bg-white text-black px-4 py-2 text-xs font-bold rounded-lg">Save</button>
+                                    <button
+                                        type="submit"
+                                        disabled={updateTaskMutation.isPending}
+                                        className="bg-white text-black px-4 py-2 text-xs font-bold rounded-lg flex items-center gap-2"
+                                    >
+                                        {updateTaskMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                                        Save
+                                    </button>
                                 </div>
                             </form>
                         )}

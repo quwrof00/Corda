@@ -1,8 +1,8 @@
 import { getServerSession } from "next-auth/next";
 import { getAuthOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import ProfileClient from "./profile-client";
-import axios from "axios";
 
 export default async function ProfilePage() {
     const session = await getServerSession(getAuthOptions());
@@ -12,17 +12,25 @@ export default async function ProfilePage() {
     }
 
     const userId = session.user.id;
-    const token = session.accessToken;
 
     let initialUser = null;
 
     try {
-        const { data } = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000/api"}/users/${userId}`, {
-            headers: {
-                Authorization: `Bearer ${token}`
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                skills: true,
+                workload: true,
+                role: true,
+                teams: {
+                    select: { id: true, name: true }
+                }
             }
         });
-        initialUser = data;
+        initialUser = user;
     } catch (error) {
         console.error("Failed to fetch user data server-side:", error);
     }

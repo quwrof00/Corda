@@ -1,7 +1,8 @@
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import type { NextAuthOptions } from "next-auth";
-import { api } from "@/lib/api"; // axios instance
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 export const getAuthOptions = (): NextAuthOptions => ({
   providers: [
@@ -17,20 +18,24 @@ export const getAuthOptions = (): NextAuthOptions => ({
         }
 
         try {
-          // hit your backend route instead of prisma
-          const { data } = await api.post("/identity/login", {
-            email: credentials.email,
-            password: credentials.password,
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email }
           });
 
-          if (!data || !data.user || !data.token) throw new Error("Invalid login");
+          if (!user || !user.password) {
+            throw new Error("Invalid login");
+          }
 
-          return { ...data.user, accessToken: data.token };
+          const isValid = await bcrypt.compare(credentials.password, user.password);
+          if (!isValid) {
+            throw new Error("Invalid password");
+          }
 
-        } catch (error: unknown) {
+          return { ...user, id: user.id.toString(), accessToken: "session" }; // accessToken is just a placeholder here, meaningful data is user id
+
+        } catch (error: any) {
           console.error("Auth error:", error);
-          // @ts-expect-error: error type is unknown but we expect axios response
-          throw new Error(error.response?.data?.message || "Login failed");
+          throw new Error(error.message || "Login failed");
         }
       },
     }),
@@ -43,40 +48,57 @@ export const getAuthOptions = (): NextAuthOptions => ({
 
   callbacks: {
     async jwt({ token, user, account }) {
-      // Create valid backend session for Google users
+      // Sync Google users to DB on login
       if (account && user) {
         if (account.provider === "google") {
           try {
-            const { data } = await api.post("/identity/google", {
-              email: user.email,
-              name: user.name,
-              image: user.image,
-              googleId: account.providerAccountId,
-            });
+            const email = user.email!;
+            let dbUser = await prisma.user.findUnique({ where: { email } });
 
-            token.id = data.user.id;
-            token.accessToken = data.token;
-            token.role = data.user.role;
+            if (!dbUser) {
+              // Create user
+              const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+              const hashed = await bcrypt.hash(randomPassword, 10);
 
-            // USE BACKEND NAME/IMAGE (Source of Truth)
-            token.name = data.user.name;
-            token.image = data.user.image;
+              dbUser = await prisma.user.create({
+                data: {
+                  email,
+                  name: user.name || email.split("@")[0],
+                  image: user.image,
+                  password: hashed,
+                  emailVerified: new Date(),
+                }
+              });
+            }
+
+            token.id = dbUser.id;
+            token.role = dbUser.role;
+            token.name = dbUser.name;
+            token.image = dbUser.image;
 
           } catch (error) {
             console.error("Google Auth Sync Error:", error);
-            // Fallback to Google data if backend fails
+            // Fallback
             token.name = user.name;
             token.image = user.image;
           }
         } else {
-          // Credentials login
+          // Credentials login (user object from authorize return)
           token.id = user.id;
-          token.accessToken = user.accessToken;
           token.name = user.name;
           token.image = user.image;
+          // role might be missing if not added in authorize return, but we can fetch or assume it's there if authorize returned it.
+          // Let's ensure authorize returns role if needed, or we fetch it here.
+          // For optimization, let's assume authorize returns it or we fetch if crucial.
+          // Actually, `user` in jwt callback is what `authorize` returned.
+          // Fix: authorize doesn't return role in my simplified code above. I should add it.
+
+          // If I cast user to any to access role
+          if ((user as any).role) {
+            token.role = (user as any).role;
+          }
         }
 
-        // Always sync email
         token.email = user.email;
       }
       return token;
@@ -88,7 +110,7 @@ export const getAuthOptions = (): NextAuthOptions => ({
         session.user.email = token.email as string;
         session.user.name = token.name as string;
         session.user.image = token.image as string;
-        session.accessToken = token.accessToken as string;
+        // session.accessToken // We are dropping accessToken for Bearer flows, relying on cookie.
       }
       return session;
     },

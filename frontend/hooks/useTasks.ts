@@ -24,6 +24,7 @@ export const useTasks = (teamId?: string, options?: any) => {
   return useQuery({
     queryKey: ["tasks", teamId],
     queryFn: fetchTasks,
+    initialData: options?.initialData,
     ...options
   });
 };
