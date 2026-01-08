@@ -18,7 +18,7 @@ export const getAuthOptions = (): NextAuthOptions => ({
 
         try {
           // hit your backend route instead of prisma
-          const { data } = await api.post("/auth/login", {
+          const { data } = await api.post("/identity/login", {
             email: credentials.email,
             password: credentials.password,
           });
@@ -47,7 +47,7 @@ export const getAuthOptions = (): NextAuthOptions => ({
       if (account && user) {
         if (account.provider === "google") {
           try {
-            const { data } = await api.post("/auth/google", {
+            const { data } = await api.post("/identity/google", {
               email: user.email,
               name: user.name,
               image: user.image,

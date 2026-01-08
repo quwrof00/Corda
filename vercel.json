@@ -12,11 +12,11 @@
     ],
     "routes": [
         {
-            "src": "/api/auth/(.*)",
-            "dest": "/frontend/api/auth/$1"
+            "src": "/api/identity/(.*)",
+            "dest": "/backend/index.ts"
         },
         {
-            "src": "/api/(.*)",
+            "src": "/api/(users|teams|tasks|allocator|invites)(.*)",
             "dest": "/backend/index.ts"
         },
         {

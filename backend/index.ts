@@ -28,7 +28,9 @@ app.use("/api/users", userRoutes);
 app.use("/api/teams", teamRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/allocator", allocatorRoutes);
-app.use("/api/auth", authRoutes);
+app.use("/api/allocator", allocatorRoutes);
+app.use("/api/identity", authRoutes);
+app.use("/api/invites", inviteRoutes);
 app.use("/api/invites", inviteRoutes);
 
 // Default route
