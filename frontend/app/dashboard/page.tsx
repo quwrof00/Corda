@@ -41,6 +41,23 @@ export default async function DashboardPage() {
                 },
                 members: {
                     select: { id: true }
+                },
+                tasks: {
+                    where: {
+                        assignedToId: userId,
+                        status: { not: "completed" }
+                    },
+                    select: { id: true }
+                },
+                _count: {
+                    select: {
+                        tasks: {
+                            where: {
+                                assignedToId: null,
+                                status: { not: "completed" }
+                            }
+                        }
+                    }
                 }
             }
         })

@@ -41,7 +41,7 @@ export async function POST(req: Request) {
         const {
             title,
             description,
-            difficulty,
+            deadline,
             requiredSkill,
             priority,
             assignedToId,
@@ -49,15 +49,15 @@ export async function POST(req: Request) {
             status = "pending",
         } = await req.json();
 
-        if (!teamId || !title || !requiredSkill) {
-            return NextResponse.json({ error: "Missing required fields (title, teamId, requiredSkill)" }, { status: 400 });
+        if (!teamId || !title || !requiredSkill || !deadline) {
+            return NextResponse.json({ error: "Missing required fields (title, teamId, requiredSkill, deadline)" }, { status: 400 });
         }
 
         const newTask = await prisma.task.create({
             data: {
                 title,
                 desc: description,
-                difficulty: parseInt(difficulty) || 1,
+                deadline: new Date(deadline),
                 requiredSkill: getCanonicalSkill(requiredSkill) || formatSkill(requiredSkill),
                 priority,
                 status,

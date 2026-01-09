@@ -26,6 +26,23 @@ export async function GET() {
                 },
                 members: {
                     select: { id: true }
+                },
+                tasks: {
+                    where: {
+                        assignedToId: user.id,
+                        status: { not: "completed" }
+                    },
+                    select: { id: true }
+                },
+                _count: {
+                    select: {
+                        tasks: {
+                            where: {
+                                assignedToId: null,
+                                status: { not: "completed" }
+                            }
+                        }
+                    }
                 }
             }
         });

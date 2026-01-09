@@ -9,6 +9,7 @@ export interface Task {
   teamId?: string;
   assignedToId?: string;
   desc?: string;
+  deadline?: string;
   createdAt?: string;
   assignedTo?: { id: string; name: string } | null;
   [key: string]: unknown;
@@ -21,7 +22,7 @@ export const useTasks = (teamId?: string, options?: any) => {
     return data;
   };
 
-  return useQuery({
+  return useQuery<Task[]>({
     queryKey: ["tasks", teamId],
     queryFn: fetchTasks,
     initialData: options?.initialData,
@@ -81,12 +82,8 @@ export const useCreateTask = () => {
         queryClient.setQueryData(context.queryKey, context.previousTasks);
       }
     },
-    onSettled: (data, error, variables) => {
-      if (variables.teamId) {
-        queryClient.invalidateQueries({ queryKey: ["tasks", variables.teamId] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      }
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 };

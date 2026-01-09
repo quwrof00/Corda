@@ -16,10 +16,9 @@ interface Task {
     priority: string;
     teamId: string;
     team?: { name: string };
-    dueDate?: string;
+    deadline?: string;
     desc?: string;
     requiredSkill?: string;
-    difficulty?: number;
 }
 
 // @ts-expect-error: initialData typing is complex
@@ -190,10 +189,10 @@ export default function TasksClient({ initialTasks }) {
 
                                     {/* Date */}
                                     <div className="md:col-span-3 flex items-center gap-2 text-xs text-zinc-500 font-mono justify-end">
-                                        {task.dueDate && (
+                                        {task.deadline && (
                                             <>
                                                 <Calendar className="w-3.5 h-3.5" />
-                                                {task.dueDate}
+                                                {new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                             </>
                                         )}
                                     </div>

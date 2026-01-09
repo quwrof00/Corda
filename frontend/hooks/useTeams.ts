@@ -18,6 +18,8 @@ export interface Team {
   leaderId?: string;
   createdAt?: string;
   updatedAt?: string;
+  tasks?: { id: string }[];
+  _count?: { tasks: number };
   [key: string]: unknown;
 }
 

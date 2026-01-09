@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useTasks, useUpdateTask } from "@/hooks/useTasks";
@@ -24,6 +24,8 @@ import CreateTaskModal from "@/components/CreateTaskModal";
 interface Team {
   id: string;
   name: string;
+  tasks?: { id: string }[];
+  _count?: { tasks: number };
 }
 
 interface Task {
@@ -33,7 +35,7 @@ interface Task {
   priority: string;
   team?: Team;
   assignedTo?: { id: string };
-  dueDate?: string;
+  deadline?: string;
   desc?: string;
   description?: string;
   requiredSkill?: string;
@@ -43,8 +45,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
-// @ts-expect-error: initialData typing is complex
-export default function DashboardClient({ initialTasks, initialTeams }) {
+export default function DashboardClient({ initialTasks, initialTeams }: { initialTasks: Task[], initialTeams: Team[] }) {
   const { data: session } = useSession();
   const router = useRouter();
   const { data: tasks, isLoading: tasksLoading, refetch: refreshTasks } = useTasks(undefined, { initialData: initialTasks });
@@ -70,19 +71,66 @@ export default function DashboardClient({ initialTasks, initialTeams }) {
   };
 
   // Filter Tasks Logic (Mocked logic for dates as existing data might not have dates)
+  // Filter Tasks Logic
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
     const safeTasks = tasks as Task[];
-    // Just returning slice for demo purposes as real date logic depends on backend data shape
-    // In a real app, check task.dueDate vs new Date()
-    if (activeFilter === "Overdue") return safeTasks.filter((t) => t.status !== "completed").slice(0, 3);
-    return safeTasks.filter((t) => t.status !== "completed");
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(startOfToday);
+    endOfToday.setDate(endOfToday.getDate() + 1);
+
+    const endOfWeek = new Date(startOfToday);
+    endOfWeek.setDate(endOfWeek.getDate() + 7);
+
+    return safeTasks.filter((t) => {
+      if (t.status === "completed") return false;
+      if (!t.deadline) return activeFilter === "This Week"; // Show no-deadline tasks in 'This Week' or fallback? Let's hide them to be safe or show in Today? Usually hide.
+      // Correction: If user asks for "Functional", they expect strictness.
+      if (!t.deadline) return false;
+
+      const taskDate = new Date(t.deadline);
+
+      if (activeFilter === "Overdue") {
+        return taskDate < startOfToday;
+      }
+
+      if (activeFilter === "Today") {
+        return taskDate >= startOfToday && taskDate < endOfToday;
+      }
+
+      if (activeFilter === "This Week") {
+        // Includes Today + Next 7 Days
+        return taskDate >= startOfToday && taskDate < endOfWeek;
+      }
+
+      return false;
+    });
   }, [tasks, activeFilter]);
 
-  const stats = useMemo(() => {
-    const deadlinesToday = 2; // Mocked
-    return { deadlinesToday };
+  const [stats, setStats] = useState({ deadlinesToday: 0 });
+
+  useMemo(() => {
+    // Calculate stats but only update state to avoid hydration mismatch if dates differ
+    // Actually, useMemo runs during render. We need useEffect for client-side only calculation.
   }, []);
+
+  useEffect(() => {
+    if (!tasks) return;
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(startOfToday);
+    endOfToday.setDate(endOfToday.getDate() + 1);
+
+    const count = (tasks as Task[]).filter((t) => {
+      if (t.status === "completed" || !t.deadline) return false;
+      const d = new Date(t.deadline);
+      return d >= startOfToday && d < endOfToday;
+    }).length;
+
+    setStats({ deadlinesToday: count });
+  }, [tasks]);
 
   if (tasksLoading || teamsLoading) {
     return (
@@ -109,7 +157,7 @@ export default function DashboardClient({ initialTasks, initialTeams }) {
             </h1>
             <div className="flex items-center gap-2 text-zinc-500 text-sm">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-              <p>You have <span className="text-zinc-300 font-bold">{stats.deadlinesToday} deadlines</span> approaching.</p>
+              <p>You have <span className="text-zinc-300 font-bold">{stats.deadlinesToday == 1 ? `1 deadline` : `${stats.deadlinesToday} deadlines`}</span> approaching.</p>
             </div>
           </div>
 
@@ -176,7 +224,7 @@ export default function DashboardClient({ initialTasks, initialTeams }) {
                     <div className="flex items-center gap-6 text-sm text-zinc-500">
                       <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/50 border border-transparent group-hover:border-zinc-800 transition-colors text-xs font-medium">
                         <Calendar className="w-3.5 h-3.5" />
-                        Today
+                        {task.deadline?.split("T")[0]}
                       </span>
                       <span className={cn(
                         "hidden sm:flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
@@ -221,7 +269,7 @@ export default function DashboardClient({ initialTasks, initialTeams }) {
                     <div className="flex items-center gap-6 text-sm text-zinc-500">
                       <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/50 border border-transparent group-hover:border-zinc-800 transition-colors text-xs font-medium">
                         <Calendar className="w-3.5 h-3.5" />
-                        Today
+                        {task.deadline?.split("T")[0]}
                       </span>
                       <span className={cn(
                         "hidden sm:flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
@@ -272,28 +320,32 @@ export default function DashboardClient({ initialTasks, initialTeams }) {
                           <p className="text-xs text-zinc-600 uppercase tracking-wider font-bold">Member</p>
                         </div>
                       </div>
-                      {/* Alert mock */}
-                      {Math.random() > 0.7 && (
-                        <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
+                      {/* Alert for unassigned tasks */}
+                      {(team._count?.tasks || 0) > 0 && (
+                        <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" title={`${team._count?.tasks} unassigned tasks`}></div>
                       )}
                     </div>
 
-                    {/* Workload Bar Mock */}
+                    {/* Workload Bar */}
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-500">
                         <span>Workload</span>
+                        <span className="text-zinc-400">{(team.tasks?.length || 0)} Active</span>
                       </div>
                       <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden relative group/bar">
                         <div
-                          className="h-full rounded-full bg-emerald-500"
-                          style={{ width: "75%" }}
+                          className={cn("h-full rounded-full transition-all duration-500",
+                            (team.tasks?.length || 0) > 4 ? "bg-red-500" :
+                              (team.tasks?.length || 0) > 2 ? "bg-amber-500" : "bg-emerald-500"
+                          )}
+                          style={{ width: `${Math.min(((team.tasks?.length || 0) / 5) * 100, 100)}%` }}
                         />
                       </div>
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-zinc-900 flex items-center gap-2 text-xs text-amber-500/80 font-medium">
                       <AlertCircle className="w-3.5 h-3.5" />
-                      3 unassigned
+                      {team._count?.tasks || 0} unassigned
                     </div>
                   </div>
                 ))
@@ -363,7 +415,7 @@ export default function DashboardClient({ initialTasks, initialTeams }) {
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-zinc-500 flex items-center gap-2"><Calendar className="w-4 h-4" /> Due Date</span>
-                  <span className="font-medium text-zinc-200">Today</span>
+                  <span className="font-medium text-zinc-200">{selectedTask.deadline ? selectedTask.deadline.split("T")[0] : "No Date"}</span>
                 </div>
                 {selectedTask.requiredSkill && (
                   <div className="flex items-center justify-between text-sm">

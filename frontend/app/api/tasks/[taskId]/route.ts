@@ -46,7 +46,7 @@ export async function PUT(
         const {
             title,
             description,
-            difficulty,
+            deadline,
             requiredSkill,
             priority,
             status,
@@ -69,7 +69,7 @@ export async function PUT(
             }
 
             if (!isLeader) {
-                if (title || description || difficulty || requiredSkill || priority || assignedToId) {
+                if (title || description || deadline || requiredSkill || priority || assignedToId) {
                     throw new Error("Only team leader can edit task details. You can only update status.");
                 }
             }
@@ -77,7 +77,7 @@ export async function PUT(
             const updateData: {
                 title?: string;
                 desc?: string;
-                difficulty?: number;
+                deadline?: Date;
                 requiredSkill?: string;
                 priority?: string;
                 status?: string;
@@ -86,7 +86,7 @@ export async function PUT(
 
             if (title) updateData.title = title;
             if (description !== undefined) updateData.desc = description;
-            if (difficulty) updateData.difficulty = parseInt(difficulty);
+            if (deadline) updateData.deadline = new Date(deadline);
             if (requiredSkill) updateData.requiredSkill = getCanonicalSkill(requiredSkill) || formatSkill(requiredSkill);
             if (priority) updateData.priority = priority;
             if (status) updateData.status = status;

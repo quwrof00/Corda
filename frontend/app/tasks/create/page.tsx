@@ -12,7 +12,7 @@ export default function CreateTaskPage() {
 
     const [title, setTitle] = useState("");
     const [desc, setDesc] = useState("");
-    const [difficulty, setDifficulty] = useState("1");
+    const [deadline, setDeadline] = useState("");
     const [priority, setPriority] = useState("Medium");
     const [requiredSkill, setRequiredSkill] = useState("");
     const [teamId, setTeamId] = useState("");
@@ -26,7 +26,7 @@ export default function CreateTaskPage() {
             await api.post("/tasks", {
                 title,
                 description: desc,
-                difficulty: parseInt(difficulty),
+                deadline: new Date(deadline),
                 priority,
                 requiredSkill,
                 teamId,
@@ -163,18 +163,17 @@ export default function CreateTaskPage() {
                                 </div>
                             </div>
 
-                            {/* Difficulty */}
+                            {/* Deadline */}
                             <div>
                                 <label className="block text-sm font-semibold text-foreground/80 mb-2">
-                                    Difficulty (1-10)
+                                    Deadline
                                 </label>
                                 <input
-                                    type="number"
-                                    min="1"
-                                    max="10"
-                                    value={difficulty}
-                                    onChange={(e) => setDifficulty(e.target.value)}
-                                    className="w-full px-4 py-3 bg-muted/30 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground placeholder-muted-foreground"
+                                    type="date"
+                                    value={deadline}
+                                    onChange={(e) => setDeadline(e.target.value)}
+                                    className="w-full px-4 py-3 bg-muted/30 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground placeholder-muted-foreground [color-scheme:dark]"
+                                    required
                                 />
                             </div>
                         </div>

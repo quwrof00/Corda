@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { api } from "@/lib/api";
 import { useTeams } from "@/hooks/useTeams";
+import { useCreateTask } from "@/hooks/useTasks";
 import { Loader2, ListTodo, X } from "lucide-react";
-import { toast } from "sonner"; // Added import for toast
+import { toast } from "sonner";
 
 interface CreateTaskModalProps {
     isOpen: boolean;
@@ -13,48 +13,47 @@ interface CreateTaskModalProps {
 
 export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initialTeamId }: CreateTaskModalProps) {
     const { data: teams } = useTeams();
+    const createTaskMutation = useCreateTask();
 
     const [title, setTitle] = useState("");
     const [desc, setDesc] = useState("");
-    const [difficulty, setDifficulty] = useState("1");
+    const [deadline, setDeadline] = useState("");
     const [priority, setPriority] = useState("Medium");
     const [requiredSkill, setRequiredSkill] = useState("");
     const [teamId, setTeamId] = useState(initialTeamId || "");
-    const [loading, setLoading] = useState(false);
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
 
         try {
-            await api.post("/tasks", {
+            await createTaskMutation.mutateAsync({
                 title,
                 description: desc,
-                difficulty: parseInt(difficulty),
+                deadline: deadline ? new Date(deadline).toISOString() : new Date().toISOString(), // Use ISO string for consistency. Fallback to today.
                 priority,
                 requiredSkill,
                 teamId,
+                assignedToId: undefined, // Reverted to null/undefined. Pool tasks.
             });
 
             if (onTaskCreated) {
                 onTaskCreated();
             }
             onClose();
-            toast.success("Task created successfully!"); // Replaced alert with toast.success
+            toast.success("Task created successfully!");
+
             // Reset form
             setTitle("");
             setDesc("");
-            setDifficulty("1");
+            setDeadline("");
             setPriority("Medium");
             setRequiredSkill("");
             setTeamId(initialTeamId || "");
         } catch (err) {
             console.error(err);
-            toast.error("Failed to create task."); // Replaced alert with toast.error
-        } finally {
-            setLoading(false);
+            toast.error("Failed to create task.");
         }
     };
 
@@ -174,18 +173,17 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
                                 </div>
                             </div>
 
-                            {/* Difficulty */}
+                            {/* Deadline */}
                             <div>
                                 <label className="block text-sm font-medium text-zinc-400 mb-2">
-                                    Difficulty (1-10)
+                                    Deadline
                                 </label>
                                 <input
-                                    type="number"
-                                    min="1"
-                                    max="10"
-                                    value={difficulty}
-                                    onChange={(e) => setDifficulty(e.target.value)}
-                                    className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 placeholder-zinc-600"
+                                    type="date"
+                                    value={deadline}
+                                    onChange={(e) => setDeadline(e.target.value)}
+                                    className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 placeholder-zinc-600 [color-scheme:dark]"
+                                    required
                                 />
                             </div>
                         </div>
@@ -200,10 +198,10 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
                             </button>
                             <button
                                 type="submit"
-                                disabled={loading}
+                                disabled={createTaskMutation.isPending}
                                 className="px-8 py-3 rounded-xl bg-zinc-100 hover:bg-white text-black font-semibold shadow-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed hover:-translate-y-[1px]"
                             >
-                                {loading ? (
+                                {createTaskMutation.isPending ? (
                                     <div className="flex items-center gap-2">
                                         <Loader2 className="w-4 h-4 animate-spin" />
                                         Creating...

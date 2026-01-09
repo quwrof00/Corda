@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useTeam, useTeamMembers, useDeleteTeam, useRemoveMember, useUpdateTeam } from "@/hooks/useTeams";
-import { useTasks, useUpdateTask } from "@/hooks/useTasks";
+import { useTasks, useUpdateTask, useDeleteTask } from "@/hooks/useTasks";
 import { api } from "@/lib/api";
 import { useSession } from "next-auth/react";
 import { useState, useMemo } from "react";
@@ -48,6 +48,7 @@ interface Task {
     requiredSkill?: string;
     assignedTo?: { id: string; name: string };
     assignedToId?: string | null;
+    deadline?: string;
 }
 
 export default function TeamDetailsPage() {
@@ -63,7 +64,7 @@ export default function TeamDetailsPage() {
 
     const deleteTeamMutation = useDeleteTeam();
     const removeMemberMutation = useRemoveMember();
-    // const deleteTaskMutation = useDeleteTask(); // Unused
+    const deleteTaskMutation = useDeleteTask();
     const updateTeamMutation = useUpdateTeam();
     const updateTaskMutation = useUpdateTask();
 
@@ -162,7 +163,8 @@ export default function TeamDetailsPage() {
                 priority: editingTask.priority,
                 requiredSkill: editingTask.requiredSkill,
                 status: editingTask.status,
-                assignedToId: editingTask.assignedToId || null
+                assignedToId: editingTask.assignedToId || null,
+                deadline: editingTask.deadline
             });
             queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
             toast.success("Task updated successfully");
@@ -172,6 +174,30 @@ export default function TeamDetailsPage() {
             console.error(err);
             toast.error("Failed to update task");
         }
+    };
+
+    const handleDeleteTask = async () => {
+        if (!editingTask) return;
+        setConfirmModal({
+            isOpen: true,
+            title: "Delete Task",
+            description: "Are you sure you want to delete this task? This action cannot be undone.",
+            variant: "danger",
+            confirmText: "Delete Task",
+            onConfirm: async () => {
+                try {
+                    await deleteTaskMutation.mutateAsync(editingTask.id);
+                    queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
+                    toast.success("Task deleted successfully");
+                    setTaskModalOpen(false);
+                    setEditingTask(null);
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                } catch (error) {
+                    console.error(error);
+                    toast.error("Failed to delete task");
+                }
+            }
+        });
     };
 
     const handleAllocate = async () => {
@@ -386,12 +412,25 @@ export default function TeamDetailsPage() {
                             {unassignedTasks.map((task) => (
                                 <div key={task.id}
                                     onClick={() => isLeader && openEditTask(task)}
-                                    className="bg-zinc-900 border border-zinc-800 p-3 hover:border-zinc-600 cursor-pointer transition-colors group rounded-lg"
+                                    className={cn(
+                                        "bg-zinc-900 border border-zinc-800 p-3 transition-colors group rounded-lg",
+                                        isLeader ? "cursor-pointer hover:border-zinc-600" : "cursor-default"
+                                    )}
+                                    title={task.requiredSkill ? `Skill: ${task.requiredSkill}` : undefined}
                                 >
                                     <div className="flex justify-between items-start mb-2">
-                                        <span className={cn("text-[10px] font-medium border px-1.5 py-0.5 rounded-md",
-                                            task.priority === 'High' ? "border-red-900/50 text-red-500 bg-red-900/10" : "border-zinc-800 text-zinc-500 bg-zinc-900"
-                                        )}>{task.priority}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={cn("text-[10px] font-medium border px-1.5 py-0.5 rounded-md",
+                                                task.priority === 'High' ? "border-red-900/50 text-red-500 bg-red-900/10" : "border-zinc-800 text-zinc-500 bg-zinc-900"
+                                            )}>{task.priority}</span>
+                                            {task.deadline && (
+                                                <span className={cn("text-[10px] font-medium border px-1.5 py-0.5 rounded-md",
+                                                    new Date(task.deadline) < new Date() ? "border-red-900/30 text-red-400 bg-red-950/10" : "border-zinc-800 text-zinc-500 bg-zinc-900"
+                                                )}>
+                                                    Due {new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                </span>
+                                            )}
+                                        </div>
                                         {task.requiredSkill && <span className="text-[10px] text-zinc-500">[{task.requiredSkill}]</span>}
                                     </div>
                                     <h4 className="text-xs font-medium text-zinc-300 line-clamp-2 group-hover:text-white">{task.title}</h4>
@@ -423,9 +462,11 @@ export default function TeamDetailsPage() {
                                         {(tasksByMember[member.id] || []).map((task) => (
                                             <div
                                                 key={task.id}
-                                                onClick={() => openEditTask(task)}
+                                                onClick={() => isLeader && openEditTask(task)}
+                                                title={task.requiredSkill ? `Skill: ${task.requiredSkill}` : undefined}
                                                 className={cn(
-                                                    "bg-card p-2 border border-zinc-900 hover:border-zinc-700 cursor-pointer transition-colors text-xs text-zinc-400 ml-3 border-l-2 rounded-r-md group",
+                                                    "bg-card p-2 border border-zinc-900 transition-colors text-xs text-zinc-400 ml-3 border-l-2 rounded-r-md group relative",
+                                                    isLeader ? "cursor-pointer hover:border-zinc-700" : "cursor-default",
                                                     task.status === 'completed' ? "border-l-emerald-500 hover:border-l-emerald-400" :
                                                         task.status === 'in-progress' ? "border-l-blue-500 hover:border-l-blue-400" :
                                                             task.status === 'blocked' ? "border-l-red-500 hover:border-l-red-400" :
@@ -434,6 +475,18 @@ export default function TeamDetailsPage() {
                                             >
                                                 <div className="flex justify-between items-center gap-2">
                                                     <p className={cn("line-clamp-1 flex-1", task.status === 'completed' && "line-through opacity-70")}>{task.title}</p>
+                                                    {task.requiredSkill && (
+                                                        <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-[9px] text-zinc-500 bg-zinc-950/80 border border-zinc-800 px-1.5 py-0.5 rounded whitespace-nowrap hidden sm:inline-block">
+                                                            {task.requiredSkill}
+                                                        </span>
+                                                    )}
+                                                    {task.deadline && (
+                                                        <span className={cn("text-[9px] px-1.5 py-0.5 rounded border ml-auto flex-shrink-0",
+                                                            new Date(task.deadline) < new Date() ? "text-red-400 border-red-900/30 bg-red-950/10" : "text-zinc-500 border-zinc-800 bg-zinc-900"
+                                                        )}>
+                                                            {new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                        </span>
+                                                    )}
                                                     {task.status === 'completed' && <CheckCircle2 className="w-3 h-3 text-emerald-500 flex-shrink-0" />}
                                                 </div>
                                             </div>
@@ -512,24 +565,42 @@ export default function TeamDetailsPage() {
                                 </div>
                             </form>
                         )}
-                        {taskModalOpen && editingTask && (
+                        {taskModalOpen && editingTask && isLeader && (
                             <form onSubmit={handleSaveTask} className="space-y-4">
                                 <h3 className="text-sm font-bold text-white mb-4">Edit Task</h3>
                                 <input value={editingTask.title} onChange={e => setEditingTask({ ...editingTask, title: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl" placeholder="Task Title" />
+                                <input value={editingTask.requiredSkill} onChange={e => setEditingTask({ ...editingTask, requiredSkill: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl" placeholder="Required Skill" />
                                 <select value={editingTask.assignedToId || ""} onChange={e => setEditingTask({ ...editingTask, assignedToId: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl">
                                     <option value="">-- Unassigned --</option>
                                     {members?.map((m: Member) => <option key={m.id} value={m.id}>{m.name}</option>)}
                                 </select>
-                                <div className="flex justify-end gap-3 pt-2">
-                                    <button type="button" onClick={() => setTaskModalOpen(false)} className="text-zinc-500 hover:text-zinc-300 text-xs">Cancel</button>
+                                <input
+                                    type="date"
+                                    value={editingTask.deadline ? new Date(editingTask.deadline).toISOString().split('T')[0] : ""}
+                                    onChange={e => setEditingTask({ ...editingTask, deadline: e.target.value })}
+                                    className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl [color-scheme:dark]"
+                                />
+                                <div className="flex justify-between items-center pt-2">
                                     <button
-                                        type="submit"
-                                        disabled={updateTaskMutation.isPending}
-                                        className="bg-white text-black px-4 py-2 text-xs font-bold rounded-lg flex items-center gap-2"
+                                        type="button"
+                                        onClick={handleDeleteTask}
+                                        disabled={deleteTaskMutation.isPending}
+                                        className="text-red-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-950/20 transition-colors"
+                                        title="Delete Task"
                                     >
-                                        {updateTaskMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
-                                        Save
+                                        {deleteTaskMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                                     </button>
+                                    <div className="flex gap-3">
+                                        <button type="button" onClick={() => setTaskModalOpen(false)} className="text-zinc-500 hover:text-zinc-300 text-xs">Cancel</button>
+                                        <button
+                                            type="submit"
+                                            disabled={updateTaskMutation.isPending}
+                                            className="bg-white text-black px-4 py-2 text-xs font-bold rounded-lg flex items-center gap-2"
+                                        >
+                                            {updateTaskMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                                            Save
+                                        </button>
+                                    </div>
                                 </div>
                             </form>
                         )}

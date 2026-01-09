@@ -64,7 +64,7 @@ model Task {
   id            String   @id @default(cuid())
   title         String
   desc          String?
-  difficulty    Int
+  deadline      DateTime
   requiredSkill String
   priority      String
   status        String
