@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useTasks, useUpdateTask } from "@/hooks/useTasks";
+import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 import { useTeams } from "@/hooks/useTeams";
 import {
   Calendar,
@@ -12,14 +12,11 @@ import {
   Clock,
   ArrowRight,
   Users,
-  X,
-  Flag,
-  Play,
-  Pause,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import CreateTaskModal from "@/components/CreateTaskModal";
+import TaskDetailDrawer from "@/components/TaskDetailDrawer";
 
 interface Team {
   id: string;
@@ -28,24 +25,12 @@ interface Team {
   _count?: { tasks: number };
 }
 
-interface Task {
-  id: string;
-  title: string;
-  status: string;
-  priority: string;
-  team?: Team;
-  assignedTo?: { id: string };
-  deadline?: string;
-  desc?: string;
-  description?: string;
-  requiredSkill?: string;
-}
-
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
 export default function DashboardClient({ initialTasks, initialTeams }: { initialTasks: Task[], initialTeams: Team[] }) {
+
   const { data: session } = useSession();
   const router = useRouter();
   const { data: tasks, isLoading: tasksLoading, refetch: refreshTasks } = useTasks(undefined, { initialData: initialTasks });
@@ -54,21 +39,6 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const updateTaskMutation = useUpdateTask();
-
-  const handleStatusUpdate = async (status: string) => {
-    if (!selectedTask) return;
-    try {
-      await updateTaskMutation.mutateAsync({
-        id: selectedTask.id,
-        status: status
-      });
-      // Close drawer after completion if 'completed'
-      if (status === 'completed') setSelectedTask(null);
-      refreshTasks();
-    } catch (e) {
-      console.error("Failed to update task", e);
-    }
-  };
 
   // Filter Tasks Logic (Mocked logic for dates as existing data might not have dates)
   // Filter Tasks Logic
@@ -379,86 +349,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
 
       {/* Task Detail Drawer */}
       {selectedTask && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm" onClick={() => setSelectedTask(null)}>
-          <div
-            className="w-full max-w-md bg-card h-full shadow-2xl p-6 overflow-y-auto animate-in slide-in-from-right duration-300 border-l border-zinc-800"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-8 pb-6 border-b border-zinc-900">
-              <h2 className="text-xl font-bold text-white">Task Details</h2>
-              <button onClick={() => setSelectedTask(null)} className="p-2 hover:bg-zinc-900 rounded-lg text-zinc-500 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
-            </div>
-
-            <div className="space-y-8">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className={cn("px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
-                    selectedTask.priority === 'High' ? "bg-red-950/20 text-red-400 border-red-900/50" :
-                      selectedTask.priority === 'Medium' ? "bg-amber-950/20 text-amber-400 border-amber-900/50" :
-                        "bg-green-950/20 text-green-400 border-green-900/50"
-                  )}>
-                    {selectedTask.priority} Priority
-                  </span>
-                  <span className={cn("px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
-                    selectedTask.status === 'active' || selectedTask.status === 'in-progress' ? "bg-blue-950/20 text-blue-400 border-blue-900/50" : "bg-zinc-900 text-zinc-500 border-zinc-800"
-                  )}>
-                    {selectedTask.status}
-                  </span>
-                </div>
-                <h3 className="text-2xl font-bold text-white leading-tight">{selectedTask.title}</h3>
-              </div>
-
-              <div className="p-5 rounded-xl bg-zinc-900/30 border border-zinc-800 space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500 flex items-center gap-2"><Users className="w-4 h-4" /> Team</span>
-                  <span className="font-medium text-zinc-200">{selectedTask.team?.name || "Team Alpha"}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500 flex items-center gap-2"><Calendar className="w-4 h-4" /> Due Date</span>
-                  <span className="font-medium text-zinc-200">{selectedTask.deadline ? selectedTask.deadline.split("T")[0] : "No Date"}</span>
-                </div>
-                {selectedTask.requiredSkill && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-500 flex items-center gap-2"><Flag className="w-4 h-4" /> Skill</span>
-                    <span className="font-medium text-zinc-200">{selectedTask.requiredSkill}</span>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <h4 className="text-sm font-bold text-zinc-400 mb-3 uppercase tracking-wider">Description</h4>
-                <div className="text-sm text-zinc-400 leading-relaxed p-4 bg-zinc-900/30 rounded-xl border border-zinc-800">
-                  {selectedTask.desc || selectedTask.description || "No description provided for this task."}
-                </div>
-              </div>
-
-              <div className="pt-6 mt-auto flex gap-3 border-t border-zinc-900">
-                {selectedTask.status !== 'in-progress' && selectedTask.status !== 'completed' && (
-                  <button
-                    onClick={() => handleStatusUpdate('in-progress')}
-                    className="flex-1 py-3 bg-zinc-100 text-black font-bold rounded-xl hover:bg-white transition-all duration-200 flex items-center justify-center gap-2"
-                  >
-                    <Play className="w-4 h-4" /> Start Task
-                  </button>
-                )}
-                {selectedTask.status === 'in-progress' && (
-                  <button
-                    onClick={() => handleStatusUpdate('active')}
-                    className="flex-1 py-3 bg-amber-500 text-black font-bold rounded-xl hover:bg-amber-400 transition-all duration-200 flex items-center justify-center gap-2"
-                  >
-                    <Pause className="w-4 h-4" /> Pause Task
-                  </button>
-                )}
-                <button
-                  onClick={() => handleStatusUpdate('completed')}
-                  className="px-6 py-3 bg-zinc-900 border border-zinc-800 text-zinc-300 font-bold rounded-xl hover:bg-zinc-800 transition-all duration-200"
-                >
-                  Complete
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <TaskDetailDrawer selectedTask={selectedTask} setSelectedTask={setSelectedTask} updateTaskMutation={updateTaskMutation} refreshTasks={refreshTasks} />
       )}
 
       <CreateTaskModal

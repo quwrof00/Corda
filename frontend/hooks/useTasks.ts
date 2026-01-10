@@ -9,9 +9,12 @@ export interface Task {
   teamId?: string;
   assignedToId?: string;
   desc?: string;
+  description?: string;
   deadline?: string;
   createdAt?: string;
   assignedTo?: { id: string; name: string } | null;
+  team?: { id?: string; name?: string;[key: string]: any } | null;
+  requiredSkill?: string | null;
   [key: string]: unknown;
 }
 

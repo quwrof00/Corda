@@ -3,26 +3,14 @@ import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, Refr
 import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import CreateTaskModal from "@/components/CreateTaskModal";
-import { useTasks, useUpdateTask } from "@/hooks/useTasks";
+import TaskDetailDrawer from "@/components/TaskDetailDrawer";
+import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return inputs.filter(Boolean).join(' ');
 }
 
-interface Task {
-    id: string;
-    title: string;
-    status: string;
-    priority: string;
-    teamId: string;
-    team?: { name: string };
-    deadline?: string;
-    desc?: string;
-    requiredSkill?: string;
-}
-
-// @ts-expect-error: initialData typing is complex
-export default function TasksClient({ initialTasks }) {
+export default function TasksClient({ initialTasks }: { initialTasks: Task[] }) {
     const { data: session } = useSession();
     const [statusFilter, setStatusFilter] = useState<"All" | "Todo" | "In Progress" | "Blocked" | "Done">("Todo");
 
@@ -33,6 +21,7 @@ export default function TasksClient({ initialTasks }) {
     const tasks = useMemo(() => (tasksData as Task[]) || [], [tasksData]);
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     // Remove local fetchTasks, use refetch from hook
 
     // Hook for updates
@@ -132,7 +121,8 @@ export default function TasksClient({ initialTasks }) {
                         filteredTasks.map((task) => (
                             <div
                                 key={task.id}
-                                className="group relative bg-card border border-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900 transition-all duration-200 p-4 flex items-center gap-4 rounded-lg"
+                                className="group relative bg-card border border-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900 transition-all duration-200 p-4 flex items-center gap-4 rounded-lg cursor-pointer"
+                                onClick={() => setSelectedTask(task)}
                             >
                                 {/* Status Indicator */}
                                 <div className={cn(
@@ -249,6 +239,15 @@ export default function TasksClient({ initialTasks }) {
                 onClose={() => setIsCreateModalOpen(false)}
                 onTaskCreated={refetch}
             />
+
+            {selectedTask && (
+                <TaskDetailDrawer
+                    selectedTask={selectedTask}
+                    setSelectedTask={setSelectedTask}
+                    updateTaskMutation={updateTaskMutation}
+                    refreshTasks={refetch}
+                />
+            )}
         </div>
     );
 }

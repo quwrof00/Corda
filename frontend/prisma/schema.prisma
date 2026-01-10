@@ -65,7 +65,7 @@ model Task {
   title         String
   desc          String?
   deadline      DateTime
-  requiredSkill String
+  requiredSkill String?
   priority      String
   status        String
 

@@ -49,8 +49,8 @@ export async function POST(req: Request) {
             status = "pending",
         } = await req.json();
 
-        if (!teamId || !title || !requiredSkill || !deadline) {
-            return NextResponse.json({ error: "Missing required fields (title, teamId, requiredSkill, deadline)" }, { status: 400 });
+        if (!teamId || !title || !deadline) {
+            return NextResponse.json({ error: "Missing required fields (title, teamId, deadline)" }, { status: 400 });
         }
 
         const newTask = await prisma.task.create({
@@ -58,7 +58,8 @@ export async function POST(req: Request) {
                 title,
                 desc: description,
                 deadline: new Date(deadline),
-                requiredSkill: getCanonicalSkill(requiredSkill) || formatSkill(requiredSkill),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                requiredSkill: requiredSkill ? (getCanonicalSkill(requiredSkill) || formatSkill(requiredSkill)) : null as any,
                 priority,
                 status,
                 teamId,

@@ -45,7 +45,7 @@ interface Task {
     desc?: string;
     status: string;
     priority: string;
-    requiredSkill?: string;
+    requiredSkill?: string | null;
     assignedTo?: { id: string; name: string };
     assignedToId?: string | null;
     deadline?: string;
@@ -161,7 +161,7 @@ export default function TeamDetailsPage() {
                 title: editingTask.title,
                 description: editingTask.desc,
                 priority: editingTask.priority,
-                requiredSkill: editingTask.requiredSkill,
+                requiredSkill: editingTask.requiredSkill || undefined,
                 status: editingTask.status,
                 assignedToId: editingTask.assignedToId || null,
                 deadline: editingTask.deadline
@@ -569,7 +569,7 @@ export default function TeamDetailsPage() {
                             <form onSubmit={handleSaveTask} className="space-y-4">
                                 <h3 className="text-sm font-bold text-white mb-4">Edit Task</h3>
                                 <input value={editingTask.title} onChange={e => setEditingTask({ ...editingTask, title: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl" placeholder="Task Title" />
-                                <input value={editingTask.requiredSkill} onChange={e => setEditingTask({ ...editingTask, requiredSkill: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl" placeholder="Required Skill" />
+                                <input value={editingTask.requiredSkill || ""} onChange={e => setEditingTask({ ...editingTask, requiredSkill: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl" placeholder="Required Skill" />
                                 <select value={editingTask.assignedToId || ""} onChange={e => setEditingTask({ ...editingTask, assignedToId: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl">
                                     <option value="">-- Unassigned --</option>
                                     {members?.map((m: Member) => <option key={m.id} value={m.id}>{m.name}</option>)}

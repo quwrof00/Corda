@@ -98,7 +98,7 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
                         {/* Description */}
                         <div>
                             <label className="block text-sm font-medium text-zinc-400 mb-2">
-                                Description
+                                Description (Optional)
                             </label>
                             <textarea
                                 placeholder="Details about the task..."
@@ -138,15 +138,14 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
                             {/* Required Skill */}
                             <div>
                                 <label className="block text-sm font-medium text-zinc-400 mb-2">
-                                    Required Skill
+                                    Required Skill (Optional)
                                 </label>
                                 <input
                                     type="text"
-                                    placeholder="e.g. React, Python"
+                                    placeholder="e.g. React, Python (Optional)"
                                     value={requiredSkill}
                                     onChange={(e) => setRequiredSkill(e.target.value)}
                                     className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 placeholder-zinc-600"
-                                    required
                                 />
                             </div>
                         </div>
