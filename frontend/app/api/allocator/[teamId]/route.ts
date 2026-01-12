@@ -15,7 +15,7 @@ export async function POST(
 
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        // 1️⃣ Fetch data (Reads) OUTSIDE transaction to avoid timeouts
+        // Fetch outside transaction
         const team = await prisma.team.findUnique({
             where: { id: teamId },
             include: {
@@ -58,22 +58,20 @@ export async function POST(
             if (!Array.isArray(m.skills)) m.skills = [];
         }
 
-        // 2️⃣ PURE allocation decision
+        // PURE decision phase
         const decisions = computeAllocations(pendingTasks, members);
 
         const allocations: { taskId: string; assignedTo: string }[] = [];
         const workloadIncrements = new Map<string, number>();
 
-        // 3️⃣ Write Phase (Transaction)
         await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
 
-            // Commit decisions
             for (const decision of decisions) {
 
                 const claim = await tx.task.updateMany({
                     where: {
                         id: decision.taskId,
-                        status: "pending" // concurrency guard
+                        status: "pending"
                     },
                     data: {
                         assignedToId: decision.userId,
@@ -81,10 +79,7 @@ export async function POST(
                     }
                 });
 
-                if (claim.count === 0) {
-                    // Task already taken
-                    continue;
-                }
+                if (claim.count === 0) continue;
 
                 workloadIncrements.set(
                     decision.userId,
@@ -97,7 +92,6 @@ export async function POST(
                 });
             }
 
-            // Apply workload updates (batched)
             for (const [userId, increment] of workloadIncrements) {
                 await tx.user.update({
                     where: { id: userId },
@@ -106,9 +100,7 @@ export async function POST(
                     }
                 });
             }
-        }, {
-            timeout: 10000 // 10s timeout
-        });
+        }, { timeout: 10000 });
 
         return NextResponse.json({
             message: `Allocated ${allocations.length} tasks`,
