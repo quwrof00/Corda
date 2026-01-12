@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma.js";
+import { sendEmail } from "../lib/mailer.js";
 
 // -- Create Team --
 export const createTeam = async (req: Request, res: Response) => {
@@ -255,11 +256,22 @@ export const inviteMember = async (req: Request, res: Response) => {
       });
     }
 
-    // Mock Email Send
-    const inviteLink = `http://localhost:3000/invite?token=${rawToken}`;
-    console.log(`[INVITE] Sending invite to ${email}: ${inviteLink}`);
+    // Send Invite Email
+    const inviteLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/invite?token=${rawToken}`;
 
-    res.json({ message: "Invite sent", link: inviteLink });
+    await sendEmail(
+      email,
+      `Join ${team.name} on TaskAllo`,
+      `<div style="font-family: Arial, sans-serif; color: #333;">
+         <h2>You've been invited!</h2>
+         <p>You have been invited to join the team <strong>${team.name}</strong> on TaskAllo.</p>
+         <p>Click the button below to accept the invitation:</p>
+         <a href="${inviteLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Join Team</a>
+         <p style="margin-top: 20px; font-size: 12px; color: #666;">Link expires in 7 days.</p>
+       </div>`
+    );
+
+    res.json({ message: "Invite sent successfully" });
   } catch (err) {
     console.error("Error inviting member:", err);
     res.status(500).json({ error: "Server error" });

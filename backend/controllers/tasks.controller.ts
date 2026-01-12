@@ -8,7 +8,7 @@ export const createTask = async (req: Request, res: Response) => {
     const {
       title,
       description, // 'desc' in schema
-      difficulty,
+      deadline,
       requiredSkill, // Schema has 'requiredSkill' (String)
       priority,
       assignedToId, // Schema has 'assignedToId'
@@ -16,15 +16,15 @@ export const createTask = async (req: Request, res: Response) => {
       status = "pending",
     } = req.body;
 
-    if (!teamId || !title || !requiredSkill) {
-      return res.status(400).json({ error: "Missing required fields (title, teamId, requiredSkill)" });
+    if (!teamId || !title || !requiredSkill || !deadline) {
+      return res.status(400).json({ error: "Missing required fields (title, teamId, requiredSkill, deadline)" });
     }
 
     const newTask = await prisma.task.create({
       data: {
         title,
         desc: description,
-        difficulty: parseInt(difficulty) || 1,
+        deadline: new Date(deadline),
         // Try to canonicalize, otherwise just format it nicely
         requiredSkill: getCanonicalSkill(requiredSkill) || formatSkill(requiredSkill),
         priority,
@@ -99,7 +99,7 @@ export const updateTask = async (req: Request, res: Response) => {
     const {
       title,
       description,
-      difficulty,
+      deadline,
       requiredSkill,
       priority,
       status,
@@ -126,7 +126,7 @@ export const updateTask = async (req: Request, res: Response) => {
 
       // If not leader, ensure they are ONLY updating status
       if (!isLeader) {
-        if (title || description || difficulty || requiredSkill || priority || assignedToId) {
+        if (title || description || deadline || requiredSkill || priority || assignedToId) {
           throw new Error("Only team leader can edit task details. You can only update status.");
         }
       }
@@ -135,7 +135,7 @@ export const updateTask = async (req: Request, res: Response) => {
       const updateData: any = {};
       if (title) updateData.title = title;
       if (description !== undefined) updateData.desc = description;
-      if (difficulty) updateData.difficulty = parseInt(difficulty);
+      if (deadline) updateData.deadline = new Date(deadline);
       if (requiredSkill) updateData.requiredSkill = getCanonicalSkill(requiredSkill) || formatSkill(requiredSkill);
       if (priority) updateData.priority = priority;
       if (status) updateData.status = status;

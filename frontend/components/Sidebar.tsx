@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CheckSquare, Users, LogOut, User, Terminal } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Users, LogOut, User, Terminal, Lock } from "lucide-react";
+import { usePersonalWorkspace } from "@/hooks/usePersonalWorkspace";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
 import ConfirmModal from "./ConfirmModal";
@@ -12,6 +13,7 @@ import Image from "next/image";
 export default function Sidebar() {
     const pathname = usePathname();
     const { data: session } = useSession();
+    const { data: personalTeamId } = usePersonalWorkspace();
     const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
     if (!session) return null;
@@ -55,6 +57,30 @@ export default function Sidebar() {
                         );
                     })}
                 </nav>
+
+                {/* Personal Workspace - Separate Section */}
+                <div className="mt-6 pt-6 border-t border-zinc-900">
+                    <h3 className="px-6 text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Personal</h3>
+                    {personalTeamId ? (
+                        <Link
+                            href={`/teams/${personalTeamId}`}
+                            className={clsx(
+                                "group flex items-center gap-3 px-6 py-3 text-xs font-bold uppercase tracking-wider hover:bg-zinc-900 transition-none",
+                                pathname === `/teams/${personalTeamId}`
+                                    ? "bg-zinc-900 text-white border-r-4 border-r-white"
+                                    : "text-zinc-500 hover:text-zinc-300"
+                            )}
+                        >
+                            <Lock className={clsx("h-4 w-4", pathname === `/teams/${personalTeamId}` ? "text-white" : "text-zinc-600 group-hover:text-zinc-400")} />
+                            My Tasks
+                        </Link>
+                    ) : (
+                        <div className="px-6 py-3 flex items-center gap-2 text-zinc-700 text-xs">
+                            <div className="w-4 h-4 rounded-full border-2 border-zinc-800 border-t-zinc-600 animate-spin" />
+                            Loading...
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* User Profile */}

@@ -39,6 +39,8 @@ export default function TeamsClient({ initialTeams }) {
         );
     }
 
+    const visibleTeams = teams?.filter((t: Team) => t.name !== "Personal") || [];
+
     return (
         <main className="min-h-screen bg-background p-6 lg:p-12 text-zinc-200 selection:bg-zinc-800">
             <div className="max-w-7xl mx-auto">
@@ -56,9 +58,9 @@ export default function TeamsClient({ initialTeams }) {
                     </button>
                 </div>
 
-                {teams && teams.length > 0 ? (
+                {visibleTeams.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {teams.map((team: Team) => (
+                        {visibleTeams.map((team: Team) => (
                             <div
                                 key={team.id}
                                 onClick={() => router.push(`/teams/${team.id}`)}

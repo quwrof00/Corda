@@ -20,6 +20,7 @@ import {
     AlertTriangle,
     TrendingUp,
     AlertOctagon,
+    Lock,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { clsx } from "clsx";
@@ -272,6 +273,8 @@ export default function TeamDetailsPage() {
     if (!team) return <div className="p-10 text-center bg-background text-zinc-500 font-sans">Team Not Found</div>;
 
     const isLeader = session?.user?.email === team.leader?.email;
+    const isPersonal = team.name === "Personal";
+    const currentUserMemberId = (members as Member[])?.find((m: Member) => m.email === session?.user?.email)?.id;
 
     return (
         <main className="min-h-screen bg-background text-zinc-300 font-sans pb-20 selection:bg-zinc-800">
@@ -284,27 +287,27 @@ export default function TeamDetailsPage() {
                                 <ArrowLeft className="w-5 h-5" />
                             </button>
                             <div className="w-14 h-14 bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-200 font-bold text-xl rounded-lg">
-                                {team.name.substring(0, 2).toUpperCase()}
+                                {isPersonal ? <Lock className="w-6 h-6 text-zinc-500" /> : team.name.substring(0, 2).toUpperCase()}
                             </div>
                             <div>
                                 <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-3">
-                                    {team.name}
-                                    {isLeader && (
+                                    {isPersonal ? "Personal Workspace" : team.name}
+                                    {isLeader && !isPersonal && (
                                         <button onClick={openEditTeam} className="text-zinc-600 hover:text-zinc-400 transition-colors">
                                             <Settings className="w-4 h-4" />
                                         </button>
                                     )}
                                 </h1>
                                 <div className="flex items-center gap-4 mt-1 text-xs text-zinc-500 font-medium">
-                                    <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {members?.length} Members</span>
-                                    <span className="text-zinc-700">|</span>
+                                    {!isPersonal && <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {members?.length} Members</span>}
+                                    {!isPersonal && <span className="text-zinc-700">|</span>}
                                     <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> {assignedTasks.length} Active Tasks</span>
                                 </div>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-3">
-                            {isLeader && (
+                            {isLeader && !isPersonal && (
                                 <button
                                     onClick={() => setInviteModalOpen(true)}
                                     className="px-4 py-2 text-xs font-bold text-zinc-400 border border-zinc-800 bg-background hover:bg-zinc-900 hover:text-white transition-colors rounded-lg"
@@ -315,25 +318,34 @@ export default function TeamDetailsPage() {
                             {isLeader && (
                                 <>
                                     <button
-                                        onClick={() => setCreateTaskModalOpen(true)}
+                                        onClick={() => {
+                                            if (isPersonal) {
+                                                setSelectedMemberId(currentUserMemberId || "");
+                                            }
+                                            setCreateTaskModalOpen(true);
+                                        }}
                                         className="px-4 py-2 text-xs font-bold text-black bg-zinc-100 hover:bg-white transition-colors flex items-center gap-2 rounded-lg"
                                     >
                                         <Plus className="w-3 h-3" /> New Task
                                     </button>
-                                    <button
-                                        onClick={handleAllocate}
-                                        disabled={allocating}
-                                        className="px-4 py-2 text-xs font-bold text-emerald-400 border border-emerald-900/30 bg-emerald-950/10 hover:bg-emerald-950/30 transition-colors flex items-center gap-2 disabled:opacity-50 rounded-lg"
-                                    >
-                                        {allocating ? <Loader2 className="w-3 h-3 animate-spin" /> : <BrainCircuit className="w-3 h-3" />}
-                                        Auto-Allocate
-                                    </button>
-                                    <button
-                                        onClick={handleDeleteTeam}
-                                        className="px-4 py-2 text-xs font-bold text-red-500 border border-red-900/30 bg-red-950/10 hover:bg-red-950/30 transition-colors flex items-center gap-2 rounded-lg"
-                                    >
-                                        <Trash2 className="w-3 h-3" />
-                                    </button>
+                                    {!isPersonal && (
+                                        <button
+                                            onClick={handleAllocate}
+                                            disabled={allocating}
+                                            className="px-4 py-2 text-xs font-bold text-emerald-400 border border-emerald-900/30 bg-emerald-950/10 hover:bg-emerald-950/30 transition-colors flex items-center gap-2 disabled:opacity-50 rounded-lg"
+                                        >
+                                            {allocating ? <Loader2 className="w-3 h-3 animate-spin" /> : <BrainCircuit className="w-3 h-3" />}
+                                            Auto-Allocate
+                                        </button>
+                                    )}
+                                    {!isPersonal && (
+                                        <button
+                                            onClick={handleDeleteTeam}
+                                            className="px-4 py-2 text-xs font-bold text-red-500 border border-red-900/30 bg-red-950/10 hover:bg-red-950/30 transition-colors flex items-center gap-2 rounded-lg"
+                                        >
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                    )}
                                 </>
                             )}
                         </div>
@@ -344,126 +356,178 @@ export default function TeamDetailsPage() {
             <div className="max-w-7xl mx-auto px-6 space-y-8 mt-8">
 
                 {/* Workload */}
-                <section>
-                    <h2 className="text-sm font-semibold text-zinc-500 mb-4 flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4" /> Workload Analysis
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {(members as Member[])?.map((member) => {
-                            const memberTasks = tasksByMember[member.id] || [];
-                            const workload = Math.min(100, (memberTasks.length / 5) * 100);
-                            const isOverloaded = workload > 80;
+                {!isPersonal && (
+                    <section>
+                        <h2 className="text-sm font-semibold text-zinc-500 mb-4 flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4" /> Workload Analysis
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {(members as Member[])?.map((member) => {
+                                const memberTasks = tasksByMember[member.id] || [];
+                                const workload = Math.min(100, (memberTasks.length / 5) * 100);
+                                const isOverloaded = workload > 80;
 
-                            return (
-                                <div key={member.id} className="group relative bg-card border border-zinc-900 hover:border-zinc-700 p-4 transition-all rounded-xl">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-zinc-900 flex items-center justify-center text-zinc-500 rounded-lg border border-zinc-800">
-                                                <User className="w-4 h-4" />
+                                return (
+                                    <div key={member.id} className="group relative bg-card border border-zinc-900 hover:border-zinc-700 p-4 transition-all rounded-xl">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-zinc-900 flex items-center justify-center text-zinc-500 rounded-lg border border-zinc-800">
+                                                    <User className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xs font-bold text-zinc-300">{member.name}</h3>
+                                                    <p className="text-[10px] text-zinc-500">{member.skills?.[0] || "Generalist"}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h3 className="text-xs font-bold text-zinc-300">{member.name}</h3>
-                                                <p className="text-[10px] text-zinc-500">{member.skills?.[0] || "Generalist"}</p>
+                                            {isOverloaded && <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />}
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between text-[10px] text-zinc-500 font-medium">
+                                                <span>Capacity</span>
+                                                <span>{Math.round(workload)}%</span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-zinc-900 overflow-hidden rounded-full">
+                                                <div
+                                                    className={cn("h-full transition-all duration-500 rounded-full",
+                                                        workload > 80 ? "bg-red-500" : workload > 50 ? "bg-amber-500" : "bg-emerald-500"
+                                                    )}
+                                                    style={{ width: `${workload}%` }}
+                                                />
                                             </div>
                                         </div>
-                                        {isOverloaded && <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />}
-                                    </div>
 
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between text-[10px] text-zinc-500 font-medium">
-                                            <span>Capacity</span>
-                                            <span>{Math.round(workload)}%</span>
-                                        </div>
-                                        <div className="h-1.5 w-full bg-zinc-900 overflow-hidden rounded-full">
-                                            <div
-                                                className={cn("h-full transition-all duration-500 rounded-full",
-                                                    workload > 80 ? "bg-red-500" : workload > 50 ? "bg-amber-500" : "bg-emerald-500"
-                                                )}
-                                                style={{ width: `${workload}%` }}
-                                            />
-                                        </div>
+                                        {isLeader && (
+                                            <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedMemberId(member.id);
+                                                        setCreateTaskModalOpen(true);
+                                                    }}
+                                                    className="p-1 text-zinc-500 hover:text-zinc-200 transition-colors rounded hover:bg-zinc-800"
+                                                    title="Assign Task"
+                                                >
+                                                    <Plus className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleRemoveMember(member.id); }}
+                                                    disabled={removeMemberMutation.isPending}
+                                                    className="p-1 text-zinc-500 hover:text-red-500 transition-colors rounded hover:bg-zinc-800 disabled:opacity-50"
+                                                    title="Remove Member"
+                                                >
+                                                    {removeMemberMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserMinus className="w-3.5 h-3.5" />}
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
-
-                                    {isLeader && (
-                                        <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedMemberId(member.id);
-                                                    setCreateTaskModalOpen(true);
-                                                }}
-                                                className="p-1 text-zinc-500 hover:text-zinc-200 transition-colors rounded hover:bg-zinc-800"
-                                                title="Assign Task"
-                                            >
-                                                <Plus className="w-3.5 h-3.5" />
-                                            </button>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleRemoveMember(member.id); }}
-                                                disabled={removeMemberMutation.isPending}
-                                                className="p-1 text-zinc-500 hover:text-red-500 transition-colors rounded hover:bg-zinc-800 disabled:opacity-50"
-                                                title="Remove Member"
-                                            >
-                                                {removeMemberMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserMinus className="w-3.5 h-3.5" />}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </section>
+                                );
+                            })}
+                        </div>
+                    </section>
+                )}
 
                 {/* Task Dashboard */}
-                <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
-                    {/* Unassigned */}
-                    <div className="bg-card border border-zinc-900 flex flex-col rounded-xl overflow-hidden">
-                        <div className="p-4 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/20">
-                            <h3 className="text-xs font-bold text-zinc-400 flex items-center gap-2">
-                                <AlertOctagon className="w-3 h-3" /> Unassigned Tasks
-                            </h3>
-                            <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">{unassignedTasks.length}</span>
-                        </div>
-                        <div className="flex-1 overflow-y-auto space-y-2 p-3 scrollbar-custom">
-                            {unassignedTasks.map((task) => (
-                                <div key={task.id}
-                                    onClick={() => isLeader && openEditTask(task)}
-                                    className={cn(
-                                        "bg-zinc-900 border border-zinc-800 p-3 transition-colors group rounded-lg",
-                                        isLeader ? "cursor-pointer hover:border-zinc-600" : "cursor-default"
-                                    )}
-                                    title={task.requiredSkill ? `Skill: ${task.requiredSkill}` : undefined}
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className={cn("text-[10px] font-medium border px-1.5 py-0.5 rounded-md",
-                                                task.priority === 'High' ? "border-red-900/50 text-red-500 bg-red-900/10" : "border-zinc-800 text-zinc-500 bg-zinc-900"
-                                            )}>{task.priority}</span>
-                                            {task.deadline && (
+                <section className={cn("grid gap-6 h-[600px] grid-cols-1 lg:grid-cols-3")}>
+                    {/* Unassigned or Personal Stats */}
+                    {!isPersonal ? (
+                        <div className="bg-card border border-zinc-900 flex flex-col rounded-xl overflow-hidden">
+                            <div className="p-4 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/20">
+                                <h3 className="text-xs font-bold text-zinc-400 flex items-center gap-2">
+                                    <AlertOctagon className="w-3 h-3" /> Unassigned Tasks
+                                </h3>
+                                <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">{unassignedTasks.length}</span>
+                            </div>
+                            <div className="flex-1 overflow-y-auto space-y-2 p-3 scrollbar-custom">
+                                {unassignedTasks.map((task) => (
+                                    <div key={task.id}
+                                        onClick={() => isLeader && openEditTask(task)}
+                                        className={cn(
+                                            "bg-zinc-900 border border-zinc-800 p-3 transition-colors group rounded-lg",
+                                            isLeader ? "cursor-pointer hover:border-zinc-600" : "cursor-default"
+                                        )}
+                                        title={task.requiredSkill ? `Skill: ${task.requiredSkill}` : undefined}
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="flex items-center gap-2">
                                                 <span className={cn("text-[10px] font-medium border px-1.5 py-0.5 rounded-md",
-                                                    new Date(task.deadline) < new Date() ? "border-red-900/30 text-red-400 bg-red-950/10" : "border-zinc-800 text-zinc-500 bg-zinc-900"
-                                                )}>
-                                                    Due {new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                </span>
+                                                    task.priority === 'High' ? "border-red-900/50 text-red-500 bg-red-900/10" : "border-zinc-800 text-zinc-500 bg-zinc-900"
+                                                )}>{task.priority}</span>
+                                                {task.deadline && (
+                                                    <span className={cn("text-[10px] font-medium border px-1.5 py-0.5 rounded-md",
+                                                        new Date(task.deadline) < new Date() ? "border-red-900/30 text-red-400 bg-red-950/10" : "border-zinc-800 text-zinc-500 bg-zinc-900"
+                                                    )}>
+                                                        Due {new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {task.requiredSkill && <span className="text-[10px] text-zinc-500">[{task.requiredSkill}]</span>}
+                                        </div>
+                                        <h4 className="text-xs font-medium text-zinc-300 line-clamp-2 group-hover:text-white">{task.title}</h4>
+                                    </div>
+                                ))}
+                                {unassignedTasks.length === 0 && (
+                                    <div className="text-center py-10 text-zinc-700 text-xs">
+                                        No tasks unassigned
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        // Personal Workspace Stats Widget
+                        <div className="bg-card border border-zinc-900 flex flex-col rounded-xl overflow-hidden h-full">
+                            <div className="p-4 border-b border-zinc-900 bg-zinc-900/20">
+                                <h3 className="text-xs font-bold text-zinc-400 flex items-center gap-2">
+                                    <TrendingUp className="w-3 h-3" /> Focus Overview
+                                </h3>
+                            </div>
+                            <div className="p-6 space-y-6">
+                                <div className="space-y-2">
+                                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                                        Workspace Status
+                                    </h2>
+                                    <p className="text-xs text-zinc-500">Your personal focus overview</p>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-zinc-900/50 p-3 rounded-xl border border-zinc-800">
+                                        <div className="text-2xl font-bold text-emerald-500">{assignedTasks.filter(t => t.status === 'completed').length}</div>
+                                        <div className="text-[10px] text-zinc-500 mt-1">Completed</div>
+                                    </div>
+                                    <div className="bg-zinc-900/50 p-3 rounded-xl border border-zinc-800">
+                                        <div className="text-2xl font-bold text-amber-500">{assignedTasks.filter(t => t.status !== 'completed').length}</div>
+                                        <div className="text-[10px] text-zinc-500 mt-1">Pending</div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h4 className="text-xs font-semibold text-zinc-400">High Priority</h4>
+                                    {assignedTasks.filter(t => t.priority === 'High' && t.status !== 'completed').length > 0 ? (
+                                        <div className="space-y-2">
+                                            {assignedTasks.filter(t => t.priority === 'High' && t.status !== 'completed').slice(0, 3).map(task => (
+                                                <div key={task.id} className="flex items-center gap-2 text-xs text-zinc-300 bg-zinc-900/30 p-2 rounded-lg border border-zinc-900">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                                    <span className="line-clamp-1">{task.title}</span>
+                                                </div>
+                                            ))}
+                                            {assignedTasks.filter(t => t.priority === 'High' && t.status !== 'completed').length > 3 && (
+                                                <p className="text-[10px] text-zinc-500 pl-1">+ {assignedTasks.filter(t => t.priority === 'High' && t.status !== 'completed').length - 3} more</p>
                                             )}
                                         </div>
-                                        {task.requiredSkill && <span className="text-[10px] text-zinc-500">[{task.requiredSkill}]</span>}
-                                    </div>
-                                    <h4 className="text-xs font-medium text-zinc-300 line-clamp-2 group-hover:text-white">{task.title}</h4>
+                                    ) : (
+                                        <p className="text-[10px] text-zinc-600 italic">No high priority tasks pending.</p>
+                                    )}
                                 </div>
-                            ))}
-                            {unassignedTasks.length === 0 && (
-                                <div className="text-center py-10 text-zinc-700 text-xs">
-                                    No tasks unassigned
-                                </div>
-                            )}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Assigned */}
-                    <div className="lg:col-span-2 bg-card border border-zinc-900 flex flex-col rounded-xl overflow-hidden">
+                    <div className={cn("bg-card border border-zinc-900 flex flex-col rounded-xl overflow-hidden", "lg:col-span-2")}>
                         <div className="p-4 border-b border-zinc-900 bg-zinc-900/20">
                             <h3 className="text-xs font-bold text-zinc-400 flex items-center gap-2">
-                                <CheckCircle2 className="w-3 h-3" /> Member Tasks
+                                <CheckCircle2 className="w-3 h-3" /> {isPersonal ? "My Tasks" : "Member Tasks"}
                             </h3>
                         </div>
                         <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4 p-4 scrollbar-custom">
@@ -557,6 +621,8 @@ export default function TeamDetailsPage() {
                 }}
                 initialTeamId={teamId}
                 initialAssignedToId={selectedMemberId}
+                isPersonalWorkspace={isPersonal}
+                currentUserId={currentUserMemberId}
                 onTaskCreated={() => {
                     queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
                 }}

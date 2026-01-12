@@ -23,10 +23,66 @@ router.post("/register", async (req, res) => {
       data: { name, email, password: hashed },
     });
 
-    return res.status(201).json({ message: "User registered successfully" });
+    // Generate verification token
+    const crypto = await import("crypto");
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    await prisma.verificationToken.create({
+      data: {
+        identifier: email,
+        token,
+        expires
+      }
+    });
+
+    const verifyLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
+
+    await sendEmail(
+      email,
+      "Verify your email - TaskAllo",
+      `<div style="font-family: Arial, sans-serif; color: #333;">
+         <h2>Welcome to TaskAllo!</h2>
+         <p>Please verify your email address to get started.</p>
+         <a href="${verifyLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify Email</a>
+         <p style="margin-top: 20px; font-size: 12px; color: #666;">If you didn't create an account, you can ignore this email.</p>
+       </div>`
+    );
+
+    return res.status(201).json({ message: "User registered successfully. Please check your email to verify." });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Failed to register user" });
+  }
+});
+
+// VERIFY EMAIL
+router.post("/verify-email", async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ message: "Token is required" });
+
+    const storedToken = await prisma.verificationToken.findUnique({
+      where: { token }
+    });
+
+    if (!storedToken || storedToken.expires < new Date()) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+    const { identifier: email } = storedToken;
+
+    await prisma.user.update({
+      where: { email },
+      data: { emailVerified: new Date() }
+    });
+
+    await prisma.verificationToken.delete({ where: { token } });
+
+    return res.status(200).json({ message: "Email verified successfully" });
+  } catch (err) {
+    console.error("Verify email error:", err);
+    return res.status(500).json({ message: "Failed to verify email" });
   }
 });
 

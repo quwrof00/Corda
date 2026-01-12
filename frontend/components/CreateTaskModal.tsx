@@ -10,9 +10,19 @@ interface CreateTaskModalProps {
     onTaskCreated?: () => void;
     initialTeamId?: string;
     initialAssignedToId?: string;
+    isPersonalWorkspace?: boolean;
+    currentUserId?: string;
 }
 
-export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initialTeamId, initialAssignedToId }: CreateTaskModalProps) {
+export default function CreateTaskModal({
+    isOpen,
+    onClose,
+    onTaskCreated,
+    initialTeamId,
+    initialAssignedToId,
+    isPersonalWorkspace,
+    currentUserId
+}: CreateTaskModalProps) {
     const { data: teams } = useTeams();
     const createTaskMutation = useCreateTask();
 
@@ -23,13 +33,27 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
     const [requiredSkill, setRequiredSkill] = useState("");
     const [teamId, setTeamId] = useState(initialTeamId || "");
     const [assignedToId, setAssignedToId] = useState(initialAssignedToId || "");
+    const [assignToMe, setAssignToMe] = useState(isPersonalWorkspace || (initialAssignedToId === currentUserId && !!currentUserId));
+
+    // Update state when modal opens or props change
+    // Note: In a real app we might use useEffect to sync props to state if they change while open,
+    // but for now simplistic initialization is okay or we can add an effect if needed.
 
     if (!isOpen) return null;
+
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         try {
+            // Determine final assignedToId.
+            // If checking box, force currentUserId if it exists.
+            let finalAssignedToId = assignedToId;
+            if (assignToMe && currentUserId) {
+                finalAssignedToId = currentUserId;
+            }
+
             await createTaskMutation.mutateAsync({
                 title,
                 description: desc,
@@ -37,7 +61,7 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
                 priority,
                 requiredSkill,
                 teamId,
-                assignedToId: assignedToId || undefined, // Use state
+                assignedToId: finalAssignedToId || undefined,
             });
 
             if (onTaskCreated) {
@@ -54,6 +78,7 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
             setRequiredSkill("");
             setTeamId(initialTeamId || "");
             setAssignedToId(initialAssignedToId || "");
+            setAssignToMe(isPersonalWorkspace || false);
         } catch (err) {
             console.error(err);
             toast.error("Failed to create task.");
@@ -71,7 +96,9 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
                             </div>
                             <div>
                                 <h1 className="text-xl font-bold text-zinc-100">New Task</h1>
-                                <p className="text-zinc-500 text-sm mt-0.5">Create a task for your team</p>
+                                <p className="text-zinc-500 text-sm mt-0.5">
+                                    {isPersonalWorkspace ? "Add to your personal list" : "Create a task for your team"}
+                                </p>
                             </div>
                         </div>
                         <button
@@ -90,7 +117,7 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
                             </label>
                             <input
                                 type="text"
-                                placeholder="e.g. Implement Auth Flow"
+                                placeholder={isPersonalWorkspace ? "e.g. Buy groceries" : "e.g. Implement Auth Flow"}
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 placeholder-zinc-600"
@@ -114,29 +141,33 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Team Selection */}
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-400 mb-2">
-                                    Assign to Team
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        value={teamId}
-                                        onChange={(e) => setTeamId(e.target.value)}
-                                        className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 appearance-none"
-                                        required
-                                    >
-                                        <option value="" disabled>Select a team</option>
-                                        {teams?.map((team: { id: string, name: string }) => (
-                                            <option key={team.id} value={team.id}>
-                                                {team.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-zinc-500">
-                                        <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                            {!isPersonalWorkspace ? (
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                        Assign to Team
+                                    </label>
+                                    <div className="relative">
+                                        <select
+                                            value={teamId}
+                                            onChange={(e) => setTeamId(e.target.value)}
+                                            className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 appearance-none"
+                                            required
+                                        >
+                                            <option value="" disabled>Select a team</option>
+                                            {teams?.map((team: { id: string, name: string }) => (
+                                                <option key={team.id} value={team.id}>
+                                                    {team.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-zinc-500">
+                                            <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <input type="hidden" value={teamId} />
+                            )}
 
                             {/* Required Skill */}
                             <div>
@@ -151,6 +182,28 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
                                     className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 placeholder-zinc-600"
                                 />
                             </div>
+                        </div>
+
+                        {/* Assign to Me Checkbox */}
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id="assignToMe"
+                                checked={assignToMe}
+                                disabled={isPersonalWorkspace || !currentUserId}
+                                onChange={(e) => {
+                                    setAssignToMe(e.target.checked);
+                                    if (e.target.checked && currentUserId) {
+                                        setAssignedToId(currentUserId);
+                                    } else {
+                                        setAssignedToId("");
+                                    }
+                                }}
+                                className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-emerald-500 focus:ring-emerald-500/20"
+                            />
+                            <label htmlFor="assignToMe" className="text-sm font-medium text-zinc-300 cursor-pointer select-none">
+                                Assign to me
+                            </label>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

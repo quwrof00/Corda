@@ -2,8 +2,8 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  difficulty: number;
-  requiredSkills: string[];
+  deadline: Date;
+  requiredSkill: string;
   priority: "low" | "medium" | "high";
   assignedTo?: string; // user id
   teamId: string;
