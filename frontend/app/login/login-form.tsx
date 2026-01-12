@@ -34,7 +34,11 @@ export default function LoginForm() {
         setLoading(false);
 
         if (res?.error) {
-            toast.error("Invalid credentials. Please check your email and password.");
+            if (res.error === "Email not verified. Please check your inbox.") {
+                toast.error("Email not verified. Please check your inbox to access the system.");
+            } else {
+                toast.error("Invalid credentials. Please check your email and password.");
+            }
         } else {
             toast.success("Welcome back!");
             router.push("/dashboard");
@@ -67,13 +71,13 @@ export default function LoginForm() {
                             <ShieldCheck className="w-6 h-6" />
                         </div>
                     </Link>
-                    <h1 className="text-xl font-bold text-white tracking-widest uppercase font-mono">System Login</h1>
-                    <p className="text-zinc-500 mt-2 text-xs font-mono uppercase">Authenticate to access control grid</p>
+                    <h1 className="text-xl font-bold text-white tracking-widest uppercase font-mono">Login</h1>
+                    <p className="text-zinc-500 mt-2 text-xs font-mono uppercase">Sign in to your account</p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-500 uppercase font-mono ml-1" htmlFor="email">Comms ID (Email)</label>
+                        <label className="text-xs font-bold text-zinc-500 uppercase font-mono ml-1" htmlFor="email">Email Address</label>
                         <div className="relative group">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-600 group-focus-within:text-white transition-colors">
                                 <Mail className="h-4 w-4" />
@@ -81,7 +85,7 @@ export default function LoginForm() {
                             <input
                                 id="email"
                                 type="email"
-                                placeholder="USER@SYSTEM.COM"
+                                placeholder="name@example.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full pl-10 pr-4 py-3 bg-zinc-900 border border-zinc-800 focus:border-white outline-none transition-all text-white placeholder:text-zinc-700 font-mono text-sm"
@@ -92,7 +96,7 @@ export default function LoginForm() {
 
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <label className="text-xs font-bold text-zinc-500 uppercase font-mono ml-1" htmlFor="password">Security Code</label>
+                            <label className="text-xs font-bold text-zinc-500 uppercase font-mono ml-1" htmlFor="password">Password</label>
                             <Link href="/forgot-password" className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-white hover:underline font-mono">Forgot password?</Link>
                         </div>
                         <div className="relative group">
@@ -123,7 +127,7 @@ export default function LoginForm() {
                             </>
                         ) : (
                             <>
-                                Access Terminal
+                                Sign In
                                 <ArrowRight className="w-4 h-4" />
                             </>
                         )}
@@ -134,7 +138,7 @@ export default function LoginForm() {
                             <span className="w-full border-t border-zinc-800" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase font-mono">
-                            <span className="bg-card px-2 text-zinc-500">Or authenticate via</span>
+                            <span className="bg-card px-2 text-zinc-500">Or continue with</span>
                         </div>
                     </div>
 
@@ -167,9 +171,9 @@ export default function LoginForm() {
 
                 <div className="mt-8 text-center border-t border-zinc-900 pt-6">
                     <p className="text-xs text-zinc-600 font-mono uppercase">
-                        No Security Clearance?{" "}
+                        Don&apos;t have an account?{" "}
                         <Link href="/register" className="font-bold text-white hover:underline transition-colors">
-                            Initialize Record
+                            Sign up
                         </Link>
                     </p>
                 </div>

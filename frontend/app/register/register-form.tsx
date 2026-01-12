@@ -33,8 +33,8 @@ export default function RegisterForm() {
             });
 
             if (res.ok) {
-                toast.success("Account created successfully! Redirecting...");
-                setTimeout(() => router.push("/login"), 1000);
+                toast.success("Account created! Please check your email to verify your account.");
+                setTimeout(() => router.push("/login"), 3000);
             } else {
                 const data = await res.json();
                 toast.error(data.message || "Registration failed.");
@@ -71,13 +71,13 @@ export default function RegisterForm() {
                             <ShieldCheck className="w-6 h-6" />
                         </div>
                     </Link>
-                    <h1 className="text-xl font-bold text-white tracking-widest uppercase font-mono">Access Request</h1>
-                    <p className="text-zinc-500 mt-2 text-xs font-mono uppercase">Initialize new personnel record</p>
+                    <h1 className="text-xl font-bold text-white tracking-widest uppercase font-mono">Create Account</h1>
+                    <p className="text-zinc-500 mt-2 text-xs font-mono uppercase">Get started for free</p>
                 </div>
 
                 <form onSubmit={handleRegister} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-500 uppercase font-mono ml-1" htmlFor="name">Designation (Name)</label>
+                        <label className="text-xs font-bold text-zinc-500 uppercase font-mono ml-1" htmlFor="name">Full Name</label>
                         <div className="relative group">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-600 group-focus-within:text-white transition-colors">
                                 <User className="h-4 w-4" />
@@ -85,7 +85,7 @@ export default function RegisterForm() {
                             <input
                                 id="name"
                                 type="text"
-                                placeholder="JOHN DOE"
+                                placeholder="John Doe"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 className="w-full pl-10 pr-4 py-3 bg-zinc-900 border border-zinc-800 focus:border-white outline-none transition-all text-white placeholder:text-zinc-700 font-mono text-sm"
@@ -95,7 +95,7 @@ export default function RegisterForm() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-500 uppercase font-mono ml-1" htmlFor="email">Comms ID (Email)</label>
+                        <label className="text-xs font-bold text-zinc-500 uppercase font-mono ml-1" htmlFor="email">Email Address</label>
                         <div className="relative group">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-600 group-focus-within:text-white transition-colors">
                                 <Mail className="h-4 w-4" />
@@ -103,7 +103,7 @@ export default function RegisterForm() {
                             <input
                                 id="email"
                                 type="email"
-                                placeholder="USER@SYSTEM.COM"
+                                placeholder="name@example.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full pl-10 pr-4 py-3 bg-zinc-900 border border-zinc-800 focus:border-white outline-none transition-all text-white placeholder:text-zinc-700 font-mono text-sm"
@@ -113,7 +113,7 @@ export default function RegisterForm() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-500 uppercase font-mono ml-1" htmlFor="password">Security Code</label>
+                        <label className="text-xs font-bold text-zinc-500 uppercase font-mono ml-1" htmlFor="password">Password</label>
                         <div className="relative group">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-600 group-focus-within:text-white transition-colors">
                                 <Lock className="h-4 w-4" />
@@ -142,7 +142,7 @@ export default function RegisterForm() {
                             </>
                         ) : (
                             <>
-                                Initialize
+                                Sign Up
                                 <ArrowRight className="w-4 h-4" />
                             </>
                         )}
@@ -153,7 +153,7 @@ export default function RegisterForm() {
                             <span className="w-full border-t border-zinc-800" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase font-mono">
-                            <span className="bg-card px-2 text-zinc-500">Or authenticate via</span>
+                            <span className="bg-card px-2 text-zinc-500">Or continue with</span>
                         </div>
                     </div>
 
@@ -186,7 +186,7 @@ export default function RegisterForm() {
 
                 <div className="mt-8 text-center border-t border-zinc-900 pt-6">
                     <p className="text-xs text-zinc-600 font-mono uppercase">
-                        Existing Personnel?{" "}
+                        Already have an account?{" "}
                         <Link href="/login" className="font-bold text-white hover:underline transition-colors">
                             Login
                         </Link>

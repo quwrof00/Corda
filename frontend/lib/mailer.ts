@@ -1,13 +1,14 @@
 import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.ethereal.email",
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: process.env.SMTP_SECURE === "true",
+    service: 'gmail', // Built-in service support
     auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        pass: process.env.SMTP_PASS, // App Password
     },
+    tls: {
+        rejectUnauthorized: false
+    }
 });
 
 export const sendEmail = async (to: string, subject: string, html: string) => {
@@ -20,7 +21,7 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
 
     try {
         const info = await transporter.sendMail({
-            from: process.env.SMTP_FROM || '"TaskAllo" <no-reply@taskallo.com>',
+            from: process.env.EMAIL_FROM || '"Corda" <no-reply@taskallo.com>',
             to,
             subject,
             html,

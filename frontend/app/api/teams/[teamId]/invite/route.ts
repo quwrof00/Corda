@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import crypto from "crypto";
+import { sendEmail } from "@/lib/mailer";
 
 export async function POST(
     req: Request,
@@ -92,10 +93,23 @@ export async function POST(
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL!;
         const inviteLink = `${baseUrl}/invite?token=${rawToken}`;
 
-        // In production we should send email
-        console.log(`[INVITE] Sending invite to ${email}: ${inviteLink}`);
-
-        return NextResponse.json({ message: "Invite sent", link: inviteLink });
+        try {
+            await sendEmail(
+                email,
+                `Join ${team.name} on TaskAllo`,
+                `<div style="font-family: Arial, sans-serif; color: #333;">
+                    <h2>You've been invited!</h2>
+                    <p>You have been invited to join the team <strong>${team.name}</strong> on TaskAllo.</p>
+                    <p>Click the button below to accept the invitation:</p>
+                    <a href="${inviteLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Join Team</a>
+                    <p style="margin-top: 20px; font-size: 12px; color: #666;">Link expires in 7 days.</p>
+                </div>`
+            );
+            return NextResponse.json({ message: "Invite sent successfully", link: inviteLink });
+        } catch (emailError) {
+            console.error("Failed to send invite email:", emailError);
+            return NextResponse.json({ error: "Failed to send invite email" }, { status: 500 });
+        }
     } catch (error) {
         console.error("Error inviting member:", error);
         return NextResponse.json({ error: "Server error" }, { status: 500 });

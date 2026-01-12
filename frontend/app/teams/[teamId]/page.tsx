@@ -90,6 +90,7 @@ export default function TeamDetailsPage() {
     const [editingTeamName, setEditingTeamName] = useState("");
     const [editingTeamDesc, setEditingTeamDesc] = useState("");
     const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [selectedMemberId, setSelectedMemberId] = useState<string>("");
 
     const unassignedTasks = useMemo(() => (tasks as Task[])?.filter((t) => !t.assignedTo) || [], [tasks]);
     const assignedTasks = useMemo(() => (tasks as Task[])?.filter((t) => t.assignedTo) || [], [tasks]);
@@ -384,13 +385,27 @@ export default function TeamDetailsPage() {
                                     </div>
 
                                     {isLeader && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleRemoveMember(member.id); }}
-                                            disabled={removeMemberMutation.isPending}
-                                            className="absolute top-2 right-2 p-1 text-zinc-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 rounded disabled:opacity-50"
-                                        >
-                                            {removeMemberMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserMinus className="w-3 h-3" />}
-                                        </button>
+                                        <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedMemberId(member.id);
+                                                    setCreateTaskModalOpen(true);
+                                                }}
+                                                className="p-1 text-zinc-500 hover:text-zinc-200 transition-colors rounded hover:bg-zinc-800"
+                                                title="Assign Task"
+                                            >
+                                                <Plus className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleRemoveMember(member.id); }}
+                                                disabled={removeMemberMutation.isPending}
+                                                className="p-1 text-zinc-500 hover:text-red-500 transition-colors rounded hover:bg-zinc-800 disabled:opacity-50"
+                                                title="Remove Member"
+                                            >
+                                                {removeMemberMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserMinus className="w-3.5 h-3.5" />}
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             );
@@ -536,8 +551,12 @@ export default function TeamDetailsPage() {
             {/* Create Task Modal */}
             <CreateTaskModal
                 isOpen={createTaskModalOpen}
-                onClose={() => setCreateTaskModalOpen(false)}
+                onClose={() => {
+                    setCreateTaskModalOpen(false);
+                    setSelectedMemberId("");
+                }}
                 initialTeamId={teamId}
+                initialAssignedToId={selectedMemberId}
                 onTaskCreated={() => {
                     queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
                 }}

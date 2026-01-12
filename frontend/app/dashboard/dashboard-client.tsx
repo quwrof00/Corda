@@ -9,7 +9,6 @@ import {
   Calendar,
   CheckCircle2,
   AlertCircle,
-  Clock,
   ArrowRight,
   Users,
 } from "lucide-react";
@@ -39,6 +38,41 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const updateTaskMutation = useUpdateTask();
+  const [greeting, setGreeting] = useState("Good morning");
+
+  useEffect(() => {
+    const updateGreeting = () => {
+      // Get current hour in IST (Indian Standard Time)
+      // Using en-US with Asia/Kolkata timezone to get the hour in 0-23 format
+      const istDate = new Date().toLocaleString("en-US", {
+        timeZone: "Asia/Kolkata",
+        hour: "numeric",
+        hour12: false
+      });
+
+      const hour = parseInt(istDate, 10);
+
+      // 4 am - 12 pm - morning
+      // 12 pm - 5 pm - afternoon
+      // 5 pm - 9 pm - evening
+      // 9 pm - 4 am - night
+
+      if (hour >= 4 && hour < 12) {
+        setGreeting("Good morning");
+      } else if (hour >= 12 && hour < 17) {
+        setGreeting("Good afternoon");
+      } else if (hour >= 17 && hour < 21) {
+        setGreeting("Good evening");
+      } else {
+        setGreeting("Good night");
+      }
+    };
+
+    updateGreeting();
+    // Update every minute to keep it real-time
+    const interval = setInterval(updateGreeting, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Filter Tasks Logic (Mocked logic for dates as existing data might not have dates)
   // Filter Tasks Logic
@@ -123,7 +157,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-zinc-900">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
-              Good morning, {session.user?.name?.split(" ")[0]}
+              {greeting}, {session.user?.name?.split(" ")[0]}
             </h1>
             <div className="flex items-center gap-2 text-zinc-500 text-sm">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
@@ -132,16 +166,16 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
           </div>
 
           {/* Quick Filters */}
-          <div className="flex items-center gap-1 bg-zinc-900/50 p-1 rounded-xl border border-zinc-900">
+          <div className="flex items-center p-1 bg-zinc-900/50 rounded-lg border border-zinc-900/50">
             {(["Today", "This Week", "Overdue"] as const).map((filter) => (
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
                 className={cn(
-                  "px-4 py-2 text-sm font-medium rounded-lg transition-all",
+                  "flex-1 px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all",
                   activeFilter === filter
-                    ? "bg-card text-white shadow-sm border border-zinc-800"
-                    : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+                    ? "bg-zinc-800 text-white shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50"
                 )}
               >
                 {filter}
@@ -329,7 +363,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
 
         </div>
 
-        {/* Bottom: Recently Updated (Activity Feed) */}
+        {/* Bottom: Recently Updated (Activity Feed)
         <div className="pt-6 border-t border-zinc-900">
           <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Recently Updated</h3>
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
@@ -344,7 +378,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Task Detail Drawer */}

@@ -9,9 +9,10 @@ interface CreateTaskModalProps {
     onClose: () => void;
     onTaskCreated?: () => void;
     initialTeamId?: string;
+    initialAssignedToId?: string;
 }
 
-export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initialTeamId }: CreateTaskModalProps) {
+export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initialTeamId, initialAssignedToId }: CreateTaskModalProps) {
     const { data: teams } = useTeams();
     const createTaskMutation = useCreateTask();
 
@@ -21,6 +22,7 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
     const [priority, setPriority] = useState("Medium");
     const [requiredSkill, setRequiredSkill] = useState("");
     const [teamId, setTeamId] = useState(initialTeamId || "");
+    const [assignedToId, setAssignedToId] = useState(initialAssignedToId || "");
 
     if (!isOpen) return null;
 
@@ -35,7 +37,7 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
                 priority,
                 requiredSkill,
                 teamId,
-                assignedToId: undefined, // Reverted to null/undefined. Pool tasks.
+                assignedToId: assignedToId || undefined, // Use state
             });
 
             if (onTaskCreated) {
@@ -51,6 +53,7 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated, initia
             setPriority("Medium");
             setRequiredSkill("");
             setTeamId(initialTeamId || "");
+            setAssignedToId(initialAssignedToId || "");
         } catch (err) {
             console.error(err);
             toast.error("Failed to create task.");
