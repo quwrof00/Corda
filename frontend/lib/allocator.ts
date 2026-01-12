@@ -17,42 +17,49 @@ export function computeAllocations(
 
     const decisions: AllocationDecision[] = [];
 
+    // Shadow workload map (never mutate Prisma objects)
+    const workload = new Map<string, number>();
+    for (const m of members) {
+        workload.set(m.id, m.workload);
+    }
+
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
     for (const task of tasks) {
         let candidates: typeof members = [];
 
         const requiredRaw = task.requiredSkill || "";
 
         if (!requiredRaw) {
-            // Case 1: No skill required -> Assign to lowest workload directly
-            candidates = [...members].sort((a, b) => a.workload - b.workload);
+            // No skill required -> lowest simulated workload
+            candidates = [...members].sort(
+                (a, b) => workload.get(a.id)! - workload.get(b.id)!
+            );
         } else {
-            // Case 2: Skill required -> Filter by skill first
-            const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
             const requiredNorm = normalize(requiredRaw);
 
-            // Get aliases
             const aliases = SKILL_ALIASES[task.requiredSkill!] || [];
             const targetSet = new Set([requiredNorm, ...aliases.map(normalize)]);
 
             candidates = members
                 .filter(m => {
-                    // Check 1: Alias / Exact Match
-                    const hasDirectMatch = m.skills.some(userSkill =>
-                        targetSet.has(normalize(userSkill))
+                    const hasDirectMatch = m.skills.some(skill =>
+                        targetSet.has(normalize(skill))
                     );
                     if (hasDirectMatch) return true;
 
-                    // Check 2: Loose Substring Match (e.g. "ReactJS" matches "React")
-                    return m.skills.some(userSkill => {
-                        const uNorm = normalize(userSkill);
-                        return uNorm.includes(requiredNorm) || requiredNorm.includes(uNorm);
+                    return m.skills.some(skill => {
+                        const u = normalize(skill);
+                        return u.includes(requiredNorm) || requiredNorm.includes(u);
                     });
                 })
-                .sort((a, b) => a.workload - b.workload);
+                .sort((a, b) => workload.get(a.id)! - workload.get(b.id)!);
 
-            // Fallback: Assign to ANY member with lowest workload if no skill match found
+            // Fallback if no one matches
             if (candidates.length === 0) {
-                candidates = [...members].sort((a, b) => a.workload - b.workload);
+                candidates = [...members].sort(
+                    (a, b) => workload.get(a.id)! - workload.get(b.id)!
+                );
             }
         }
 
@@ -65,8 +72,8 @@ export function computeAllocations(
             userId: chosen.id
         });
 
-        // In-memory workload update
-        chosen.workload += 1;
+        // Update only the shadow workload
+        workload.set(chosen.id, workload.get(chosen.id)! + 1);
     }
 
     return decisions;
