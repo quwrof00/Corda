@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTeams } from "@/hooks/useTeams";
 import { useCreateTask } from "@/hooks/useTasks";
 import { Loader2, ListTodo, X } from "lucide-react";
 import { toast } from "sonner";
+import { clsx } from "clsx";
 
 interface CreateTaskModalProps {
     isOpen: boolean;
@@ -39,9 +40,27 @@ export default function CreateTaskModal({
     // Note: In a real app we might use useEffect to sync props to state if they change while open,
     // but for now simplistic initialization is okay or we can add an effect if needed.
 
+    // Handle team selection changes to enforce Personal validation
+    useEffect(() => {
+        if (!teams || !teamId) return;
+
+        const selectedTeam = teams.find((t: { id: string; name: string }) => t.id === teamId);
+        const isPersonalTeam = selectedTeam?.name === "Personal";
+
+        if (isPersonalTeam) {
+            setAssignToMe(true);
+        } else if (teamId !== initialTeamId) {
+            // Only reset if we've explicitly changed the team (not on initial load unless needed)
+            // User requested: "when its set to any other team, checkbox is unchecked"
+            setAssignToMe(false);
+        }
+    }, [teamId, teams, initialTeamId]);
+
     if (!isOpen) return null;
 
-
+    const selectedTeam = teams?.find((t: { id: string; name: string }) => t.id === teamId);
+    const isPersonalTeam = selectedTeam?.name === "Personal";
+    const isCheckboxDisabled = isPersonalWorkspace || isPersonalTeam || !currentUserId;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -190,7 +209,7 @@ export default function CreateTaskModal({
                                 type="checkbox"
                                 id="assignToMe"
                                 checked={assignToMe}
-                                disabled={isPersonalWorkspace || !currentUserId}
+                                disabled={isCheckboxDisabled}
                                 onChange={(e) => {
                                     setAssignToMe(e.target.checked);
                                     if (e.target.checked && currentUserId) {
@@ -199,9 +218,9 @@ export default function CreateTaskModal({
                                         setAssignedToId("");
                                     }
                                 }}
-                                className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-emerald-500 focus:ring-emerald-500/20"
+                                className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-emerald-500 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                             />
-                            <label htmlFor="assignToMe" className="text-sm font-medium text-zinc-300 cursor-pointer select-none">
+                            <label htmlFor="assignToMe" className={clsx("text-sm font-medium text-zinc-300 cursor-pointer select-none", isCheckboxDisabled && "cursor-not-allowed opacity-50")}>
                                 Assign to me
                             </label>
                         </div>

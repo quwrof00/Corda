@@ -44,7 +44,7 @@ export default function TeamsClient({ initialTeams }) {
     return (
         <main className="min-h-screen bg-background p-6 lg:p-12 text-zinc-200 selection:bg-zinc-800">
             <div className="max-w-7xl mx-auto">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4 border-b border-zinc-900 pb-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4 border-b border-zinc-800 pb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-white tracking-tight">Teams</h1>
                         <p className="text-zinc-500 text-sm mt-2">Manage your teams and members.</p>
@@ -64,7 +64,7 @@ export default function TeamsClient({ initialTeams }) {
                             <div
                                 key={team.id}
                                 onClick={() => router.push(`/teams/${team.id}`)}
-                                className="group relative bg-card border border-zinc-900 p-6 hover:border-zinc-700 transition-all cursor-pointer overflow-hidden rounded-xl"
+                                className="group relative bg-card border border-zinc-800 p-6 hover:border-zinc-700 transition-all cursor-pointer overflow-hidden rounded-xl"
                             >
                                 <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0 duration-300">
                                     <ArrowRight className="w-5 h-5 text-zinc-400" />
@@ -86,7 +86,7 @@ export default function TeamsClient({ initialTeams }) {
                                     {team.desc || "No description available."}
                                 </p>
 
-                                <div className="flex items-center justify-between pt-4 border-t border-zinc-900">
+                                <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
                                     <div className="flex items-center gap-2 text-xs text-zinc-500">
                                         <Users className="w-3.5 h-3.5" />
                                         <span>{team.members?.length || 0} Members</span>
@@ -100,7 +100,7 @@ export default function TeamsClient({ initialTeams }) {
                         ))}
                     </div>
                 ) : (
-                    <div className="border border-zinc-900 border-dashed p-12 flex flex-col items-center justify-center text-center max-w-lg mx-auto mt-10 bg-card rounded-xl">
+                    <div className="border border-zinc-800 border-dashed p-12 flex flex-col items-center justify-center text-center max-w-lg mx-auto mt-10 bg-card rounded-xl">
                         <div className="w-16 h-16 bg-zinc-900 flex items-center justify-center text-zinc-600 mb-6 rounded-lg">
                             <Users className="w-8 h-8" />
                         </div>

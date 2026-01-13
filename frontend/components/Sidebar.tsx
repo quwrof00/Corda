@@ -25,7 +25,7 @@ export default function Sidebar() {
     ];
 
     return (
-        <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col justify-between p-0 font-mono">
+        <aside className="hidden md:flex fixed left-0 top-0 z-40 h-screen w-64 border-r border-zinc-800 bg-zinc-950 flex-col justify-between p-0 font-mono">
             <div>
                 {/* Logo */}
                 <div className="flex h-16 items-center gap-3 px-6 border-b border-zinc-800 bg-zinc-950">

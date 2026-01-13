@@ -5,7 +5,7 @@ import { useTeam, useTeamMembers, useDeleteTeam, useRemoveMember, useUpdateTeam 
 import { useTasks, useUpdateTask, useDeleteTask } from "@/hooks/useTasks";
 import { api } from "@/lib/api";
 import { useSession } from "next-auth/react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
     ArrowLeft,
     BrainCircuit,
@@ -260,6 +260,20 @@ export default function TeamDetailsPage() {
         setTaskModalOpen(true);
     };
 
+
+    const [mobileTab, setMobileTab] = useState<"workload" | "unassigned" | "assigned">("assigned");
+
+    // Set default tab based on workspace type (only once when loaded)
+    useEffect(() => {
+        if (team && !teamLoading) {
+            if (team.name === "Personal") {
+                setMobileTab("unassigned"); // Focus Overview
+            } else {
+                setMobileTab("assigned"); // Member Tasks (most common?) or Workload
+            }
+        }
+    }, [team, teamLoading]);
+
     if (teamLoading || membersLoading || tasksLoading) {
         return (
             <div className="flex justify-center items-center h-screen bg-background text-zinc-500 font-sans">
@@ -279,7 +293,7 @@ export default function TeamDetailsPage() {
     return (
         <main className="min-h-screen bg-background text-zinc-300 font-sans pb-20 selection:bg-zinc-800">
             {/* Header */}
-            <header className="bg-card border-b border-zinc-900 sticky top-0 z-30">
+            <header className="bg-card border-b border-zinc-800 sticky top-16 md:top-0 z-30">
                 <div className="px-6 py-5 max-w-7xl mx-auto">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                         <div className="flex items-center gap-5">
@@ -353,11 +367,64 @@ export default function TeamDetailsPage() {
                 </div>
             </header>
 
+            {/* Mobile Navigation Tabs */}
+            <div className="lg:hidden sticky top-40 md:top-[95px] z-20 bg-background/95 backdrop-blur border-b border-zinc-800 overflow-x-auto scrollbar-hide">
+                <div className="flex px-6 gap-6 min-w-max">
+                    {isPersonal ? (
+                        <>
+                            <button
+                                onClick={() => setMobileTab("unassigned")}
+                                className={cn("py-4 text-xs font-bold transition-colors border-b-2",
+                                    mobileTab === "unassigned" ? "text-white border-emerald-500" : "text-zinc-500 border-transparent hover:text-zinc-300"
+                                )}
+                            >
+                                Focus Overview
+                            </button>
+                            <button
+                                onClick={() => setMobileTab("assigned")}
+                                className={cn("py-4 text-xs font-bold transition-colors border-b-2",
+                                    mobileTab === "assigned" ? "text-white border-emerald-500" : "text-zinc-500 border-transparent hover:text-zinc-300"
+                                )}
+                            >
+                                My Tasks
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button
+                                onClick={() => setMobileTab("assigned")}
+                                className={cn("py-4 text-xs font-bold transition-colors border-b-2",
+                                    mobileTab === "assigned" ? "text-white border-emerald-500" : "text-zinc-500 border-transparent hover:text-zinc-300"
+                                )}
+                            >
+                                Member Tasks
+                            </button>
+                            <button
+                                onClick={() => setMobileTab("workload")}
+                                className={cn("py-4 text-xs font-bold transition-colors border-b-2",
+                                    mobileTab === "workload" ? "text-white border-emerald-500" : "text-zinc-500 border-transparent hover:text-zinc-300"
+                                )}
+                            >
+                                Workload
+                            </button>
+                            <button
+                                onClick={() => setMobileTab("unassigned")}
+                                className={cn("py-4 text-xs font-bold transition-colors border-b-2",
+                                    mobileTab === "unassigned" ? "text-white border-emerald-500" : "text-zinc-500 border-transparent hover:text-zinc-300"
+                                )}
+                            >
+                                Unassigned
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+
             <div className="max-w-7xl mx-auto px-6 space-y-8 mt-8">
 
                 {/* Workload */}
                 {!isPersonal && (
-                    <section>
+                    <section className={cn(mobileTab !== "workload" && "hidden lg:block")}>
                         <h2 className="text-sm font-semibold text-zinc-500 mb-4 flex items-center gap-2">
                             <TrendingUp className="w-4 h-4" /> Workload Analysis
                         </h2>
@@ -368,7 +435,7 @@ export default function TeamDetailsPage() {
                                 const isOverloaded = workload > 80;
 
                                 return (
-                                    <div key={member.id} className="group relative bg-card border border-zinc-900 hover:border-zinc-700 p-4 transition-all rounded-xl">
+                                    <div key={member.id} className="group relative bg-card border border-zinc-800 hover:border-zinc-700 p-4 transition-all rounded-xl">
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 bg-zinc-900 flex items-center justify-center text-zinc-500 rounded-lg border border-zinc-800">
@@ -429,10 +496,10 @@ export default function TeamDetailsPage() {
 
                 {/* Task Dashboard */}
                 <section className={cn("grid gap-6 h-[600px] grid-cols-1 lg:grid-cols-3")}>
-                    {/* Unassigned or Personal Stats */}
+                    {/* Unassigned or Personal Stats (Left Col) */}
                     {!isPersonal ? (
-                        <div className="bg-card border border-zinc-900 flex flex-col rounded-xl overflow-hidden">
-                            <div className="p-4 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/20">
+                        <div className={cn("bg-card border border-zinc-800 flex flex-col rounded-xl overflow-hidden", mobileTab !== "unassigned" && "hidden lg:flex")}>
+                            <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/20">
                                 <h3 className="text-xs font-bold text-zinc-400 flex items-center gap-2">
                                     <AlertOctagon className="w-3 h-3" /> Unassigned Tasks
                                 </h3>
@@ -474,9 +541,9 @@ export default function TeamDetailsPage() {
                             </div>
                         </div>
                     ) : (
-                        // Personal Workspace Stats Widget
-                        <div className="bg-card border border-zinc-900 flex flex-col rounded-xl overflow-hidden h-full">
-                            <div className="p-4 border-b border-zinc-900 bg-zinc-900/20">
+                        // Personal Workspace Stats Widget (Left Col)
+                        <div className={cn("bg-card border border-zinc-800 flex flex-col rounded-xl overflow-hidden h-full", mobileTab !== "unassigned" && "hidden lg:flex")}>
+                            <div className="p-4 border-b border-zinc-800 bg-zinc-900/20">
                                 <h3 className="text-xs font-bold text-zinc-400 flex items-center gap-2">
                                     <TrendingUp className="w-3 h-3" /> Focus Overview
                                 </h3>
@@ -506,7 +573,7 @@ export default function TeamDetailsPage() {
                                     {assignedTasks.filter(t => t.priority === 'High' && t.status !== 'completed').length > 0 ? (
                                         <div className="space-y-2">
                                             {assignedTasks.filter(t => t.priority === 'High' && t.status !== 'completed').slice(0, 3).map(task => (
-                                                <div key={task.id} className="flex items-center gap-2 text-xs text-zinc-300 bg-zinc-900/30 p-2 rounded-lg border border-zinc-900">
+                                                <div key={task.id} className="flex items-center gap-2 text-xs text-zinc-300 bg-zinc-900/30 p-2 rounded-lg border border-zinc-800">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
                                                     <span className="line-clamp-1">{task.title}</span>
                                                 </div>
@@ -523,9 +590,9 @@ export default function TeamDetailsPage() {
                         </div>
                     )}
 
-                    {/* Assigned */}
-                    <div className={cn("bg-card border border-zinc-900 flex flex-col rounded-xl overflow-hidden", "lg:col-span-2")}>
-                        <div className="p-4 border-b border-zinc-900 bg-zinc-900/20">
+                    {/* Assigned / Member Tasks (Right Col) */}
+                    <div className={cn("bg-card border border-zinc-800 flex flex-col rounded-xl overflow-hidden lg:col-span-2", mobileTab !== "assigned" && "hidden lg:flex")}>
+                        <div className="p-4 border-b border-zinc-800 bg-zinc-900/20">
                             <h3 className="text-xs font-bold text-zinc-400 flex items-center gap-2">
                                 <CheckCircle2 className="w-3 h-3" /> {isPersonal ? "My Tasks" : "Member Tasks"}
                             </h3>
@@ -533,7 +600,7 @@ export default function TeamDetailsPage() {
                         <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4 p-4 scrollbar-custom">
                             {(members as Member[])?.map((member) => (
                                 <div key={member.id} className="bg-zinc-900 border border-zinc-800 p-3 rounded-lg">
-                                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-zinc-900">
+                                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-zinc-800">
                                         <div className="w-2 h-2 bg-emerald-500/50 rounded-full" />
                                         <span className="text-xs font-bold text-zinc-300">{member.name}</span>
                                     </div>
@@ -544,7 +611,7 @@ export default function TeamDetailsPage() {
                                                 onClick={() => isLeader && openEditTask(task)}
                                                 title={task.requiredSkill ? `Skill: ${task.requiredSkill}` : undefined}
                                                 className={cn(
-                                                    "bg-card p-2 border border-zinc-900 transition-colors text-xs text-zinc-400 ml-3 border-l-2 rounded-r-md group relative",
+                                                    "bg-card p-2 border border-zinc-800 transition-colors text-xs text-zinc-400 ml-3 border-l-2 rounded-r-md group relative",
                                                     isLeader ? "cursor-pointer hover:border-zinc-700" : "cursor-default",
                                                     task.status === 'completed' ? "border-l-emerald-500 hover:border-l-emerald-400" :
                                                         task.status === 'in-progress' ? "border-l-blue-500 hover:border-l-blue-400" :

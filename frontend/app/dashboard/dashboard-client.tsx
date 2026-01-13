@@ -390,6 +390,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onTaskCreated={refreshTasks}
+        currentUserId={session.user?.id}
       />
     </div>
   );
