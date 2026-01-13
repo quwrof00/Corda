@@ -32,7 +32,7 @@ export default function Sidebar() {
                     <div className="flex h-8 w-8 items-center justify-center bg-white text-black font-bold border border-zinc-500">
                         <Terminal className="w-5 h-5" />
                     </div>
-                    <span className="text-xl font-bold tracking-tight text-white uppercase">CORDA</span>
+                    <Link href='/dashboard' className="text-xl font-bold tracking-tight text-white uppercase">CORDA</Link>
                 </div>
 
                 {/* Navigation */}
