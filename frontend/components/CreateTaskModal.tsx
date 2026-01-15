@@ -34,11 +34,27 @@ export default function CreateTaskModal({
     const [requiredSkill, setRequiredSkill] = useState("");
     const [teamId, setTeamId] = useState(initialTeamId || "");
     const [assignedToId, setAssignedToId] = useState(initialAssignedToId || "");
-    const [assignToMe, setAssignToMe] = useState(isPersonalWorkspace || (initialAssignedToId === currentUserId && !!currentUserId));
+    const [assignToMe, setAssignToMe] = useState(false);
 
-    // Update state when modal opens or props change
-    // Note: In a real app we might use useEffect to sync props to state if they change while open,
-    // but for now simplistic initialization is okay or we can add an effect if needed.
+    // Reset and initialize state when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            setTitle("");
+            setDesc("");
+            setDeadline("");
+            setPriority("Medium");
+            setRequiredSkill("");
+
+            setTeamId(initialTeamId || "");
+            setAssignedToId(initialAssignedToId || "");
+
+            // Logic for "Assign to me":
+            // 1. Personal workspace implicitly assigns to me
+            // 2. If the initial assignee is the current user, check it
+            const shouldAssignToMe = isPersonalWorkspace || (!!currentUserId && initialAssignedToId === currentUserId);
+            setAssignToMe(shouldAssignToMe);
+        }
+    }, [isOpen, initialTeamId, initialAssignedToId, isPersonalWorkspace, currentUserId]);
 
     // Handle team selection changes to enforce Personal validation
     useEffect(() => {
@@ -49,12 +65,13 @@ export default function CreateTaskModal({
 
         if (isPersonalTeam) {
             setAssignToMe(true);
+            if (currentUserId) setAssignedToId(currentUserId);
         } else if (teamId !== initialTeamId) {
-            // Only reset if we've explicitly changed the team (not on initial load unless needed)
-            // User requested: "when its set to any other team, checkbox is unchecked"
+            // Only reset if we've explicitly changed the team and it's not the initial one
             setAssignToMe(false);
+            setAssignedToId("");
         }
-    }, [teamId, teams, initialTeamId]);
+    }, [teamId, teams, initialTeamId, currentUserId]);
 
     if (!isOpen) return null;
 
