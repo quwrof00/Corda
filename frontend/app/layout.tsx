@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "./providers";
 import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
+import AmbientBackground from "@/components/AmbientBackground";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,6 +21,8 @@ export const metadata: Metadata = {
   description: "Automated task allocation for high-performance teams.",
 };
 
+
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -32,6 +35,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
+        <AmbientBackground />
         <Providers session={session}>{children}</Providers>
       </body>
     </html>
