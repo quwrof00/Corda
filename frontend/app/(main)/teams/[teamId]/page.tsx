@@ -59,9 +59,21 @@ export default function TeamDetailsPage() {
     const queryClient = useQueryClient();
     const { data: session } = useSession();
 
+    const [isAllocatingPoll, setIsAllocatingPoll] = useState(false);
+
+    // Stop polling after 15 seconds automatically
+    useEffect(() => {
+        if (isAllocatingPoll) {
+            const timer = setTimeout(() => setIsAllocatingPoll(false), 15000);
+            return () => clearTimeout(timer);
+        }
+    }, [isAllocatingPoll]);
+
     const { data: team, isLoading: teamLoading } = useTeam(teamId);
     const { data: members, isLoading: membersLoading } = useTeamMembers(teamId);
-    const { data: tasks, isLoading: tasksLoading } = useTasks(teamId);
+    const { data: tasks, isLoading: tasksLoading } = useTasks(teamId, {
+        refetchInterval: isAllocatingPoll ? 1500 : false
+    });
 
     const deleteTeamMutation = useDeleteTeam();
     const removeMemberMutation = useRemoveMember();
@@ -214,9 +226,10 @@ export default function TeamDetailsPage() {
                 setConfirmModal(prev => ({ ...prev, isOpen: false }));
                 try {
                     await api.post(`/allocator/${teamId}`);
+                    setIsAllocatingPoll(true);
                     queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
                     queryClient.invalidateQueries({ queryKey: ["teamMembers", teamId] });
-                    toast.success("Allocation process completed");
+                    toast.success("Allocation started in background...");
                 } catch (error) {
                     console.error(error);
                     toast.error("Allocation failed");
