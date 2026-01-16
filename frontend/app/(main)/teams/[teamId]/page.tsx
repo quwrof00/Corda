@@ -284,6 +284,16 @@ export default function TeamDetailsPage() {
         );
     }
 
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 20);
+        };
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
     if (!team) return <div className="p-10 text-center bg-background text-zinc-500 font-sans">Team Not Found</div>;
 
     const isLeader = session?.user?.email === team.leader?.email;
@@ -293,7 +303,7 @@ export default function TeamDetailsPage() {
     return (
         <main className="min-h-screen bg-background text-zinc-300 font-sans pb-20 selection:bg-zinc-800">
             {/* Header */}
-            <header className="bg-card border-b border-zinc-800 sticky top-16 md:top-0 z-30">
+            <header className={cn("border-b border-zinc-800 sticky top-16 md:top-0 z-30 transition-all duration-300", isScrolled ? "bg-black/90 backdrop-blur-md shadow-lg" : "bg-card")}>
                 <div className="px-6 py-5 max-w-7xl mx-auto">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                         <div className="flex items-center gap-5">
@@ -431,7 +441,8 @@ export default function TeamDetailsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             {(members as Member[])?.map((member) => {
                                 const memberTasks = tasksByMember[member.id] || [];
-                                const workload = Math.min(100, (memberTasks.length / 5) * 100);
+                                const totalTasksCount = (tasks as Task[])?.length || 0;
+                                const workload = totalTasksCount > 0 ? (memberTasks.length / totalTasksCount) * 100 : 0;
                                 const isOverloaded = workload > 80;
 
                                 return (
@@ -451,7 +462,7 @@ export default function TeamDetailsPage() {
 
                                         <div className="space-y-1">
                                             <div className="flex justify-between text-[10px] text-zinc-500 font-medium">
-                                                <span>Capacity</span>
+                                                <span>{memberTasks.length} Tasks</span>
                                                 <span>{Math.round(workload)}%</span>
                                             </div>
                                             <div className="h-1.5 w-full bg-zinc-900 overflow-hidden rounded-full">

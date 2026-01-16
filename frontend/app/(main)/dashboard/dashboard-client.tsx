@@ -8,7 +8,6 @@ import { useTeams } from "@/hooks/useTeams";
 import {
   Calendar,
   CheckCircle2,
-  AlertCircle,
   ArrowRight,
   Users,
 } from "lucide-react";
@@ -330,27 +329,20 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
                       )}
                     </div>
 
-                    {/* Workload Bar */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-500">
-                        <span>Workload</span>
-                        <span className="text-zinc-400">{(team.tasks?.length || 0)} Active</span>
+                    {/* Task Stats - Text Only */}
+                    <div className="flex items-center gap-4 text-xs font-mono mt-2">
+                      <div className="flex flex-col">
+                        <span className="text-zinc-500 uppercase text-[10px] font-bold">Total</span>
+                        <span className="text-white font-medium">{team.tasks?.length || 0}</span>
                       </div>
-                      <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden relative group/bar">
-                        <div
-                          className={cn("h-full rounded-full transition-all duration-500",
-                            (team.tasks?.length || 0) > 4 ? "bg-red-500" :
-                              (team.tasks?.length || 0) > 2 ? "bg-amber-500" : "bg-emerald-500"
-                          )}
-                          style={{ width: `${Math.min(((team.tasks?.length || 0) / 5) * 100, 100)}%` }}
-                        />
+                      <div className="w-px h-6 bg-zinc-800" />
+                      <div className="flex flex-col">
+                        <span className="text-zinc-500 uppercase text-[10px] font-bold">Unassigned</span>
+                        <span className="text-amber-500 font-medium">{team._count?.tasks || 0}</span>
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-zinc-900 flex items-center gap-2 text-xs text-amber-500/80 font-medium">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      {team._count?.tasks || 0} unassigned
-                    </div>
+
                   </div>
                 ))
               ) : (
