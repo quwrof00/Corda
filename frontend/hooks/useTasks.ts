@@ -13,12 +13,14 @@ export interface Task {
   deadline?: string;
   createdAt?: string;
   assignedTo?: { id: string; name: string } | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   team?: { id?: string; name?: string;[key: string]: any } | null;
   requiredSkill?: string | null;
   [key: string]: unknown;
 }
 
 // Fetch all tasks or a single task list for a team if provided
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useTasks = (teamId?: string, options?: any) => {
   const fetchTasks = async () => {
     const { data } = await api.get(teamId ? `/teams/${teamId}/tasks` : "/tasks");

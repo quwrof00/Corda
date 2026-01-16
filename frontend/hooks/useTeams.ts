@@ -24,6 +24,7 @@ export interface Team {
 }
 
 // Fetch all teams
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useTeams = (options?: any) => {
   const fetchTeams = async (): Promise<Team[]> => {
     const { data } = await api.get("/teams");

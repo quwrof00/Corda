@@ -15,8 +15,11 @@ interface Team {
     members?: unknown[];
 }
 
-// @ts-expect-error: initialData typing is complex
-export default function TeamsClient({ initialTeams }) {
+interface TeamsClientProps {
+    initialTeams?: Team[];
+}
+
+export default function TeamsClient({ initialTeams }: TeamsClientProps) {
     const { status } = useSession();
     const router = useRouter();
     const { data: teams, isLoading, refetch: refreshTeams } = useTeams({ initialData: initialTeams });

@@ -93,6 +93,17 @@ export default function TeamDetailsPage() {
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [selectedMemberId, setSelectedMemberId] = useState<string>("");
 
+    // Scroll state for navbar
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 20);
+        };
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
     const unassignedTasks = useMemo(() => (tasks as Task[])?.filter((t) => !t.assignedTo) || [], [tasks]);
     const assignedTasks = useMemo(() => (tasks as Task[])?.filter((t) => t.assignedTo) || [], [tasks]);
 
@@ -284,15 +295,7 @@ export default function TeamDetailsPage() {
         );
     }
 
-    const [isScrolled, setIsScrolled] = useState(false);
 
-    useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 20);
-        };
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
 
     if (!team) return <div className="p-10 text-center bg-background text-zinc-500 font-sans">Team Not Found</div>;
 

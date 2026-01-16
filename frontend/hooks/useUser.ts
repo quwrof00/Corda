@@ -15,6 +15,7 @@ export interface User {
 }
 
 // Fetch user by ID
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useUser = (id: string, options?: any) => {
     const fetchUser = async (): Promise<User> => {
         const { data } = await api.get(`/users/${id}`);
