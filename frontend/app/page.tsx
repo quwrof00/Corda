@@ -48,16 +48,16 @@ export default async function LandingPage() {
             <div className="space-y-8">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded text-[10px] font-bold uppercase tracking-widest text-emerald-500">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                System Operational
+                Live & Operational
               </div>
 
               <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tighter leading-[0.9]">
-                COMMAND <br />
-                YOUR <span className="text-zinc-600">UNITS.</span>
+                ORCHESTRATE <br />
+                YOUR <span className="text-zinc-600">TEAM.</span>
               </h1>
 
               <p className="text-lg md:text-xl text-zinc-500 max-w-lg font-mono leading-relaxed">
-                Advanced task allocation protocol for high-performance engineering squads. optimized for minimal latency and maximum throughput.
+                The definitive platform for engineering leadership. Gain absolute clarity on team workload, assign tasks with precision, and eliminate ambiguity.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -65,13 +65,13 @@ export default async function LandingPage() {
                   href="/register"
                   className="inline-flex h-14 items-center justify-center bg-white text-black px-8 text-sm font-bold uppercase tracking-wider hover:bg-zinc-200 transition-all"
                 >
-                  Get Started <ArrowRight className="ml-2 w-4 h-4" />
+                  Start Free <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>
                 <Link
                   href="/login"
                   className="inline-flex h-14 items-center justify-center border border-zinc-800 bg-transparent text-zinc-400 px-8 text-sm font-bold uppercase tracking-wider hover:bg-zinc-900 hover:text-white transition-all"
                 >
-                  System Login
+                  Log In
                 </Link>
               </div>
             </div>
@@ -83,21 +83,21 @@ export default async function LandingPage() {
                 <div className="space-y-4 translate-y-8">
                   <div className="bg-card border border-zinc-900 p-6 rounded-none h-40 flex flex-col justify-between">
                     <Cpu className="w-8 h-8 text-zinc-700" />
-                    <div className="text-xs font-mono text-zinc-500 uppercase">Processing Power <br /> <span className="text-white font-bold">100%</span></div>
+                    <div className="text-xs font-mono text-zinc-500 uppercase">Clarity <br /> <span className="text-white font-bold">MAXIMIZED</span></div>
                   </div>
                   <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-none h-40 flex flex-col justify-between">
                     <Activity className="w-8 h-8 text-emerald-500" />
-                    <div className="text-xs font-mono text-zinc-500 uppercase">Network Status <br /> <span className="text-emerald-500 font-bold">ONLINE</span></div>
+                    <div className="text-xs font-mono text-zinc-500 uppercase">Team Velocity <br /> <span className="text-emerald-500 font-bold">TRACKED</span></div>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-none h-40 flex flex-col justify-between">
                     <Shield className="w-8 h-8 text-white" />
-                    <div className="text-xs font-mono text-zinc-500 uppercase">Security Protocol <br /> <span className="text-white font-bold">ACTIVE</span></div>
+                    <div className="text-xs font-mono text-zinc-500 uppercase">Data Privacy <br /> <span className="text-white font-bold">SECURE</span></div>
                   </div>
                   <div className="bg-card border border-zinc-900 p-6 rounded-none h-40 flex flex-col justify-between">
                     <Users className="w-8 h-8 text-zinc-700" />
-                    <div className="text-xs font-mono text-zinc-500 uppercase">Unit Cohesion <br /> <span className="text-white font-bold">OPTIMAL</span></div>
+                    <div className="text-xs font-mono text-zinc-500 uppercase">Alignment <br /> <span className="text-white font-bold">OPTIMAL</span></div>
                   </div>
                 </div>
               </div>
@@ -114,9 +114,9 @@ export default async function LandingPage() {
                 <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white mb-2">
                   <Cpu className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold text-white uppercase font-mono">Auto-Allocation</h3>
+                <h3 className="text-lg font-bold text-white uppercase font-mono">Precision Assignment</h3>
                 <p className="text-sm text-zinc-500 leading-relaxed">
-                  System automatically assigns directives based on unit capability parameters and current workload metrics.
+                  Assign tasks with clear requirements and ownership. No more ambiguity about who is responsible for what.
                 </p>
               </div>
 
@@ -124,9 +124,9 @@ export default async function LandingPage() {
                 <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 flex items-center justify-center text-emerald-500 mb-2">
                   <Activity className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold text-white uppercase font-mono">Load Balancing</h3>
+                <h3 className="text-lg font-bold text-white uppercase font-mono">Workload Visibility</h3>
                 <p className="text-sm text-zinc-500 leading-relaxed">
-                  Prevents critical failure by distributing operational weight evenly across all active units.
+                  See exactly who is overloaded and who has capacity. Distribute work fairly to keep the team healthy.
                 </p>
               </div>
 
@@ -134,9 +134,9 @@ export default async function LandingPage() {
                 <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white mb-2">
                   <Lock className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold text-white uppercase font-mono">Secure Protocols</h3>
+                <h3 className="text-lg font-bold text-white uppercase font-mono">Roles & Permissions</h3>
                 <p className="text-sm text-zinc-500 leading-relaxed">
-                  Role-based access control ensures only designated commanders can issue high-level directives.
+                  Granular control over specific teams and projects. Ensure everyone has access to only what they need.
                 </p>
               </div>
             </div>
