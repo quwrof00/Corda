@@ -290,7 +290,7 @@ export default function TeamDetailsPage() {
 
             <MobileNavTabs isPersonal={isPersonal} mobileTab={mobileTab} setMobileTab={setMobileTab} />
 
-            <div className="max-w-7xl mx-auto px-6 space-y-8 mt-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8 mt-8">
                 {isPersonal ? (
                     <PersonalWorkspace
                         assignedTasks={assignedTasks}

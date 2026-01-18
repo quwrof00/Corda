@@ -22,7 +22,7 @@ export function TeamTaskBoard({
     openEditTask
 }: TeamTaskBoardProps) {
     return (
-        <section className={cn("grid gap-6 h-[600px] grid-cols-1 lg:grid-cols-3")}>
+        <section className={cn("grid gap-6 h-[75vh] min-h-[500px] lg:h-[600px] grid-cols-1 lg:grid-cols-3")}>
             {/* Unassigned Tasks (Left Col) */}
             <div className={cn("bg-card border border-zinc-800 flex flex-col rounded-xl overflow-hidden", mobileTab !== "unassigned" && "hidden lg:flex")}>
                 <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/20">

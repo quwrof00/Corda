@@ -47,7 +47,8 @@ export default function Sidebar() {
                 {/* Navigation */}
                 <nav className="flex flex-col">
                     {navItems.map((item) => {
-                        const isActive = pathname.startsWith(item.href);
+                        const isPersonalWorkspace = item.href === "/teams" && personalTeamId && pathname === `/teams/${personalTeamId}`;
+                        const isActive = pathname.startsWith(item.href) && !isPersonalWorkspace;
                         return (
                             <Link
                                 key={item.href}

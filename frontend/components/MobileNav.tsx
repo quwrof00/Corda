@@ -27,12 +27,12 @@ export default function MobileNav() {
         <>
             {/* Top Bar */}
             <header className="fixed top-0 left-0 right-0 h-16 bg-zinc-950 border-b border-zinc-800 z-50 flex items-center justify-between px-4 md:hidden font-mono">
-                <div className="flex items-center gap-2">
+                <Link href="/dashboard" className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center bg-white text-black font-bold border border-zinc-500 rounded-sm">
                         <Terminal className="w-5 h-5" />
                     </div>
                     <span className="text-lg font-bold tracking-tight text-white uppercase">CORDA</span>
-                </div>
+                </Link>
 
                 <button
                     onClick={() => setIsOpen(true)}
@@ -63,7 +63,8 @@ export default function MobileNav() {
                     <div className="flex-1 overflow-y-auto py-4">
                         <nav className="flex flex-col">
                             {navItems.map((item) => {
-                                const isActive = pathname.startsWith(item.href);
+                                const isPersonalWorkspace = item.href === "/teams" && personalTeamId && pathname === `/teams/${personalTeamId}`;
+                                const isActive = pathname.startsWith(item.href) && !isPersonalWorkspace;
                                 return (
                                     <Link
                                         key={item.href}

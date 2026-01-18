@@ -10,7 +10,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
     return inputs.filter(Boolean).join(' ');
 }
 
-export default function TasksClient({ initialTasks }: { initialTasks: Task[] }) {
+export default function TasksClient({ initialTasks, userId }: { initialTasks: Task[], userId: string }) {
     const { data: session } = useSession();
     const [statusFilter, setStatusFilter] = useState<"All" | "Todo" | "In Progress" | "Blocked" | "Done">("Todo");
 
@@ -238,6 +238,7 @@ export default function TasksClient({ initialTasks }: { initialTasks: Task[] }) 
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
                 onTaskCreated={refetch}
+                currentUserId={userId}
             />
 
             {selectedTask && (

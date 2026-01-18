@@ -47,7 +47,7 @@ export function TeamHeader({
 }: TeamHeaderProps) {
     return (
         <header className={cn("border-b border-zinc-800 sticky top-16 md:top-0 z-30 transition-all duration-300", isScrolled ? "bg-black/90 backdrop-blur-md shadow-lg" : "bg-card")}>
-            <div className="px-6 py-5 max-w-7xl mx-auto">
+            <div className="px-4 sm:px-6 py-5 max-w-7xl mx-auto">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div className="flex items-center gap-5">
                         <button onClick={() => router.push("/teams")} className="p-2 -ml-2 text-zinc-500 hover:text-zinc-200 transition-colors">
@@ -65,7 +65,7 @@ export function TeamHeader({
                                     </button>
                                 )}
                             </h1>
-                            <div className="flex items-center gap-4 mt-1 text-xs text-zinc-500 font-medium">
+                            <div className="flex flex-wrap items-center gap-4 mt-1 text-xs text-zinc-500 font-medium">
                                 {!isPersonal && <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {members?.length} Members</span>}
                                 {!isPersonal && <span className="text-zinc-700">|</span>}
                                 <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> {assignedTasks.length} Active Tasks</span>

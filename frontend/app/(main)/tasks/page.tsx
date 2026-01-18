@@ -30,5 +30,5 @@ export default async function TasksPage() {
 
     const serializedTasks = JSON.parse(JSON.stringify(tasks));
 
-    return <TasksClient initialTasks={serializedTasks} />;
+    return <TasksClient initialTasks={serializedTasks} userId={userId} />;
 }
