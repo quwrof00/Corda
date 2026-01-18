@@ -4,53 +4,22 @@ import { useParams, useRouter } from "next/navigation";
 import { useTeam, useTeamMembers, useDeleteTeam, useRemoveMember, useUpdateTeam } from "@/hooks/useTeams";
 import { useTasks, useUpdateTask, useDeleteTask } from "@/hooks/useTasks";
 import { api } from "@/lib/api";
+import { AxiosError } from "axios";
 import { useSession } from "next-auth/react";
 import { useState, useMemo, useEffect } from "react";
-import {
-    ArrowLeft,
-    BrainCircuit,
-    CheckCircle2,
-    Loader2,
-    Plus,
-    User,
-    Users,
-    Trash2,
-    UserMinus,
-    Settings,
-    AlertTriangle,
-    TrendingUp,
-    AlertOctagon,
-    Lock,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { toast } from "sonner";
 import CreateTaskModal from "@/components/CreateTaskModal";
 import ConfirmModal from "@/components/ConfirmModal";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs));
-}
-
-interface Member {
-    id: string;
-    name: string;
-    email: string;
-    skills?: string[];
-}
-
-interface Task {
-    id: string;
-    title: string;
-    desc?: string;
-    status: string;
-    priority: string;
-    requiredSkill?: string | null;
-    assignedTo?: { id: string; name: string };
-    assignedToId?: string | null;
-    deadline?: string;
-}
+import { TeamHeader } from "@/components/teams/TeamHeader";
+import { MobileNavTabs } from "@/components/teams/MobileNavTabs";
+import { WorkloadAnalysis } from "@/components/teams/WorkloadAnalysis";
+import { PersonalWorkspace } from "@/components/teams/PersonalWorkspace";
+import { TeamTaskBoard } from "@/components/teams/TeamTaskBoard";
+import { InviteModal, EditTeamModal, EditTaskModal } from "@/components/teams/TeamModals";
+import { Task, Member } from "@/components/teams/types";
+import { cn } from "@/components/teams/utils";
 
 export default function TeamDetailsPage() {
     const params = useParams();
@@ -252,8 +221,8 @@ export default function TeamDetailsPage() {
                 setInviteModalOpen(false);
                 setInviteEmail("");
             }
-        } catch (error: unknown) {
-            // @ts-expect-error: error type is unknown but we expect axios response
+        } catch (err) {
+            const error = err as AxiosError<{ error: string }>;
             toast.error(error.response?.data?.error || "Failed to send invite");
         } finally {
             setInviteLoading(false);
@@ -271,16 +240,14 @@ export default function TeamDetailsPage() {
         setTaskModalOpen(true);
     };
 
-
     const [mobileTab, setMobileTab] = useState<"workload" | "unassigned" | "assigned">("assigned");
 
-    // Set default tab based on workspace type (only once when loaded)
     useEffect(() => {
         if (team && !teamLoading) {
             if (team.name === "Personal") {
-                setMobileTab("unassigned"); // Focus Overview
+                setMobileTab("unassigned");
             } else {
-                setMobileTab("assigned"); // Member Tasks (most common?) or Workload
+                setMobileTab("assigned");
             }
         }
     }, [team, teamLoading]);
@@ -295,8 +262,6 @@ export default function TeamDetailsPage() {
         );
     }
 
-
-
     if (!team) return <div className="p-10 text-center bg-background text-zinc-500 font-sans">Team Not Found</div>;
 
     const isLeader = session?.user?.email === team.leader?.email;
@@ -305,395 +270,76 @@ export default function TeamDetailsPage() {
 
     return (
         <main className="min-h-screen bg-background text-zinc-300 font-sans pb-20 selection:bg-zinc-800">
-            {/* Header */}
-            <header className={cn("border-b border-zinc-800 sticky top-16 md:top-0 z-30 transition-all duration-300", isScrolled ? "bg-black/90 backdrop-blur-md shadow-lg" : "bg-card")}>
-                <div className="px-6 py-5 max-w-7xl mx-auto">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                        <div className="flex items-center gap-5">
-                            <button onClick={() => router.push("/teams")} className="p-2 -ml-2 text-zinc-500 hover:text-zinc-200 transition-colors">
-                                <ArrowLeft className="w-5 h-5" />
-                            </button>
-                            <div className="w-14 h-14 bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-200 font-bold text-xl rounded-lg">
-                                {isPersonal ? <Lock className="w-6 h-6 text-zinc-500" /> : team.name.substring(0, 2).toUpperCase()}
-                            </div>
-                            <div>
-                                <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-3">
-                                    {isPersonal ? "Personal Workspace" : team.name}
-                                    {isLeader && !isPersonal && (
-                                        <button onClick={openEditTeam} className="text-zinc-600 hover:text-zinc-400 transition-colors">
-                                            <Settings className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </h1>
-                                <div className="flex items-center gap-4 mt-1 text-xs text-zinc-500 font-medium">
-                                    {!isPersonal && <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {members?.length} Members</span>}
-                                    {!isPersonal && <span className="text-zinc-700">|</span>}
-                                    <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> {assignedTasks.length} Active Tasks</span>
-                                </div>
-                            </div>
-                        </div>
+            <TeamHeader
+                team={team}
+                isScrolled={isScrolled}
+                router={router}
+                isPersonal={isPersonal}
+                isLeader={isLeader}
+                members={members as Member[]}
+                assignedTasks={assignedTasks}
+                openEditTeam={openEditTeam}
+                setInviteModalOpen={setInviteModalOpen}
+                setSelectedMemberId={setSelectedMemberId}
+                currentUserMemberId={currentUserMemberId}
+                setCreateTaskModalOpen={setCreateTaskModalOpen}
+                handleAllocate={handleAllocate}
+                allocating={allocating}
+                handleDeleteTeam={handleDeleteTeam}
+            />
 
-                        <div className="flex items-center gap-3">
-                            {isLeader && !isPersonal && (
-                                <button
-                                    onClick={() => setInviteModalOpen(true)}
-                                    className="px-4 py-2 text-xs font-bold text-zinc-400 border border-zinc-800 bg-background hover:bg-zinc-900 hover:text-white transition-colors rounded-lg"
-                                >
-                                    Invite Member
-                                </button>
-                            )}
-                            {isLeader && (
-                                <>
-                                    <button
-                                        onClick={() => {
-                                            if (isPersonal) {
-                                                setSelectedMemberId(currentUserMemberId || "");
-                                            }
-                                            setCreateTaskModalOpen(true);
-                                        }}
-                                        className="px-4 py-2 text-xs font-bold text-black bg-zinc-100 hover:bg-white transition-colors flex items-center gap-2 rounded-lg"
-                                    >
-                                        <Plus className="w-3 h-3" /> New Task
-                                    </button>
-                                    {!isPersonal && (
-                                        <button
-                                            onClick={handleAllocate}
-                                            disabled={allocating}
-                                            className="px-4 py-2 text-xs font-bold text-emerald-400 border border-emerald-900/30 bg-emerald-950/10 hover:bg-emerald-950/30 transition-colors flex items-center gap-2 disabled:opacity-50 rounded-lg"
-                                        >
-                                            {allocating ? <Loader2 className="w-3 h-3 animate-spin" /> : <BrainCircuit className="w-3 h-3" />}
-                                            Auto-Allocate
-                                        </button>
-                                    )}
-                                    {!isPersonal && (
-                                        <button
-                                            onClick={handleDeleteTeam}
-                                            className="px-4 py-2 text-xs font-bold text-red-500 border border-red-900/30 bg-red-950/10 hover:bg-red-950/30 transition-colors flex items-center gap-2 rounded-lg"
-                                        >
-                                            <Trash2 className="w-3 h-3" />
-                                        </button>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            {/* Mobile Navigation Tabs */}
-            <div className="lg:hidden sticky top-40 md:top-[95px] z-20 bg-background/95 backdrop-blur border-b border-zinc-800 overflow-x-auto scrollbar-hide">
-                <div className="flex px-6 gap-6 min-w-max">
-                    {isPersonal ? (
-                        <>
-                            <button
-                                onClick={() => setMobileTab("unassigned")}
-                                className={cn("py-4 text-xs font-bold transition-colors border-b-2",
-                                    mobileTab === "unassigned" ? "text-white border-emerald-500" : "text-zinc-500 border-transparent hover:text-zinc-300"
-                                )}
-                            >
-                                Focus Overview
-                            </button>
-                            <button
-                                onClick={() => setMobileTab("assigned")}
-                                className={cn("py-4 text-xs font-bold transition-colors border-b-2",
-                                    mobileTab === "assigned" ? "text-white border-emerald-500" : "text-zinc-500 border-transparent hover:text-zinc-300"
-                                )}
-                            >
-                                My Tasks
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <button
-                                onClick={() => setMobileTab("assigned")}
-                                className={cn("py-4 text-xs font-bold transition-colors border-b-2",
-                                    mobileTab === "assigned" ? "text-white border-emerald-500" : "text-zinc-500 border-transparent hover:text-zinc-300"
-                                )}
-                            >
-                                Member Tasks
-                            </button>
-                            <button
-                                onClick={() => setMobileTab("workload")}
-                                className={cn("py-4 text-xs font-bold transition-colors border-b-2",
-                                    mobileTab === "workload" ? "text-white border-emerald-500" : "text-zinc-500 border-transparent hover:text-zinc-300"
-                                )}
-                            >
-                                Workload
-                            </button>
-                            <button
-                                onClick={() => setMobileTab("unassigned")}
-                                className={cn("py-4 text-xs font-bold transition-colors border-b-2",
-                                    mobileTab === "unassigned" ? "text-white border-emerald-500" : "text-zinc-500 border-transparent hover:text-zinc-300"
-                                )}
-                            >
-                                Unassigned
-                            </button>
-                        </>
-                    )}
-                </div>
-            </div>
+            <MobileNavTabs isPersonal={isPersonal} mobileTab={mobileTab} setMobileTab={setMobileTab} />
 
             <div className="max-w-7xl mx-auto px-6 space-y-8 mt-8">
-
-                {/* Workload */}
-                {!isPersonal && (
-                    <section className={cn(mobileTab !== "workload" && "hidden lg:block")}>
-                        <h2 className="text-sm font-semibold text-zinc-500 mb-4 flex items-center gap-2">
-                            <TrendingUp className="w-4 h-4" /> Workload Analysis
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            {(members as Member[])?.map((member) => {
-                                const memberTasks = tasksByMember[member.id] || [];
-                                const totalTasksCount = (tasks as Task[])?.length || 0;
-                                const workload = totalTasksCount > 0 ? (memberTasks.length / totalTasksCount) * 100 : 0;
-                                const isOverloaded = workload > 80;
-
-                                return (
-                                    <div key={member.id} className="group relative bg-card border border-zinc-800 hover:border-zinc-700 p-4 transition-all rounded-xl">
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 bg-zinc-900 flex items-center justify-center text-zinc-500 rounded-lg border border-zinc-800">
-                                                    <User className="w-4 h-4" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-xs font-bold text-zinc-300">{member.name}</h3>
-                                                    <p className="text-[10px] text-zinc-500">{member.skills?.[0] || "Generalist"}</p>
-                                                </div>
-                                            </div>
-                                            {isOverloaded && <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />}
-                                        </div>
-
-                                        <div className="space-y-1">
-                                            <div className="flex justify-between text-[10px] text-zinc-500 font-medium">
-                                                <span>{memberTasks.length} Tasks</span>
-                                                <span>{Math.round(workload)}%</span>
-                                            </div>
-                                            <div className="h-1.5 w-full bg-zinc-900 overflow-hidden rounded-full">
-                                                <div
-                                                    className={cn("h-full transition-all duration-500 rounded-full",
-                                                        workload > 80 ? "bg-red-500" : workload > 50 ? "bg-amber-500" : "bg-emerald-500"
-                                                    )}
-                                                    style={{ width: `${workload}%` }}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {isLeader && (
-                                            <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedMemberId(member.id);
-                                                        setCreateTaskModalOpen(true);
-                                                    }}
-                                                    className="p-1 text-zinc-500 hover:text-zinc-200 transition-colors rounded hover:bg-zinc-800"
-                                                    title="Assign Task"
-                                                >
-                                                    <Plus className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleRemoveMember(member.id); }}
-                                                    disabled={removeMemberMutation.isPending}
-                                                    className="p-1 text-zinc-500 hover:text-red-500 transition-colors rounded hover:bg-zinc-800 disabled:opacity-50"
-                                                    title="Remove Member"
-                                                >
-                                                    {removeMemberMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserMinus className="w-3.5 h-3.5" />}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </section>
-                )}
-
-                {/* Task Dashboard */}
-                <section className={cn("grid gap-6 h-[600px] grid-cols-1 lg:grid-cols-3")}>
-                    {/* Unassigned or Personal Stats (Left Col) */}
-                    {!isPersonal ? (
-                        <div className={cn("bg-card border border-zinc-800 flex flex-col rounded-xl overflow-hidden", mobileTab !== "unassigned" && "hidden lg:flex")}>
-                            <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/20">
-                                <h3 className="text-xs font-bold text-zinc-400 flex items-center gap-2">
-                                    <AlertOctagon className="w-3 h-3" /> Unassigned Tasks
-                                </h3>
-                                <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">{unassignedTasks.length}</span>
-                            </div>
-                            <div className="flex-1 overflow-y-auto space-y-2 p-3 scrollbar-custom">
-                                {unassignedTasks.map((task) => (
-                                    <div key={task.id}
-                                        onClick={() => isLeader && openEditTask(task)}
-                                        className={cn(
-                                            "bg-zinc-900 border border-zinc-800 p-3 transition-colors group rounded-lg",
-                                            isLeader ? "cursor-pointer hover:border-zinc-600" : "cursor-default"
-                                        )}
-                                        title={task.requiredSkill ? `Skill: ${task.requiredSkill}` : undefined}
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center gap-2">
-                                                <span className={cn("text-[10px] font-medium border px-1.5 py-0.5 rounded-md",
-                                                    task.priority === 'High' ? "border-red-900/50 text-red-500 bg-red-900/10" : "border-zinc-800 text-zinc-500 bg-zinc-900"
-                                                )}>{task.priority}</span>
-                                                {task.deadline && (
-                                                    <span className={cn("text-[10px] font-medium border px-1.5 py-0.5 rounded-md",
-                                                        new Date(task.deadline) < new Date() ? "border-red-900/30 text-red-400 bg-red-950/10" : "border-zinc-800 text-zinc-500 bg-zinc-900"
-                                                    )}>
-                                                        Due {new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {task.requiredSkill && <span className="text-[10px] text-zinc-500">[{task.requiredSkill}]</span>}
-                                        </div>
-                                        <h4 className="text-xs font-medium text-zinc-300 line-clamp-2 group-hover:text-white">{task.title}</h4>
-                                    </div>
-                                ))}
-                                {unassignedTasks.length === 0 && (
-                                    <div className="text-center py-10 text-zinc-700 text-xs">
-                                        No tasks unassigned
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ) : (
-                        // Personal Workspace Stats Widget (Left Col)
-                        <div className={cn("bg-card border border-zinc-800 flex flex-col rounded-xl overflow-hidden h-full", mobileTab !== "unassigned" && "hidden lg:flex")}>
-                            <div className="p-4 border-b border-zinc-800 bg-zinc-900/20">
-                                <h3 className="text-xs font-bold text-zinc-400 flex items-center gap-2">
-                                    <TrendingUp className="w-3 h-3" /> Focus Overview
-                                </h3>
-                            </div>
-                            <div className="p-6 space-y-6">
-                                <div className="space-y-2">
-                                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                                        Workspace Status
-                                    </h2>
-                                    <p className="text-xs text-zinc-500">Your personal focus overview</p>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-zinc-900/50 p-3 rounded-xl border border-zinc-800">
-                                        <div className="text-2xl font-bold text-emerald-500">{assignedTasks.filter(t => t.status === 'completed').length}</div>
-                                        <div className="text-[10px] text-zinc-500 mt-1">Completed</div>
-                                    </div>
-                                    <div className="bg-zinc-900/50 p-3 rounded-xl border border-zinc-800">
-                                        <div className="text-2xl font-bold text-amber-500">{assignedTasks.filter(t => t.status !== 'completed').length}</div>
-                                        <div className="text-[10px] text-zinc-500 mt-1">Pending</div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <h4 className="text-xs font-semibold text-zinc-400">High Priority</h4>
-                                    {assignedTasks.filter(t => t.priority === 'High' && t.status !== 'completed').length > 0 ? (
-                                        <div className="space-y-2">
-                                            {assignedTasks.filter(t => t.priority === 'High' && t.status !== 'completed').slice(0, 3).map(task => (
-                                                <div key={task.id} className="flex items-center gap-2 text-xs text-zinc-300 bg-zinc-900/30 p-2 rounded-lg border border-zinc-800">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                                                    <span className="line-clamp-1">{task.title}</span>
-                                                </div>
-                                            ))}
-                                            {assignedTasks.filter(t => t.priority === 'High' && t.status !== 'completed').length > 3 && (
-                                                <p className="text-[10px] text-zinc-500 pl-1">+ {assignedTasks.filter(t => t.priority === 'High' && t.status !== 'completed').length - 3} more</p>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <p className="text-[10px] text-zinc-600 italic">No high priority tasks pending.</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Assigned / Member Tasks (Right Col) */}
-                    <div className={cn("bg-card border border-zinc-800 flex flex-col rounded-xl overflow-hidden lg:col-span-2", mobileTab !== "assigned" && "hidden lg:flex")}>
-                        <div className="p-4 border-b border-zinc-800 bg-zinc-900/20">
-                            <h3 className="text-xs font-bold text-zinc-400 flex items-center gap-2">
-                                <CheckCircle2 className="w-3 h-3" /> {isPersonal ? "My Tasks" : "Member Tasks"}
-                            </h3>
-                        </div>
-                        <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4 p-4 scrollbar-custom">
-                            {(members as Member[])?.map((member) => (
-                                <div key={member.id} className="bg-zinc-900 border border-zinc-800 p-3 rounded-lg">
-                                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-zinc-800">
-                                        <div className="w-2 h-2 bg-emerald-500/50 rounded-full" />
-                                        <span className="text-xs font-bold text-zinc-300">{member.name}</span>
-                                    </div>
-                                    <div className="space-y-2">
-                                        {(tasksByMember[member.id] || []).map((task) => (
-                                            <div
-                                                key={task.id}
-                                                onClick={() => isLeader && openEditTask(task)}
-                                                title={task.requiredSkill ? `Skill: ${task.requiredSkill}` : undefined}
-                                                className={cn(
-                                                    "bg-card p-2 border border-zinc-800 transition-colors text-xs text-zinc-400 ml-3 border-l-2 rounded-r-md group relative",
-                                                    isLeader ? "cursor-pointer hover:border-zinc-700" : "cursor-default",
-                                                    task.status === 'completed' ? "border-l-emerald-500 hover:border-l-emerald-400" :
-                                                        task.status === 'in-progress' ? "border-l-blue-500 hover:border-l-blue-400" :
-                                                            task.status === 'blocked' ? "border-l-red-500 hover:border-l-red-400" :
-                                                                "border-l-zinc-800 hover:border-l-zinc-500"
-                                                )}
-                                            >
-                                                <div className="flex justify-between items-center gap-2">
-                                                    <p className={cn("line-clamp-1 flex-1", task.status === 'completed' && "line-through opacity-70")}>{task.title}</p>
-                                                    {task.requiredSkill && (
-                                                        <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-[9px] text-zinc-500 bg-zinc-950/80 border border-zinc-800 px-1.5 py-0.5 rounded whitespace-nowrap hidden sm:inline-block">
-                                                            {task.requiredSkill}
-                                                        </span>
-                                                    )}
-                                                    {task.deadline && (
-                                                        <span className={cn("text-[9px] px-1.5 py-0.5 rounded border ml-auto flex-shrink-0",
-                                                            new Date(task.deadline) < new Date() ? "text-red-400 border-red-900/30 bg-red-950/10" : "text-zinc-500 border-zinc-800 bg-zinc-900"
-                                                        )}>
-                                                            {new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                        </span>
-                                                    )}
-                                                    {task.status === 'completed' && <CheckCircle2 className="w-3 h-3 text-emerald-500 flex-shrink-0" />}
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {(tasksByMember[member.id] || []).length === 0 && (
-                                            <div className="text-[10px] text-zinc-700 pl-3 italic">No tasks assigned</div>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-            </div>
-
-            {/* Invite Modal */}
-            {inviteModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="w-full max-w-md bg-card border border-zinc-800 p-6 shadow-2xl rounded-2xl">
-                        <h3 className="text-sm font-bold text-white mb-6 border-b border-zinc-800 pb-2">Invite New Member</h3>
-                        {!inviteLink ? (
-                            <form onSubmit={handleInvite} className="space-y-4">
-                                <input type="email" placeholder="Email Address" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm outline-none focus:border-zinc-500 rounded-xl" required />
-                                <div className="flex justify-end gap-3 pt-2">
-                                    <button type="button" onClick={() => setInviteModalOpen(false)} className="px-4 py-2 text-xs text-zinc-500 hover:text-zinc-300">Cancel</button>
-                                    <button
-                                        type="submit"
-                                        disabled={inviteLoading}
-                                        className="px-4 py-2 bg-white text-black text-xs font-bold hover:bg-zinc-200 rounded-lg flex items-center gap-2"
-                                    >
-                                        {inviteLoading && <Loader2 className="w-3 h-3 animate-spin" />}
-                                        {inviteLoading ? "Sending..." : "Send Invite"}
-                                    </button>
-                                </div>
-                            </form>
-                        ) : (
-                            <div className="space-y-4">
-                                <p className="text-emerald-500 text-xs">Link Generated Successfully.</p>
-                                <input readOnly value={inviteLink} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-400 text-xs font-mono cursor-text select-all rounded-xl" />
-                                <button onClick={() => setInviteModalOpen(false)} className="w-full py-2 bg-zinc-800 text-white text-xs font-bold hover:bg-zinc-700 rounded-lg">Done</button>
+                {isPersonal ? (
+                    <PersonalWorkspace
+                        assignedTasks={assignedTasks}
+                        currentUserMemberId={currentUserMemberId}
+                        setSelectedMemberId={setSelectedMemberId}
+                        setCreateTaskModalOpen={setCreateTaskModalOpen}
+                        openEditTask={openEditTask}
+                    />
+                ) : (
+                    <>
+                        {!isPersonal && (
+                            <div className={cn(mobileTab !== "workload" && "hidden lg:block")}>
+                                <WorkloadAnalysis
+                                    members={members as Member[]}
+                                    tasksByMember={tasksByMember}
+                                    totalTasksCount={(tasks as Task[])?.length || 0}
+                                    isLeader={isLeader}
+                                    setSelectedMemberId={setSelectedMemberId}
+                                    setCreateTaskModalOpen={setCreateTaskModalOpen}
+                                    handleRemoveMember={handleRemoveMember}
+                                    removeMemberMutationPending={removeMemberMutation.isPending}
+                                    isVisible={true}
+                                />
                             </div>
                         )}
-                    </div>
-                </div>
-            )}
 
-            {/* Create Task Modal */}
+                        <TeamTaskBoard
+                            mobileTab={mobileTab}
+                            unassignedTasks={unassignedTasks}
+                            assignedTasks={assignedTasks}
+                            members={members as Member[]}
+                            tasksByMember={tasksByMember}
+                            isLeader={isLeader}
+                            openEditTask={openEditTask}
+                        />
+                    </>
+                )}
+            </div>
+
+            <InviteModal
+                isOpen={inviteModalOpen}
+                onClose={() => setInviteModalOpen(false)}
+                inviteLink={inviteLink}
+                inviteEmail={inviteEmail}
+                setInviteEmail={setInviteEmail}
+                handleInvite={handleInvite}
+                inviteLoading={inviteLoading}
+            />
+
             <CreateTaskModal
                 isOpen={createTaskModalOpen}
                 onClose={() => {
@@ -709,70 +355,29 @@ export default function TeamDetailsPage() {
                 }}
             />
 
-            {/* Edit Taks/Team Modals */}
-            {(teamModalOpen || taskModalOpen) && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="bg-card p-6 border border-zinc-800 w-full max-w-lg shadow-2xl rounded-2xl">
-                        {teamModalOpen && (
-                            <form onSubmit={handleSaveTeam} className="space-y-4">
-                                <h3 className="text-sm font-bold text-white mb-4">Edit Team</h3>
-                                <input value={editingTeamName} onChange={e => setEditingTeamName(e.target.value)} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl" placeholder="Team Name" />
-                                <textarea value={editingTeamDesc} onChange={e => setEditingTeamDesc(e.target.value)} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm h-32 rounded-xl resize-none" placeholder="Description" />
-                                <div className="flex justify-end gap-3 pt-2">
-                                    <button type="button" onClick={() => setTeamModalOpen(false)} className="text-zinc-500 hover:text-zinc-300 text-xs">Cancel</button>
-                                    <button
-                                        type="submit"
-                                        disabled={updateTeamMutation.isPending}
-                                        className="bg-white text-black px-4 py-2 text-xs font-bold rounded-lg flex items-center gap-2"
-                                    >
-                                        {updateTeamMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
-                                        Save
-                                    </button>
-                                </div>
-                            </form>
-                        )}
-                        {taskModalOpen && editingTask && isLeader && (
-                            <form onSubmit={handleSaveTask} className="space-y-4">
-                                <h3 className="text-sm font-bold text-white mb-4">Edit Task</h3>
-                                <input value={editingTask.title} onChange={e => setEditingTask({ ...editingTask, title: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl" placeholder="Task Title" />
-                                <input value={editingTask.requiredSkill || ""} onChange={e => setEditingTask({ ...editingTask, requiredSkill: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl" placeholder="Required Skill" />
-                                <select value={editingTask.assignedToId || ""} onChange={e => setEditingTask({ ...editingTask, assignedToId: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl">
-                                    <option value="">-- Unassigned --</option>
-                                    {members?.map((m: Member) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                </select>
-                                <input
-                                    type="date"
-                                    value={editingTask.deadline ? new Date(editingTask.deadline).toISOString().split('T')[0] : ""}
-                                    onChange={e => setEditingTask({ ...editingTask, deadline: e.target.value })}
-                                    className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl [color-scheme:dark]"
-                                />
-                                <div className="flex justify-between items-center pt-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleDeleteTask}
-                                        disabled={deleteTaskMutation.isPending}
-                                        className="text-red-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-950/20 transition-colors"
-                                        title="Delete Task"
-                                    >
-                                        {deleteTaskMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                                    </button>
-                                    <div className="flex gap-3">
-                                        <button type="button" onClick={() => setTaskModalOpen(false)} className="text-zinc-500 hover:text-zinc-300 text-xs">Cancel</button>
-                                        <button
-                                            type="submit"
-                                            disabled={updateTaskMutation.isPending}
-                                            className="bg-white text-black px-4 py-2 text-xs font-bold rounded-lg flex items-center gap-2"
-                                        >
-                                            {updateTaskMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
-                                            Save
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        )}
-                    </div>
-                </div>
-            )}
+            <EditTeamModal
+                isOpen={teamModalOpen}
+                onClose={() => setTeamModalOpen(false)}
+                editingTeamName={editingTeamName}
+                setEditingTeamName={setEditingTeamName}
+                editingTeamDesc={editingTeamDesc}
+                setEditingTeamDesc={setEditingTeamDesc}
+                handleSaveTeam={handleSaveTeam}
+                isPending={updateTeamMutation.isPending}
+            />
+
+            <EditTaskModal
+                isOpen={taskModalOpen}
+                onClose={() => setTaskModalOpen(false)}
+                editingTask={editingTask}
+                setEditingTask={setEditingTask}
+                isLeader={isLeader}
+                handleSaveTask={handleSaveTask}
+                handleDeleteTask={handleDeleteTask}
+                updateTaskPending={updateTaskMutation.isPending}
+                deleteTaskPending={deleteTaskMutation.isPending}
+                members={members as Member[]}
+            />
 
             <ConfirmModal
                 isOpen={confirmModal.isOpen}

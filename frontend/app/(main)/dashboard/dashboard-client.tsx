@@ -13,8 +13,27 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+
 import CreateTaskModal from "@/components/CreateTaskModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
+
+function formatDaysLeft(dateString?: string) {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const now = new Date();
+
+  // Reset time part for accurate day calculation
+  date.setHours(0, 0, 0, 0);
+  now.setHours(0, 0, 0, 0);
+
+  const diffTime = date.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return `${Math.abs(diffDays)} days overdue`;
+  if (diffDays === 0) return "Due Today";
+  if (diffDays === 1) return "1 day left";
+  return `${diffDays} days left`;
+}
 
 interface Team {
   id: string;
@@ -75,8 +94,9 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
 
   // Filter Tasks Logic (Mocked logic for dates as existing data might not have dates)
   // Filter Tasks Logic
-  const filteredTasks = useMemo(() => {
-    if (!tasks) return [];
+  // Group Tasks Logic
+  const groupedTasks = useMemo(() => {
+    if (!tasks) return { today: [], week: [], overdue: [] };
     const safeTasks = tasks as Task[];
 
     const now = new Date();
@@ -87,37 +107,50 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
     const endOfWeek = new Date(startOfToday);
     endOfWeek.setDate(endOfWeek.getDate() + 7);
 
-    return safeTasks.filter((t) => {
-      if (t.status === "completed") return false;
-      if (!t.deadline) return activeFilter === "This Week"; // Show no-deadline tasks in 'This Week' or fallback? Let's hide them to be safe or show in Today? Usually hide.
-      // Correction: If user asks for "Functional", they expect strictness.
-      if (!t.deadline) return false;
+    const today: Task[] = [];
+    const week: Task[] = [];
+    const overdue: Task[] = [];
 
+    safeTasks.forEach((t) => {
+      if (t.status === "completed" || !t.deadline) return;
       const taskDate = new Date(t.deadline);
 
-      if (activeFilter === "Overdue") {
-        return taskDate < startOfToday;
+      if (taskDate < startOfToday) {
+        overdue.push(t);
+      } else if (taskDate >= startOfToday && taskDate < endOfToday) {
+        today.push(t);
+      } else if (taskDate >= startOfToday && taskDate < endOfWeek) {
+        // "This Week" in the separate view usually implies future tasks in the week
+        // To avoid duplicates with "Today", we start from endOfToday
+        // However, if the user wants "This Week" to mean "Next 7 days", we might include today.
+        // Given the vertical layout, disjoint is better.
+        if (taskDate >= endOfToday) {
+          week.push(t);
+        }
       }
-
-      if (activeFilter === "Today") {
-        return taskDate >= startOfToday && taskDate < endOfToday;
-      }
-
-      if (activeFilter === "This Week") {
-        // Includes Today + Next 7 Days
-        return taskDate >= startOfToday && taskDate < endOfWeek;
-      }
-
-      return false;
     });
-  }, [tasks, activeFilter]);
+
+    return { today, week, overdue };
+  }, [tasks]);
+
+  const scrollToSection = (section: "Today" | "This Week" | "Overdue") => {
+    setActiveFilter(section);
+    const element = document.getElementById(`section-${section.toLowerCase().replace(" ", "-")}`);
+    if (element) {
+      const offset = 100; // Offset for sticky headers or breathing room
+      const bodyRect = document.body.getBoundingClientRect().top;
+      const elementRect = element.getBoundingClientRect().top;
+      const elementPosition = elementRect - bodyRect;
+      const offsetPosition = elementPosition - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth"
+      });
+    }
+  };
 
   const [stats, setStats] = useState({ deadlinesToday: 0 });
-
-  useMemo(() => {
-    // Calculate stats but only update state to avoid hydration mismatch if dates differ
-    // Actually, useMemo runs during render. We need useEffect for client-side only calculation.
-  }, []);
 
   useEffect(() => {
     if (!tasks) return;
@@ -169,7 +202,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
             {(["Today", "This Week", "Overdue"] as const).map((filter) => (
               <button
                 key={filter}
-                onClick={() => setActiveFilter(filter)}
+                onClick={() => scrollToSection(filter)}
                 className={cn(
                   "flex-1 px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all",
                   activeFilter === filter
@@ -195,104 +228,76 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
               </h2>
             </div>
 
-            <div className="space-y-3">
-              {activeFilter === "Overdue" ? (filteredTasks as Task[])?.length > 0 &&
-                (filteredTasks as Task[]).map((task) => (
-                  <div
-                    key={task.id}
-                    className="group relative flex items-center gap-4 p-4 rounded-xl bg-card border border-zinc-900 hover:border-zinc-700 transition-all cursor-pointer"
-                    onClick={() => setSelectedTask(task)}
-                  >
-                    {/* Status Indicator Bar */}
-                    <div className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-colors",
-                      task.priority === 'High' ? "bg-red-500" : "bg-zinc-700 group-hover:bg-zinc-500"
-                    )} />
+            <div className="space-y-10">
+              {/* Render Helper */}
+              {(() => {
+                const renderTaskList = (taskList: Task[], title: string, id: string, emptyMsg: string) => (
+                  <div id={id} className="scroll-mt-24 space-y-4">
+                    <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest pl-1">{title} <span className="text-zinc-600 ml-2 text-xs">({taskList.length})</span></h3>
+                    {taskList.length > 0 ? (
+                      <div className="space-y-3">
+                        {taskList.map((task) => (
+                          <div
+                            key={task.id}
+                            className="group relative flex items-center gap-4 p-4 rounded-xl bg-card border border-zinc-900 hover:border-zinc-700 transition-all cursor-pointer"
+                            onClick={() => setSelectedTask(task)}
+                          >
+                            {/* Status Indicator Bar */}
+                            <div className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-colors",
+                              task.priority === 'High' ? "bg-red-500" : "bg-zinc-700 group-hover:bg-zinc-500"
+                            )} />
 
-                    {/* Content */}
-                    <div className="flex-1 ml-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-800">
-                          {task.team?.name || "Unassigned"}
-                        </span>
-                        {task.priority === 'High' && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" title="High Priority" />
-                        )}
+                            {/* Content */}
+                            <div className="flex-1 ml-3">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-800">
+                                  {task.team?.name || "Unassigned"}
+                                </span>
+                                {task.priority === 'High' && (
+                                  <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" title="High Priority" />
+                                )}
+                              </div>
+                              <h3 className="font-medium text-zinc-200 group-hover:text-white transition-colors">
+                                {task.title}
+                              </h3>
+                            </div>
+
+                            {/* Meta */}
+                            <div className="flex items-center gap-6 text-sm text-zinc-500">
+                              <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/50 border border-transparent group-hover:border-zinc-800 transition-colors text-xs font-medium">
+                                <Calendar className="w-3.5 h-3.5" />
+                                {formatDaysLeft(task.deadline)}
+                              </span>
+                              <span className={cn(
+                                "hidden sm:flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
+                                task.status === "active"
+                                  ? "bg-blue-950/20 text-blue-400 border-blue-900/30"
+                                  : "bg-zinc-900 text-zinc-500 border-zinc-800"
+                              )}>
+                                {task.status}
+                              </span>
+                            </div>
+
+                            <ArrowRight className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                          </div>
+                        ))}
                       </div>
-                      <h3 className="font-medium text-zinc-200 group-hover:text-white transition-colors">
-                        {task.title}
-                      </h3>
-                    </div>
-
-                    {/* Meta */}
-                    <div className="flex items-center gap-6 text-sm text-zinc-500">
-                      <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/50 border border-transparent group-hover:border-zinc-800 transition-colors text-xs font-medium">
-                        <Calendar className="w-3.5 h-3.5" />
-                        {task.deadline?.split("T")[0]}
-                      </span>
-                      <span className={cn(
-                        "hidden sm:flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
-                        task.status === "active"
-                          ? "bg-blue-950/20 text-blue-400 border-blue-900/30"
-                          : "bg-zinc-900 text-zinc-500 border-zinc-800"
-                      )}>
-                        {task.status}
-                      </span>
-                    </div>
-
-                    <ArrowRight className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
-                  </div>
-                ))
-                : (filteredTasks as Task[])?.length > 0 && (filteredTasks as Task[]).map((task) => (
-                  <div
-                    key={task.id}
-                    className="group relative flex items-center gap-4 p-4 rounded-xl bg-card border border-zinc-900 hover:border-zinc-700 transition-all cursor-pointer"
-                    onClick={() => setSelectedTask(task)}
-                  >
-                    {/* Status Indicator Bar */}
-                    <div className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-colors",
-                      task.priority === 'High' ? "bg-red-500" : "bg-zinc-700 group-hover:bg-zinc-500"
-                    )} />
-
-                    {/* Content */}
-                    <div className="flex-1 ml-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-800">
-                          {task.team?.name || "Unassigned"}
-                        </span>
-                        {task.priority === 'High' && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" title="High Priority" />
-                        )}
+                    ) : (
+                      <div className="py-8 px-4 border border-dashed border-zinc-900 rounded-xl bg-zinc-900/20 text-center">
+                        <p className="text-zinc-600 text-xs">{emptyMsg}</p>
                       </div>
-                      <h3 className="font-medium text-zinc-200 group-hover:text-white transition-colors">
-                        {task.title}
-                      </h3>
-                    </div>
-
-                    {/* Meta */}
-                    <div className="flex items-center gap-6 text-sm text-zinc-500">
-                      <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/50 border border-transparent group-hover:border-zinc-800 transition-colors text-xs font-medium">
-                        <Calendar className="w-3.5 h-3.5" />
-                        {task.deadline?.split("T")[0]}
-                      </span>
-                      <span className={cn(
-                        "hidden sm:flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
-                        task.status === "active"
-                          ? "bg-blue-950/20 text-blue-400 border-blue-900/30"
-                          : "bg-zinc-900 text-zinc-500 border-zinc-800"
-                      )}>
-                        {task.status}
-                      </span>
-                    </div>
-
-                    <ArrowRight className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                    )}
                   </div>
-                ))}
-              {filteredTasks.length === 0 && (
-                <div className="text-center py-12 bg-card/50 rounded-xl border border-dashed border-zinc-900">
-                  <p className="text-zinc-600 text-sm">No tasks for {activeFilter.toLowerCase()}.</p>
-                  <button onClick={() => setIsCreateModalOpen(true)} className="mt-4 text-white text-xs font-bold hover:underline uppercase tracking-wide">Create a task</button>
-                </div>
-              )}
+                );
+
+                return (
+                  <div className="h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                    {renderTaskList(groupedTasks.today, "Today", "section-today", "No tasks due today.")}
+                    {renderTaskList(groupedTasks.week, "This Week", "section-this-week", "No upcoming tasks for this week.")}
+                    {renderTaskList(groupedTasks.overdue, "Overdue", "section-overdue", "No overdue tasks. Great job!")}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -305,7 +310,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
               </h2>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-4 h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent content-start">
               {teams && teams.length > 0 ? (
                 (teams as Team[]).map((team) => (
                   <div
