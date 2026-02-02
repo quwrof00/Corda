@@ -40,6 +40,7 @@ function formatDaysLeft(dateString?: string) {
 interface Team {
   id: string;
   name: string;
+  leader?: { email: string };
   tasks?: { id: string }[];
   _count?: { tasks: number };
 }
@@ -126,7 +127,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
     e.stopPropagation();
     // HCI: Immediate feedback logic would go here (optimistic UI), but mutation handles it via query invalidation
     if (confirm("Mark this task as completed?")) {
-      updateTaskMutation.mutate({ id: task.id, data: { status: 'completed' } });
+      updateTaskMutation.mutate({ id: task.id, status: 'completed' });
     }
   };
 
@@ -455,7 +456,23 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
 
       {/* Task Detail Drawer */}
       {selectedTask && (
-        <TaskDetailDrawer selectedTask={selectedTask} setSelectedTask={setSelectedTask} updateTaskMutation={updateTaskMutation} refreshTasks={refreshTasks} />
+        <TaskDetailDrawer
+          selectedTask={selectedTask}
+          setSelectedTask={setSelectedTask}
+          updateTaskMutation={updateTaskMutation}
+          refreshTasks={refreshTasks}
+          isLeader={
+            // User can delete if:
+            // 1. Task is from Personal workspace (team name is "Personal")
+            // 2. User is the leader of the task's team
+            selectedTask.team?.name === 'Personal' ||
+            (teams as Team[] || []).some(team =>
+              team.id === selectedTask.teamId &&
+              (team as Team).leader?.email === session?.user?.email
+            )
+          }
+          members={[]}
+        />
       )}
 
       <CreateTaskModal

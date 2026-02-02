@@ -41,7 +41,10 @@ export default function CreateTaskModal({
         if (isOpen) {
             setTitle("");
             setDesc("");
-            setDeadline("");
+            // Set default deadline to today's date
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+            setDeadline(formattedDate);
             setPriority("Medium");
             setRequiredSkill("");
 
@@ -128,7 +131,10 @@ export default function CreateTaskModal({
             // Reset form
             setTitle("");
             setDesc("");
-            setDeadline("");
+            // Reset to today's date
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            setDeadline(formattedDate);
             setPriority("Medium");
             setRequiredSkill("");
             setTeamId(initialTeamId || "");
@@ -212,7 +218,7 @@ export default function CreateTaskModal({
                                             className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 appearance-none"
                                             required
                                         >
-                                            <option value="" disabled>Select a team</option>
+                                            {!teamId && <option value="" disabled>Select a team</option>}
                                             {teams?.map((team: { id: string, name: string }) => (
                                                 <option key={team.id} value={team.id}>
                                                     {team.name}

@@ -1,17 +1,28 @@
 import { useState, useEffect } from "react";
-import { Pause, Play, X, Calendar, Users, Flag, Edit2, Save, Loader2 } from "lucide-react"
+import { Pause, Play, X, Calendar, Users, Flag, Edit2, Save, Loader2, Trash2 } from "lucide-react"
 import cn from "clsx"
-import { Task } from "@/hooks/useTasks";
+import { Task, useDeleteTask } from "@/hooks/useTasks";
 import { UseMutationResult } from "@tanstack/react-query";
+import { toast } from "sonner";
+
+interface Member {
+    id: string;
+    name: string;
+    email: string;
+}
 
 interface TaskDetailDrawerProps {
     selectedTask: Task | null;
     setSelectedTask: (task: Task | null) => void;
     updateTaskMutation: UseMutationResult<unknown, Error, { id: string;[key: string]: unknown }, unknown>; // Typed for usage
     refreshTasks: () => void;
+    isLeader?: boolean;
+    members?: Member[];
+    teamName?: string; // Optional team name to override task.team.name
 }
 
-export default function TaskDetailDrawer({ selectedTask, setSelectedTask, updateTaskMutation, refreshTasks }: TaskDetailDrawerProps) {
+export default function TaskDetailDrawer({ selectedTask, setSelectedTask, updateTaskMutation, refreshTasks, isLeader = false, members = [], teamName }: TaskDetailDrawerProps) {
+    const deleteTaskMutation = useDeleteTask();
 
     const handleStatusUpdate = async (status: string) => {
         if (!selectedTask) return;
@@ -36,7 +47,9 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
         title: "",
         description: "",
         deadline: "",
-        priority: "Medium"
+        priority: "Medium",
+        requiredSkill: "",
+        assignedToId: ""
     });
 
     useEffect(() => {
@@ -45,7 +58,9 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                 title: selectedTask.title || "",
                 description: selectedTask.desc || selectedTask.description || "",
                 deadline: selectedTask.deadline ? new Date(selectedTask.deadline).toISOString().split('T')[0] : "",
-                priority: selectedTask.priority || "Medium"
+                priority: selectedTask.priority || "Medium",
+                requiredSkill: selectedTask.requiredSkill || "",
+                assignedToId: selectedTask.assignedToId || selectedTask.assignedTo?.id || ""
             });
         }
         setIsEditing(false);
@@ -75,19 +90,39 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                 title: editForm.title,
                 description: editForm.description,
                 deadline: editForm.deadline || null, // Handle clear date
-                priority: editForm.priority
+                priority: editForm.priority,
+                requiredSkill: editForm.requiredSkill || null,
+                assignedToId: editForm.assignedToId || null
             });
             setIsEditing(false);
+            toast.success("Task updated successfully");
             refreshTasks();
         } catch (e) {
             console.error("Failed to update task details", e);
+            toast.error("Failed to update task");
+        }
+    };
+
+    const handleDeleteTask = async () => {
+        if (!selectedTask) return;
+        if (confirm("Are you sure you want to delete this task? This action cannot be undone.")) {
+            try {
+                await deleteTaskMutation.mutateAsync(selectedTask.id);
+                toast.success("Task deleted successfully");
+                setSelectedTask(null);
+                refreshTasks();
+            } catch (e) {
+                console.error("Failed to delete task", e);
+                toast.error("Failed to delete task");
+            }
         }
     };
 
     if (!selectedTask) return null;
 
     // Normalize data fields since we might get slightly different shapes from different endpoints
-    const taskTeamName = selectedTask.team?.name || "Unassigned"; // handle complex nested or flat relations
+    // Use provided teamName prop if available, otherwise fall back to task.team.name
+    const taskTeamName = teamName || selectedTask.team?.name || "Unassigned"; // handle complex nested or flat relations
     const isPersonal = taskTeamName === 'Personal';
 
     const taskDescription = selectedTask.desc || selectedTask.description || "No description provided for this task.";
@@ -103,24 +138,44 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                     <div className="flex items-center justify-between mb-8 pb-6 border-b border-zinc-900">
                         <h2 className="text-xl font-bold text-white">Task Details</h2>
                         <div className="flex items-center gap-2">
-                            {isPersonal && !isEditing && (
-                                <button
-                                    onClick={() => setIsEditing(true)}
-                                    className="p-2 hover:bg-zinc-900 rounded-lg text-zinc-500 hover:text-white transition-colors"
-                                    title="Edit Task"
-                                >
-                                    <Edit2 className="w-5 h-5" />
-                                </button>
+                            {(isPersonal || isLeader) && !isEditing && (
+                                <>
+                                    <button
+                                        onClick={() => setIsEditing(true)}
+                                        className="p-2 hover:bg-zinc-900 rounded-lg text-zinc-500 hover:text-white transition-colors"
+                                        title="Edit Task"
+                                    >
+                                        <Edit2 className="w-5 h-5" />
+                                    </button>
+                                    {isLeader && (
+                                        <button
+                                            onClick={handleDeleteTask}
+                                            disabled={deleteTaskMutation.isPending}
+                                            className="p-2 hover:bg-red-900/30 rounded-lg text-red-500 hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="Delete Task"
+                                        >
+                                            {deleteTaskMutation.isPending ? (
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                            ) : (
+                                                <Trash2 className="w-5 h-5" />
+                                            )}
+                                        </button>
+                                    )}
+                                </>
                             )}
                             {isEditing && (
                                 <>
                                     <button
                                         onClick={handleSaveChanges}
                                         disabled={updateTaskMutation.isPending}
-                                        className="p-2 hover:bg-green-900/30 rounded-lg text-green-500 hover:text-green-400 transition-colors"
+                                        className="p-2 hover:bg-green-900/30 rounded-lg text-green-500 hover:text-green-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         title="Save Changes"
                                     >
-                                        <Save className="w-5 h-5" />
+                                        {updateTaskMutation.isPending ? (
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                        ) : (
+                                            <Save className="w-5 h-5" />
+                                        )}
                                     </button>
                                     <button
                                         onClick={() => setIsEditing(false)}
@@ -204,6 +259,30 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                 <span className="text-zinc-500 flex items-center gap-2"><Users className="w-4 h-4" /> Team</span>
                                 <span className="font-medium text-zinc-200">{taskTeamName}</span>
                             </div>
+
+                            {/* Assigned To - editable for leaders */}
+                            {isLeader && !isPersonal && (
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-zinc-500 flex items-center gap-2"><Users className="w-4 h-4" /> Assigned To</span>
+                                    {isEditing ? (
+                                        <select
+                                            value={editForm.assignedToId}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, assignedToId: e.target.value }))}
+                                            className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-zinc-700"
+                                        >
+                                            <option value="">-- Unassigned --</option>
+                                            {members.map((m) => (
+                                                <option key={m.id} value={m.id}>{m.name}</option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <span className="font-medium text-zinc-200">
+                                            {selectedTask.assignedTo?.name || "Unassigned"}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-zinc-500 flex items-center gap-2"><Calendar className="w-4 h-4" /> Due Date</span>
                                 {isEditing ? (
@@ -211,7 +290,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                         type="date"
                                         value={editForm.deadline}
                                         onChange={(e) => setEditForm(prev => ({ ...prev, deadline: e.target.value }))}
-                                        className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-zinc-700"
+                                        className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-zinc-700 [color-scheme:dark]"
                                     />
                                 ) : (
                                     <span className="font-medium text-zinc-200">
@@ -219,10 +298,22 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                     </span>
                                 )}
                             </div>
-                            {selectedTask.requiredSkill && (
+
+                            {/* Required Skill - always show in edit mode or if it exists */}
+                            {(isEditing || selectedTask.requiredSkill) && (
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-zinc-500 flex items-center gap-2"><Flag className="w-4 h-4" /> Skill</span>
-                                    <span className="font-medium text-zinc-200">{selectedTask.requiredSkill}</span>
+                                    {isEditing ? (
+                                        <input
+                                            type="text"
+                                            value={editForm.requiredSkill}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, requiredSkill: e.target.value }))}
+                                            placeholder="e.g. React, Python"
+                                            className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-zinc-700 w-48"
+                                        />
+                                    ) : (
+                                        <span className="font-medium text-zinc-200">{selectedTask.requiredSkill}</span>
+                                    )}
                                 </div>
                             )}
                         </div>

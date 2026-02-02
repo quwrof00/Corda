@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useTeam, useTeamMembers, useDeleteTeam, useRemoveMember, useUpdateTeam } from "@/hooks/useTeams";
-import { useTasks, useUpdateTask, useDeleteTask } from "@/hooks/useTasks";
+import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 import { api } from "@/lib/api";
 import { AxiosError } from "axios";
 import { useSession } from "next-auth/react";
@@ -11,14 +11,15 @@ import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import CreateTaskModal from "@/components/CreateTaskModal";
+import TaskDetailDrawer from "@/components/TaskDetailDrawer";
 import ConfirmModal from "@/components/ConfirmModal";
 import { TeamHeader } from "@/components/teams/TeamHeader";
 import { MobileNavTabs } from "@/components/teams/MobileNavTabs";
 import { WorkloadAnalysis } from "@/components/teams/WorkloadAnalysis";
 import { PersonalWorkspace } from "@/components/teams/PersonalWorkspace";
 import { TeamTaskBoard } from "@/components/teams/TeamTaskBoard";
-import { InviteModal, EditTeamModal, EditTaskModal } from "@/components/teams/TeamModals";
-import { Task, Member } from "@/components/teams/types";
+import { InviteModal, EditTeamModal } from "@/components/teams/TeamModals";
+import { Member } from "@/components/teams/types";
 import { cn } from "@/components/teams/utils";
 
 export default function TeamDetailsPage() {
@@ -34,7 +35,6 @@ export default function TeamDetailsPage() {
 
     const deleteTeamMutation = useDeleteTeam();
     const removeMemberMutation = useRemoveMember();
-    const deleteTaskMutation = useDeleteTask();
     const updateTeamMutation = useUpdateTeam();
     const updateTaskMutation = useUpdateTask();
 
@@ -45,8 +45,9 @@ export default function TeamDetailsPage() {
     const [inviteLink, setInviteLink] = useState("");
 
     const [teamModalOpen, setTeamModalOpen] = useState(false);
-    const [taskModalOpen, setTaskModalOpen] = useState(false);
     const [createTaskModalOpen, setCreateTaskModalOpen] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [selectedMemberId, setSelectedMemberId] = useState<string>("");
 
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
@@ -59,8 +60,6 @@ export default function TeamDetailsPage() {
 
     const [editingTeamName, setEditingTeamName] = useState("");
     const [editingTeamDesc, setEditingTeamDesc] = useState("");
-    const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [selectedMemberId, setSelectedMemberId] = useState<string>("");
 
     // Scroll state for navbar
     const [isScrolled, setIsScrolled] = useState(false);
@@ -134,54 +133,6 @@ export default function TeamDetailsPage() {
         }
     };
 
-    const handleSaveTask = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!editingTask) return;
-        try {
-            await updateTaskMutation.mutateAsync({
-                id: editingTask.id,
-                title: editingTask.title,
-                description: editingTask.desc,
-                priority: editingTask.priority,
-                requiredSkill: editingTask.requiredSkill || undefined,
-                status: editingTask.status,
-                assignedToId: editingTask.assignedToId || null,
-                deadline: editingTask.deadline
-            });
-            queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
-            toast.success("Task updated successfully");
-            setTaskModalOpen(false);
-            setEditingTask(null);
-        } catch (err) {
-            console.error(err);
-            toast.error("Failed to update task");
-        }
-    };
-
-    const handleDeleteTask = async () => {
-        if (!editingTask) return;
-        setConfirmModal({
-            isOpen: true,
-            title: "Delete Task",
-            description: "Are you sure you want to delete this task? This action cannot be undone.",
-            variant: "danger",
-            confirmText: "Delete Task",
-            onConfirm: async () => {
-                try {
-                    await deleteTaskMutation.mutateAsync(editingTask.id);
-                    queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
-                    toast.success("Task deleted successfully");
-                    setTaskModalOpen(false);
-                    setEditingTask(null);
-                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
-                } catch (error) {
-                    console.error(error);
-                    toast.error("Failed to delete task");
-                }
-            }
-        });
-    };
-
     const handleAllocate = async () => {
         setConfirmModal({
             isOpen: true,
@@ -236,8 +187,7 @@ export default function TeamDetailsPage() {
     };
 
     const openEditTask = (task: Task) => {
-        setEditingTask({ ...task, assignedToId: task.assignedTo?.id || null });
-        setTaskModalOpen(true);
+        setSelectedTask(task);
     };
 
     const [mobileTab, setMobileTab] = useState<"workload" | "unassigned" | "assigned">("assigned");
@@ -366,17 +316,14 @@ export default function TeamDetailsPage() {
                 isPending={updateTeamMutation.isPending}
             />
 
-            <EditTaskModal
-                isOpen={taskModalOpen}
-                onClose={() => setTaskModalOpen(false)}
-                editingTask={editingTask}
-                setEditingTask={setEditingTask}
+            <TaskDetailDrawer
+                selectedTask={selectedTask}
+                setSelectedTask={setSelectedTask}
+                updateTaskMutation={updateTaskMutation}
+                refreshTasks={() => queryClient.invalidateQueries({ queryKey: ["tasks", teamId] })}
                 isLeader={isLeader}
-                handleSaveTask={handleSaveTask}
-                handleDeleteTask={handleDeleteTask}
-                updateTaskPending={updateTaskMutation.isPending}
-                deleteTaskPending={deleteTaskMutation.isPending}
                 members={members as Member[]}
+                teamName={team?.name}
             />
 
             <ConfirmModal
