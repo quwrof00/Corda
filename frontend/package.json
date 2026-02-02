@@ -11,6 +11,10 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
+    "@capacitor/android": "^8.0.1",
+    "@capacitor/cli": "^7.4.5",
+    "@capacitor/core": "^8.0.1",
+    "@capacitor/ios": "^8.0.1",
     "@prisma/client": "^6.18.0",
     "@tanstack/react-query": "^5.90.6",
     "@types/nodemailer": "^7.0.4",

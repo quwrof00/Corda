@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Pause, Play, X, Calendar, Users, Flag, Edit2, Save } from "lucide-react"
+import { Pause, Play, X, Calendar, Users, Flag, Edit2, Save, Loader2 } from "lucide-react"
 import cn from "clsx"
 import { Task } from "@/hooks/useTasks";
 import { UseMutationResult } from "@tanstack/react-query";
@@ -50,6 +50,22 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
         }
         setIsEditing(false);
     }, [selectedTask]);
+
+    // HCI: Keyboard shortcut to close drawer
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && selectedTask) {
+                if (isEditing) {
+                    setIsEditing(false);
+                } else {
+                    setSelectedTask(null);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedTask, isEditing, setSelectedTask]);
 
     const handleSaveChanges = async () => {
         if (!selectedTask) return;
@@ -120,6 +136,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                     onClick={() => setSelectedTask(null)}
                                     className="p-2 hover:bg-zinc-900 rounded-lg text-zinc-500 hover:text-white transition-colors"
                                     aria-label="Close Drawer"
+                                    title="Close (Esc)"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
@@ -235,8 +252,17 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                     disabled={updateTaskMutation.isPending}
                                     className="flex-1 py-3 bg-zinc-100 text-black font-bold rounded-xl hover:bg-white transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <Play className="w-4 h-4" />
-                                    {updateTaskMutation.isPending ? "Updating..." : "Start Task"}
+                                    {updateTaskMutation.isPending ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Updating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Play className="w-4 h-4" />
+                                            Start Task
+                                        </>
+                                    )}
                                 </button>
                             )}
                             {selectedTask.status === 'in-progress' && (
@@ -245,8 +271,17 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                     disabled={updateTaskMutation.isPending}
                                     className="flex-1 py-3 bg-amber-500 text-black font-bold rounded-xl hover:bg-amber-400 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <Pause className="w-4 h-4" />
-                                    {updateTaskMutation.isPending ? "Updating..." : "Pause Task"}
+                                    {updateTaskMutation.isPending ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Updating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Pause className="w-4 h-4" />
+                                            Pause Task
+                                        </>
+                                    )}
                                 </button>
                             )}
                             <button

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTeams } from "@/hooks/useTeams";
 import { useCreateTask } from "@/hooks/useTasks";
 import { Loader2, ListTodo, X } from "lucide-react";
@@ -55,6 +55,25 @@ export default function CreateTaskModal({
             setAssignToMe(shouldAssignToMe);
         }
     }, [isOpen, initialTeamId, initialAssignedToId, isPersonalWorkspace, currentUserId]);
+
+    // HCI: Auto-focus first input and Esc to close
+    const titleInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isOpen && titleInputRef.current) {
+            // Small delay to ensure modal animation completes
+            setTimeout(() => titleInputRef.current?.focus(), 100);
+        }
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
 
     // Handle team selection changes to enforce Personal validation
     useEffect(() => {
@@ -140,6 +159,8 @@ export default function CreateTaskModal({
                         <button
                             onClick={onClose}
                             className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 rounded-lg transition-colors"
+                            title="Close (Esc)"
+                            type="button"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -152,12 +173,14 @@ export default function CreateTaskModal({
                                 Task Title
                             </label>
                             <input
+                                ref={titleInputRef}
                                 type="text"
                                 placeholder={isPersonalWorkspace ? "e.g. Buy groceries" : "e.g. Implement Auth Flow"}
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 placeholder-zinc-600"
                                 required
+                                autoComplete="off"
                             />
                         </div>
 

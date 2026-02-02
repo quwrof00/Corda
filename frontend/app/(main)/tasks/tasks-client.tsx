@@ -1,6 +1,6 @@
 "use client";
 import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, RefreshCw } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import CreateTaskModal from "@/components/CreateTaskModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
@@ -26,6 +26,24 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
 
     // Hook for updates
     const updateTaskMutation = useUpdateTask();
+
+    // HCI: Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // 'C' or 'N' to create task
+            if ((e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'n') && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                setIsCreateModalOpen(true);
+            }
+            // 'Esc' to close drawer
+            if (e.key === 'Escape' && selectedTask) {
+                setSelectedTask(null);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedTask]);
 
     const handleStatusUpdate = async (taskId: string, newStatus: string, e?: React.MouseEvent) => {
         e?.stopPropagation();
@@ -89,6 +107,9 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                         >
                             <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
                             <span className="font-bold tracking-wide">New Task</span>
+                            <div className="hidden md:flex items-center gap-0.5 ml-1 px-1.5 py-0.5 bg-black/10 rounded text-[9px] font-mono">
+                                <span>C</span>
+                            </div>
                         </button>
                     </div>
 
@@ -221,7 +242,7 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                             </div>
                         ))
                     ) : (
-                        <div className="text-center py-24 border border-zinc-900 border-dashed bg-card/50 rounded-xl">
+                        <div className="text-center py-24 border border-zinc-900 border-dashed bg-card/50 rounded-xl hover:border-zinc-800 transition-colors group">
                             <div className="inline-flex items-center justify-center w-12 h-12 bg-zinc-900 rounded-lg mb-4">
                                 <AlertCircle className="w-6 h-6 text-zinc-600" />
                             </div>
@@ -229,6 +250,13 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                             <p className="text-zinc-600 mb-6 text-xs max-w-sm mx-auto">
                                 No active tasks found matching current filter parameters.
                             </p>
+                            <button
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors"
+                            >
+                                <Plus className="w-3 h-3" />
+                                Create Task
+                            </button>
                         </div>
                     )}
                 </div>

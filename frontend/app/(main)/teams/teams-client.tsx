@@ -31,6 +31,20 @@ export default function TeamsClient({ initialTeams }: TeamsClientProps) {
         }
     }, [status, router]);
 
+    // HCI: Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // 'C' or 'N' to create team
+            if ((e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'n') && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                setIsCreateModalOpen(true);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
     if (status === "loading" || isLoading) {
         return (
             <div className="flex justify-center items-center h-screen bg-background">
@@ -58,6 +72,9 @@ export default function TeamsClient({ initialTeams }: TeamsClientProps) {
                     >
                         <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
                         <span className="font-bold tracking-wide">Create Team</span>
+                        <div className="hidden md:flex items-center gap-0.5 ml-1 px-1.5 py-0.5 bg-black/10 rounded text-[9px] font-mono">
+                            <span>C</span>
+                        </div>
                     </button>
                 </div>
 
@@ -67,7 +84,15 @@ export default function TeamsClient({ initialTeams }: TeamsClientProps) {
                             <div
                                 key={team.id}
                                 onClick={() => router.push(`/teams/${team.id}`)}
-                                className="group relative bg-card border border-zinc-800 p-6 hover:border-zinc-700 transition-all cursor-pointer overflow-hidden rounded-xl"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        router.push(`/teams/${team.id}`);
+                                    }
+                                }}
+                                role="button"
+                                tabIndex={0}
+                                className="group relative bg-card border border-zinc-800 p-6 hover:border-zinc-700 transition-all cursor-pointer overflow-hidden rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-700"
                             >
                                 <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0 duration-300">
                                     <ArrowRight className="w-5 h-5 text-zinc-400" />
@@ -103,8 +128,8 @@ export default function TeamsClient({ initialTeams }: TeamsClientProps) {
                         ))}
                     </div>
                 ) : (
-                    <div className="border border-zinc-800 border-dashed p-12 flex flex-col items-center justify-center text-center max-w-lg mx-auto mt-10 bg-card rounded-xl">
-                        <div className="w-16 h-16 bg-zinc-900 flex items-center justify-center text-zinc-600 mb-6 rounded-lg">
+                    <div className="border border-zinc-800 border-dashed p-12 flex flex-col items-center justify-center text-center max-w-lg mx-auto mt-10 bg-card rounded-xl hover:border-zinc-700 transition-colors group">
+                        <div className="w-16 h-16 bg-zinc-900 flex items-center justify-center text-zinc-600 mb-6 rounded-lg group-hover:bg-zinc-800 transition-colors">
                             <Users className="w-8 h-8" />
                         </div>
                         <h3 className="text-xl font-bold text-white mb-2">No Teams Found</h3>
@@ -113,8 +138,9 @@ export default function TeamsClient({ initialTeams }: TeamsClientProps) {
                         </p>
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="px-6 py-3 bg-zinc-100 hover:bg-white text-black font-bold text-sm tracking-wide transition-colors rounded-lg"
+                            className="px-6 py-3 bg-zinc-100 hover:bg-white text-black font-bold text-sm tracking-wide transition-colors rounded-lg flex items-center gap-2"
                         >
+                            <Plus className="w-4 h-4" />
                             Create Team
                         </button>
                     </div>

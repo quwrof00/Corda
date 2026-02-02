@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   ArrowRight,
   Users,
+  Plus,
+  Check,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -45,6 +47,19 @@ interface Team {
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
+
+// Button Component for consistency
+const PrimaryButton = ({ children, onClick, className }: { children: React.ReactNode, onClick: () => void, className?: string }) => (
+  <button
+    onClick={onClick}
+    className={cn(
+      "flex items-center gap-2 px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-wider rounded-md hover:bg-zinc-200 transition-colors shadow-lg shadow-white/5",
+      className
+    )}
+  >
+    {children}
+  </button>
+);
 
 export default function DashboardClient({ initialTasks, initialTeams }: { initialTasks: Task[], initialTeams: Team[] }) {
 
@@ -87,10 +102,33 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
     };
 
     updateGreeting();
+    updateGreeting();
     // Update every minute to keep it real-time
     const interval = setInterval(updateGreeting, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // HCI: Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 'C' or 'N' to create task
+      if ((e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'n') && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        setIsCreateModalOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleQuickComplete = (e: React.MouseEvent, task: Task) => {
+    e.stopPropagation();
+    // HCI: Immediate feedback logic would go here (optimistic UI), but mutation handles it via query invalidation
+    if (confirm("Mark this task as completed?")) {
+      updateTaskMutation.mutate({ id: task.id, data: { status: 'completed' } });
+    }
+  };
 
   // Filter Tasks Logic (Mocked logic for dates as existing data might not have dates)
   // Filter Tasks Logic
@@ -187,7 +225,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
 
         {/* Top Section: Greeting & Status */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-zinc-900">
-          <div>
+          <div className="flex-1">
             <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
               {greeting}, {session.user?.name?.split(" ")[0]}
             </h1>
@@ -197,22 +235,38 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
             </div>
           </div>
 
-          {/* Quick Filters */}
-          <div className="flex items-center p-1 bg-zinc-900/50 rounded-lg border border-zinc-900/50">
-            {(["Today", "This Week", "Overdue"] as const).map((filter) => (
-              <button
-                key={filter}
-                onClick={() => scrollToSection(filter)}
-                className={cn(
-                  "flex-1 px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all",
-                  activeFilter === filter
-                    ? "bg-zinc-800 text-white shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50"
-                )}
-              >
-                {filter}
-              </button>
-            ))}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            {/* Main Action - HCI: Fitts's Law / Visibility */}
+            <PrimaryButton onClick={() => setIsCreateModalOpen(true)}>
+              <div className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                <span>New Task</span>
+                <div className="hidden md:flex items-center gap-0.5 ml-1 px-1.5 py-0.5 bg-zinc-200/50 rounded text-[9px] text-zinc-600 font-mono">
+                  <span>C</span>
+                </div>
+              </div>
+            </PrimaryButton>
+
+            {/* Vertical Divider */}
+            <div className="hidden sm:block w-px h-8 bg-zinc-800"></div>
+
+            {/* Quick Filters */}
+            <div className="flex items-center p-1 bg-zinc-900/50 rounded-lg border border-zinc-900/50">
+              {(["Today", "This Week", "Overdue"] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => scrollToSection(filter)}
+                  className={cn(
+                    "flex-1 px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all",
+                    activeFilter === filter
+                      ? "bg-zinc-800 text-white shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50"
+                  )}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -239,16 +293,30 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
                         {taskList.map((task) => (
                           <div
                             key={task.id}
-                            className="group relative flex items-center gap-4 p-4 rounded-xl bg-card border border-zinc-900 hover:border-zinc-700 transition-all cursor-pointer"
+                            className="group relative flex items-center gap-4 p-4 rounded-xl bg-card border border-zinc-900 hover:border-zinc-700 hover:bg-zinc-900/30 transition-all cursor-pointer"
                             onClick={() => setSelectedTask(task)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') setSelectedTask(task);
+                            }}
                           >
                             {/* Status Indicator Bar */}
                             <div className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-colors",
                               task.priority === 'High' ? "bg-red-500" : "bg-zinc-700 group-hover:bg-zinc-500"
                             )} />
 
+                            {/* Quick Complete Action (Hover) */}
+                            <div
+                              className="ml-3 h-5 w-5 rounded-full border-2 border-zinc-700 flex items-center justify-center text-transparent hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500 transition-all z-10"
+                              onClick={(e) => handleQuickComplete(e, task)}
+                              title="Mark as Completed"
+                            >
+                              <Check className="w-3 h-3" />
+                            </div>
+
                             {/* Content */}
-                            <div className="flex-1 ml-3">
+                            <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-800">
                                   {task.team?.name || "Unassigned"}
@@ -283,8 +351,15 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
                         ))}
                       </div>
                     ) : (
-                      <div className="py-8 px-4 border border-dashed border-zinc-900 rounded-xl bg-zinc-900/20 text-center">
+                      <div className="py-8 px-4 border border-dashed border-zinc-900 rounded-xl bg-zinc-900/20 text-center flex flex-col items-center justify-center gap-2 group hover:border-zinc-800 transition-colors">
                         <p className="text-zinc-600 text-xs">{emptyMsg}</p>
+                        <button
+                          onClick={() => setIsCreateModalOpen(true)}
+                          className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-white flex items-center gap-1 transition-colors px-3 py-1.5 rounded hover:bg-zinc-800"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Create Task
+                        </button>
                       </div>
                     )}
                   </div>

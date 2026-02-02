@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, CheckSquare, Menu, Terminal, LogOut, X, Lock } from "lucide-react";
 import { usePersonalWorkspace } from "@/hooks/usePersonalWorkspace";
 import { useSession, signOut } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { clsx } from "clsx";
 import Image from "next/image";
 
@@ -14,6 +14,18 @@ export default function MobileNav() {
     const { data: session } = useSession();
     const { data: personalTeamId } = usePersonalWorkspace();
     const [isOpen, setIsOpen] = useState(false);
+
+    // HCI: Close menu with Esc key
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                setIsOpen(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen]);
 
     if (!session) return null;
 
@@ -37,6 +49,7 @@ export default function MobileNav() {
                 <button
                     onClick={() => setIsOpen(true)}
                     className="p-2 text-zinc-400 hover:text-white"
+                    aria-label="Open Menu"
                 >
                     <Menu className="w-6 h-6" />
                 </button>
@@ -55,6 +68,8 @@ export default function MobileNav() {
                         <button
                             onClick={() => setIsOpen(false)}
                             className="p-2 text-zinc-400 hover:text-white"
+                            aria-label="Close Menu"
+                            title="Close (Esc)"
                         >
                             <X className="w-6 h-6" />
                         </button>
