@@ -3,6 +3,7 @@ import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, Refr
 import { useState, useMemo, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import CreateTaskModal from "@/components/CreateTaskModal";
+import CreateTeamModal from "@/components/CreateTeamModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
 import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 
@@ -21,6 +22,7 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
     const tasks = useMemo(() => (tasksData as Task[]) || [], [tasksData]);
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     // Remove local fetchTasks, use refetch from hook
 
@@ -30,11 +32,19 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
     // HCI: Keyboard Shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // 'C' or 'N' to create task
-            if ((e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'n') && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+            // 'C' for Task, 'N' for Team
+            const isInput = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
+            if (isInput || e.ctrlKey || e.metaKey) return;
+
+            if (e.key.toLowerCase() === 'c') {
                 e.preventDefault();
                 setIsCreateModalOpen(true);
+            } else if (e.key.toLowerCase() === 'n') {
+                e.preventDefault();
+                setIsCreateTeamModalOpen(true);
             }
+
+            // 'Esc' to close drawer
             // 'Esc' to close drawer
             if (e.key === 'Escape' && selectedTask) {
                 setSelectedTask(null);
@@ -267,6 +277,11 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                 onClose={() => setIsCreateModalOpen(false)}
                 onTaskCreated={refetch}
                 currentUserId={userId}
+            />
+
+            <CreateTeamModal
+                isOpen={isCreateTeamModalOpen}
+                onClose={() => setIsCreateTeamModalOpen(false)}
             />
 
             {selectedTask && (

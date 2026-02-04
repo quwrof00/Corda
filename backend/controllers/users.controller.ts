@@ -95,6 +95,7 @@ export const getUserById = async (req: Request, res: Response) => {
         skills: true,
         workload: true,
         role: true,
+        resumeUrl: true,
         teams: {
           select: { id: true, name: true }
         }
@@ -144,7 +145,7 @@ export const updateUser = async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Unauthorized: You can only update your own profile" });
     }
 
-    const { name, skills } = req.body;
+    const { name, skills, resumeUrl } = req.body;
 
     // Construct data object to only include defined fields
     const dataToUpdate: any = {};
@@ -154,6 +155,7 @@ export const updateUser = async (req: Request, res: Response) => {
         ? skills.map(formatSkill).filter(Boolean)
         : [];
     }
+    if (resumeUrl !== undefined) dataToUpdate.resumeUrl = resumeUrl;
     // Note: Teams are now managed via invite/add-member flows, not direct user update
 
     const updatedUser = await prisma.user.update({

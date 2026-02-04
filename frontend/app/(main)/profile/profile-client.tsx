@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useUser, useUpdateUser } from "@/hooks/useUser";
-import { Loader2, Plus, Save, User, X } from "lucide-react";
+import { Loader2, Plus, Save, User, X, FileUp, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProfileClientProps {
@@ -14,6 +14,7 @@ interface ProfileClientProps {
         skills: string[];
         workload: number;
         role: string | null;
+        resumeUrl: string | null;
         teams: { id: string; name: string }[];
     } | null;
     userId: string;
@@ -34,12 +35,15 @@ export default function ProfileClient({ initialUser, userId }: ProfileClientProp
     const [name, setName] = useState("");
     const [newSkill, setNewSkill] = useState("");
     const [isEditing, setIsEditing] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState<"IDLE" | "UPLOADING" | "PARSING" | "EXTRACTING" | "COMPLETE">("IDLE");
+    const [resumeUrl, setResumeUrl] = useState<string | null>(null);
 
     // Sync skills when user data loads
     useEffect(() => {
         if (user) {
             setSkills(user.skills || []);
             setName(user.name || session?.user?.name || "");
+            setResumeUrl((user.resumeUrl as string | null) ?? null);
         }
     }, [user, session]);
 
@@ -73,6 +77,98 @@ export default function ProfileClient({ initialUser, userId }: ProfileClientProp
                 }
             }
         );
+    };
+
+    const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        const allowedTypes = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+        if (!allowedTypes.includes(file.type)) {
+            toast.error("Only PDF and Word documents are allowed");
+            return;
+        }
+
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error("File size must be less than 5MB");
+            return;
+        }
+
+        setUploadStatus("UPLOADING");
+
+        try {
+            // Simulated progress for better UX since fetch doesn't support progress events easily
+            const progressInterval = setInterval(() => {
+                setUploadStatus(prev => {
+                    if (prev === "UPLOADING") return "PARSING";
+                    if (prev === "PARSING") return "EXTRACTING";
+                    return prev;
+                });
+            }, 2000);
+
+            const formData = new FormData();
+            formData.append("resume", file);
+
+            const response = await fetch(`/api/users/${userId}/resume`, {
+                method: "POST",
+                body: formData,
+            });
+
+            clearInterval(progressInterval);
+
+            if (!response.ok) {
+                throw new Error("Upload failed");
+            }
+
+            const data = await response.json();
+            setResumeUrl(data.resumeUrl);
+
+            setUploadStatus("COMPLETE");
+            setTimeout(() => setUploadStatus("IDLE"), 1000);
+
+            // Update skills if any were found
+            if (data.allSkills && data.allSkills.length > 0) {
+                setSkills(data.allSkills);
+                setIsEditing(true);
+                if (data.extractedSkills && data.extractedSkills.length > 0) {
+                    toast.success(`Resume uploaded. Extracted ${data.extractedSkills.length} new skills!`);
+                } else {
+                    toast.success("Resume uploaded successfully");
+                }
+            } else {
+                toast.success("Resume uploaded successfully");
+            }
+        } catch (error) {
+            console.error("Resume upload error:", error);
+            toast.error("Failed to upload resume");
+            setUploadStatus("IDLE");
+        }
+    };
+
+    const handleResumeDelete = async () => {
+        if (!resumeUrl) return;
+
+        setUploadStatus("UPLOADING"); // Reusing for delete loading state
+
+        try {
+            const response = await fetch(`/api/users/${userId}/resume`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                throw new Error("Delete failed");
+            }
+
+            setResumeUrl(null);
+            toast.success("Resume deleted successfully");
+        } catch (error) {
+            console.error("Resume delete error:", error);
+            toast.error("Failed to delete resume");
+        } finally {
+            setUploadStatus("IDLE");
+        }
     };
 
     return (
@@ -205,11 +301,128 @@ export default function ProfileClient({ initialUser, userId }: ProfileClientProp
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Resume Upload Section */}
+                                <div>
+                                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Resume Upload</h3>
+                                    <p className="text-zinc-600 text-xs mb-4">Upload your resume for skills verification</p>
+
+                                    {resumeUrl ? (
+                                        <div className="flex items-center justify-between p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+                                            <div className="flex items-center gap-3">
+                                                <FileUp className="w-5 h-5 text-emerald-500" />
+                                                <div>
+                                                    <p className="text-white text-sm font-mono">Resume Uploaded</p>
+                                                    <a
+                                                        href={resumeUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-zinc-500 text-xs hover:text-white transition-colors"
+                                                    >
+                                                        View Document
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={handleResumeDelete}
+                                                disabled={uploadStatus !== "IDLE"}
+                                                className="flex items-center gap-2 px-3 py-2 bg-red-950/30 hover:bg-red-950/50 border border-red-900/50 text-red-400 rounded-md text-xs font-bold uppercase transition-colors disabled:opacity-50"
+                                            >
+                                                {uploadStatus !== "IDLE" ? (
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="w-3 h-3" />
+                                                )}
+                                                Delete
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="relative">
+                                            <input
+                                                type="file"
+                                                id="resume-upload"
+                                                accept=".pdf,.doc,.docx"
+                                                onChange={handleResumeUpload}
+                                                disabled={uploadStatus !== "IDLE"}
+                                                className="hidden"
+                                            />
+                                            <label
+                                                htmlFor="resume-upload"
+                                                className={`flex items-center justify-center gap-3 p-6 bg-zinc-900 border-2 border-dashed border-zinc-800 hover:border-zinc-600 rounded-lg cursor-pointer transition-all ${uploadStatus !== "IDLE" ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            >
+                                                {uploadStatus !== "IDLE" ? (
+                                                    <>
+                                                        <Loader2 className="w-5 h-5 text-zinc-500 animate-spin" />
+                                                        <span className="text-zinc-500 text-sm font-mono uppercase">Processing...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <FileUp className="w-5 h-5 text-zinc-500" />
+                                                        <span className="text-zinc-400 text-sm font-mono uppercase">Click to Upload Resume</span>
+                                                        <span className="text-zinc-600 text-xs">(PDF, DOC, DOCX - Max 5MB)</span>
+                                                    </>
+                                                )}
+                                            </label>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+
+            {/* Processing Overlay */}
+            {
+                uploadStatus !== "IDLE" && (
+                    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl max-w-md w-full p-8 text-center relative overflow-hidden">
+                            {/* Animated Background Effect */}
+                            <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/10 via-transparent to-transparent opacity-50 animate-pulse" />
+
+                            <div className="relative z-10 flex flex-col items-center">
+                                <div className="w-20 h-20 bg-zinc-950 rounded-full flex items-center justify-center border-2 border-emerald-500/30 mb-6 relative">
+                                    <div className="absolute inset-0 border-t-2 border-emerald-500 rounded-full animate-spin" />
+                                    <div className="absolute inset-2 border-b-2 border-emerald-500/50 rounded-full animate-spin [animation-duration:1.5s]" />
+                                    {uploadStatus === "COMPLETE" ? (
+                                        <div className="w-8 h-8 bg-emerald-500 rounded-full animate-pulse" />
+                                    ) : (
+                                        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                                    )}
+                                </div>
+
+                                <h3 className="text-xl font-bold text-white uppercase font-mono tracking-wider mb-2">
+                                    {uploadStatus === "UPLOADING" && "Uploading Data"}
+                                    {uploadStatus === "PARSING" && "Parsing Document"}
+                                    {uploadStatus === "EXTRACTING" && "Analyzing Skills"}
+                                    {uploadStatus === "COMPLETE" && "Analysis Complete"}
+                                </h3>
+                                <p className="text-zinc-400 text-sm mb-6 max-w-xs mx-auto animate-pulse">
+                                    {uploadStatus === "UPLOADING" && "Encrypting and transferring file..."}
+                                    {uploadStatus === "PARSING" && "Extracting raw text from document..."}
+                                    {uploadStatus === "EXTRACTING" && "Identifying technical capabilities..."}
+                                    {uploadStatus === "COMPLETE" && "Skills successfully identified."}
+                                </p>
+
+                                <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-emerald-500 transition-all duration-500 ease-out"
+                                        style={{
+                                            width: uploadStatus === "UPLOADING" ? '30%' :
+                                                uploadStatus === "PARSING" ? '60%' :
+                                                    uploadStatus === "EXTRACTING" ? '85%' : '100%'
+                                        }}
+                                    />
+                                </div>
+                                <p className="text-zinc-500 text-[10px] uppercase font-mono mt-4 tracking-widest">
+                                    Do not close window
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
         </main>
     );
 }

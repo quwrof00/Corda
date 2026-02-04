@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Task } from "./types";
 import { cn, formatDaysLeft } from "./utils";
 import { CheckCircle2, Plus } from "lucide-react";
@@ -17,6 +18,24 @@ export function PersonalWorkspace({
     setCreateTaskModalOpen,
     openEditTask
 }: PersonalWorkspaceProps) {
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Check if user is typing in an input or textarea
+            if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
+                return;
+            }
+
+            if (e.key.toLowerCase() === 'c') {
+                e.preventDefault();
+                setSelectedMemberId(currentUserMemberId || "");
+                setCreateTaskModalOpen(true);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [currentUserMemberId, setSelectedMemberId, setCreateTaskModalOpen]);
+
     return (
         <div className="space-y-8">
             {/* Stats Row */}

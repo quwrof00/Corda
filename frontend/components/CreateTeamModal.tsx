@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { api } from "@/lib/api";
 import { Loader2, Users, X } from "lucide-react";
@@ -16,6 +16,17 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
 
     if (!isOpen) return null;
 
@@ -46,8 +57,14 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="w-full max-w-2xl bg-card border border-zinc-800 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+            onClick={onClose} // Close on click outside
+        >
+            <div
+                className="w-full max-w-2xl bg-card border border-zinc-800 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200"
+                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+            >
                 <div className="p-6 md:p-8">
                     <div className="flex items-center justify-between mb-8 pb-6 border-b border-zinc-900">
                         <div className="flex items-center gap-4">

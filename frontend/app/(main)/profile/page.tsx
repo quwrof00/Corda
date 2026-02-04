@@ -25,6 +25,7 @@ export default async function ProfilePage() {
                 skills: true,
                 workload: true,
                 role: true,
+                resumeUrl: true,
                 teams: {
                     select: { id: true, name: true }
                 }

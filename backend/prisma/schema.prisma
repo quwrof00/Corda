@@ -18,6 +18,7 @@ model User {
   skills        String[]
   workload      Int      @default(0)
   role          String?
+  resumeUrl     String?
 
   teams         Team[]   @relation("TeamMembers")
 

@@ -59,6 +59,16 @@ export default function CreateTaskModal({
         }
     }, [isOpen, initialTeamId, initialAssignedToId, isPersonalWorkspace, currentUserId]);
 
+    // Auto-select "Personal" team if no team is pre-selected
+    useEffect(() => {
+        if (isOpen && !teamId && !initialTeamId && teams) {
+            const personalTeam = teams.find((t: { name: string }) => t.name === "Personal");
+            if (personalTeam) {
+                setTeamId(personalTeam.id);
+            }
+        }
+    }, [isOpen, teamId, initialTeamId, teams]);
+
     // HCI: Auto-focus first input and Esc to close
     const titleInputRef = useRef<HTMLInputElement>(null);
 
@@ -147,8 +157,14 @@ export default function CreateTaskModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="w-full max-w-2xl bg-card border border-zinc-800 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+            onClick={onClose}
+        >
+            <div
+                className="w-full max-w-2xl bg-card border border-zinc-800 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <div className="p-6 md:p-8">
                     <div className="flex items-center justify-between mb-8 pb-6 border-b border-zinc-900">
                         <div className="flex items-center gap-4">

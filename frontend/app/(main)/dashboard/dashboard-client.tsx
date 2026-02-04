@@ -17,7 +17,9 @@ import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 import CreateTaskModal from "@/components/CreateTaskModal";
+import CreateTeamModal from "@/components/CreateTeamModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
+import ConfirmModal from "@/components/ConfirmModal";
 
 function formatDaysLeft(dateString?: string) {
   if (!dateString) return "";
@@ -71,6 +73,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
   const [activeFilter, setActiveFilter] = useState<"Today" | "This Week" | "Overdue">("Today");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
   const updateTaskMutation = useUpdateTask();
   const [greeting, setGreeting] = useState("Good morning");
 
@@ -112,10 +115,17 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
   // HCI: Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 'C' or 'N' to create task
-      if ((e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'n') && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+      // 'C' to create TASK
+      // 'N' to create TEAM
+      const isInput = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
+      if (isInput || e.ctrlKey || e.metaKey) return;
+
+      if (e.key.toLowerCase() === 'c') {
         e.preventDefault();
         setIsCreateModalOpen(true);
+      } else if (e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        setIsCreateTeamModalOpen(true);
       }
     };
 
@@ -123,12 +133,29 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const [confirmModalState, setConfirmModalState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+    onConfirm: () => { },
+  });
+
   const handleQuickComplete = (e: React.MouseEvent, task: Task) => {
     e.stopPropagation();
-    // HCI: Immediate feedback logic would go here (optimistic UI), but mutation handles it via query invalidation
-    if (confirm("Mark this task as completed?")) {
-      updateTaskMutation.mutate({ id: task.id, status: 'completed' });
-    }
+    setConfirmModalState({
+      isOpen: true,
+      title: "Complete Task",
+      description: "Are you sure you want to mark this task as completed?",
+      onConfirm: () => {
+        updateTaskMutation.mutate({ id: task.id, status: 'completed' });
+        setConfirmModalState(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   // Filter Tasks Logic (Mocked logic for dates as existing data might not have dates)
@@ -480,6 +507,21 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
         onClose={() => setIsCreateModalOpen(false)}
         onTaskCreated={refreshTasks}
         currentUserId={session.user?.id}
+      />
+
+      <CreateTeamModal
+        isOpen={isCreateTeamModalOpen}
+        onClose={() => setIsCreateTeamModalOpen(false)}
+      />
+
+      <ConfirmModal
+        isOpen={confirmModalState.isOpen}
+        onClose={() => setConfirmModalState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModalState.onConfirm}
+        title={confirmModalState.title}
+        description={confirmModalState.description}
+        confirmText="Yes, Complete"
+        variant="info"
       />
     </div>
   );

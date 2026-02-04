@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Task, Member } from "./types";
 import { Loader2, Trash2 } from "lucide-react";
 
@@ -20,11 +21,28 @@ export function InviteModal({
     handleInvite,
     inviteLoading
 }: InviteModalProps) {
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <div className="w-full max-w-md bg-card border border-zinc-800 p-6 shadow-2xl rounded-2xl">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            onClick={onClose}
+        >
+            <div
+                className="w-full max-w-md bg-card border border-zinc-800 p-6 shadow-2xl rounded-2xl"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <h3 className="text-sm font-bold text-white mb-6 border-b border-zinc-800 pb-2">Invite New Member</h3>
                 {!inviteLink ? (
                     <form onSubmit={handleInvite} className="space-y-4">
@@ -74,11 +92,28 @@ export function EditTeamModal({
     handleSaveTeam,
     isPending
 }: EditTeamModalProps) {
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <div className="bg-card p-6 border border-zinc-800 w-full max-w-lg shadow-2xl rounded-2xl">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            onClick={onClose}
+        >
+            <div
+                className="bg-card p-6 border border-zinc-800 w-full max-w-lg shadow-2xl rounded-2xl"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <form onSubmit={handleSaveTeam} className="space-y-4">
                     <h3 className="text-sm font-bold text-white mb-4">Edit Team</h3>
                     <input value={editingTeamName} onChange={e => setEditingTeamName(e.target.value)} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl" placeholder="Team Name" />
@@ -125,11 +160,28 @@ export function EditTaskModal({
     deleteTaskPending,
     members
 }: EditTaskModalProps) {
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     if (!isOpen || !editingTask || !isLeader) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <div className="bg-card p-6 border border-zinc-800 w-full max-w-lg shadow-2xl rounded-2xl">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            onClick={onClose}
+        >
+            <div
+                className="bg-card p-6 border border-zinc-800 w-full max-w-lg shadow-2xl rounded-2xl"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <form onSubmit={handleSaveTask} className="space-y-4">
                     <h3 className="text-sm font-bold text-white mb-4">Edit Task</h3>
                     <input value={editingTask.title} onChange={e => setEditingTask({ ...editingTask, title: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl" placeholder="Task Title" />

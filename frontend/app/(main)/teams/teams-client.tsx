@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Users, ArrowRight, RefreshCw, Hexagon } from "lucide-react";
 import { useEffect, useState } from "react";
 import CreateTeamModal from "@/components/CreateTeamModal";
+import CreateTaskModal from "@/components/CreateTaskModal";
 
 interface Team {
     id: string;
@@ -20,10 +21,11 @@ interface TeamsClientProps {
 }
 
 export default function TeamsClient({ initialTeams }: TeamsClientProps) {
-    const { status } = useSession();
+    const { data: session, status } = useSession();
     const router = useRouter();
     const { data: teams, isLoading, refetch: refreshTeams } = useTeams({ initialData: initialTeams });
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -34,10 +36,16 @@ export default function TeamsClient({ initialTeams }: TeamsClientProps) {
     // HCI: Keyboard Shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // 'C' or 'N' to create team
-            if ((e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'n') && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+            // 'C' for Task, 'N' for Team
+            const isInput = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
+            if (isInput || e.ctrlKey || e.metaKey) return;
+
+            if (e.key.toLowerCase() === 'c') {
                 e.preventDefault();
-                setIsCreateModalOpen(true);
+                setIsCreateTaskModalOpen(true);
+            } else if (e.key.toLowerCase() === 'n') {
+                e.preventDefault();
+                setIsCreateModalOpen(true); // Create Team is the primary modal here, but mapped to N now
             }
         };
 
@@ -73,7 +81,7 @@ export default function TeamsClient({ initialTeams }: TeamsClientProps) {
                         <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
                         <span className="font-bold tracking-wide">Create Team</span>
                         <div className="hidden md:flex items-center gap-0.5 ml-1 px-1.5 py-0.5 bg-black/10 rounded text-[9px] font-mono">
-                            <span>C</span>
+                            <span>N</span>
                         </div>
                     </button>
                 </div>
@@ -151,6 +159,13 @@ export default function TeamsClient({ initialTeams }: TeamsClientProps) {
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
                 onTeamCreated={refreshTeams}
+            />
+
+            <CreateTaskModal
+                isOpen={isCreateTaskModalOpen}
+                onClose={() => setIsCreateTaskModalOpen(false)}
+                // Tasks are not shown here, so no refresh needed on task creation, but we could if we wanted
+                currentUserId={session?.user?.id}
             />
         </main>
     );

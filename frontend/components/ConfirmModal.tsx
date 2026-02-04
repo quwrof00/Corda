@@ -1,4 +1,5 @@
 
+import { useEffect } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 
 interface ConfirmModalProps {
@@ -24,13 +25,30 @@ export default function ConfirmModal({
     cancelText = "Cancel",
     variant = "danger",
 }: ConfirmModalProps) {
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
 
     const isDanger = variant === "danger";
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="w-full max-w-md bg-card border border-zinc-800 p-6 shadow-2xl rounded-2xl animate-in zoom-in-95 duration-200">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={onClose}
+        >
+            <div
+                className="w-full max-w-md bg-card border border-zinc-800 p-6 shadow-2xl rounded-2xl animate-in zoom-in-95 duration-200"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <div className="flex items-start gap-4 mb-6">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${isDanger ? "bg-red-500/10 text-red-500" : "bg-amber-500/10 text-amber-500"}`}>
                         <AlertTriangle className="w-5 h-5" />

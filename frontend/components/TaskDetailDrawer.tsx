@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Pause, Play, X, Calendar, Users, Flag, Edit2, Save, Loader2, Trash2 } from "lucide-react"
 import cn from "clsx"
 import { Task, useDeleteTask } from "@/hooks/useTasks";
+import ConfirmModal from "./ConfirmModal";
 import { UseMutationResult } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -103,18 +104,25 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
         }
     };
 
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
     const handleDeleteTask = async () => {
         if (!selectedTask) return;
-        if (confirm("Are you sure you want to delete this task? This action cannot be undone.")) {
-            try {
-                await deleteTaskMutation.mutateAsync(selectedTask.id);
-                toast.success("Task deleted successfully");
-                setSelectedTask(null);
-                refreshTasks();
-            } catch (e) {
-                console.error("Failed to delete task", e);
-                toast.error("Failed to delete task");
-            }
+        setConfirmDeleteOpen(true);
+    };
+
+    const performDelete = async () => {
+        if (!selectedTask) return;
+        try {
+            await deleteTaskMutation.mutateAsync(selectedTask.id);
+            toast.success("Task deleted successfully");
+            setSelectedTask(null);
+            refreshTasks();
+        } catch (e) {
+            console.error("Failed to delete task", e);
+            toast.error("Failed to delete task");
+        } finally {
+            setConfirmDeleteOpen(false);
         }
     };
 
@@ -389,6 +397,16 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                     </div>
                 </div>
             </div>
-        </div>
+            <ConfirmModal
+                isOpen={confirmDeleteOpen}
+                onClose={() => setConfirmDeleteOpen(false)}
+                onConfirm={performDelete}
+                title="Delete Task"
+                description="Are you sure you want to delete this task? This action cannot be undone."
+                variant="danger"
+                confirmText="Delete"
+                loading={deleteTaskMutation.isPending}
+            />
+        </div >
     )
 }
