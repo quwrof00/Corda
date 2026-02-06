@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { motion, AnimatePresence } from "framer-motion";
 
 import CreateTaskModal from "@/components/CreateTaskModal";
 import CreateTeamModal from "@/components/CreateTeamModal";
@@ -51,17 +52,34 @@ function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
+
 // Button Component for consistency
 const PrimaryButton = ({ children, onClick, className }: { children: React.ReactNode, onClick: () => void, className?: string }) => (
-  <button
+  <motion.button
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.95 }}
     onClick={onClick}
     className={cn(
-      "flex items-center gap-2 px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-wider rounded-md hover:bg-zinc-200 transition-colors shadow-lg shadow-white/5",
+      "flex items-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-black text-xs font-bold uppercase tracking-wider rounded-md hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors shadow-lg shadow-black/5 dark:shadow-white/5",
       className
     )}
   >
     {children}
-  </button>
+  </motion.button>
 );
 
 export default function DashboardClient({ initialTasks, initialTeams }: { initialTasks: Task[], initialTeams: Team[] }) {
@@ -248,18 +266,23 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-background text-zinc-200 selection:bg-zinc-800 p-6 md:p-12">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="min-h-screen bg-background text-zinc-900 dark:text-zinc-200 selection:bg-zinc-200 dark:selection:bg-zinc-800 p-6 md:p-12"
+    >
       <div className="max-w-7xl mx-auto space-y-12">
 
         {/* Top Section: Greeting & Status */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-zinc-900">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-zinc-200 dark:border-zinc-900">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white mb-2">
               {greeting}, {session.user?.name?.split(" ")[0]}
             </h1>
-            <div className="flex items-center gap-2 text-zinc-500 text-sm">
+            <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-500 text-sm">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-              <p>You have <span className="text-zinc-300 font-bold">{stats.deadlinesToday == 1 ? `1 deadline` : `${stats.deadlinesToday} deadlines`}</span> approaching.</p>
+              <p>You have <span className="text-zinc-900 dark:text-zinc-300 font-bold">{stats.deadlinesToday == 1 ? `1 deadline` : `${stats.deadlinesToday} deadlines`}</span> approaching.</p>
             </div>
           </div>
 
@@ -276,21 +299,28 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
             </PrimaryButton>
 
             {/* Vertical Divider */}
-            <div className="hidden sm:block w-px h-8 bg-zinc-800"></div>
+            <div className="hidden sm:block w-px h-8 bg-zinc-200 dark:bg-zinc-800"></div>
 
             {/* Quick Filters */}
-            <div className="flex items-center p-1 bg-zinc-900/50 rounded-lg border border-zinc-900/50">
+            <div className="flex items-center p-1 bg-zinc-100 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-900/50">
               {(["Today", "This Week", "Overdue"] as const).map((filter) => (
                 <button
                   key={filter}
                   onClick={() => scrollToSection(filter)}
                   className={cn(
-                    "flex-1 px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all",
+                    "relative flex-1 px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all z-0",
                     activeFilter === filter
-                      ? "bg-zinc-800 text-white shadow-sm"
-                      : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50"
+                      ? "text-zinc-900 dark:text-white"
+                      : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-200/50 dark:hover:bg-zinc-900/50"
                   )}
                 >
+                  {activeFilter === filter && (
+                    <motion.div
+                      layoutId="activeFilter"
+                      className="absolute inset-0 bg-white dark:bg-zinc-800 rounded-md shadow-sm border border-zinc-200 dark:border-transparent -z-10"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
                   {filter}
                 </button>
               ))}
@@ -304,8 +334,8 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
           {/* A. My Tasks (Primary - 2 cols on wide, goes to 1st pos) */}
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
-                <CheckCircle2 className="w-5 h-5 text-zinc-400" />
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2 tracking-tight">
+                <CheckCircle2 className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
                 My Tasks
               </h2>
             </div>
@@ -314,83 +344,95 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
               {/* Render Helper */}
               {(() => {
                 const renderTaskList = (taskList: Task[], title: string, id: string, emptyMsg: string) => (
-                  <div id={id} className="scroll-mt-24 space-y-4">
+                  <motion.div id={id} className="scroll-mt-24 space-y-4" variants={itemVariants}>
                     <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest pl-1">{title} <span className="text-zinc-600 ml-2 text-xs">({taskList.length})</span></h3>
-                    {taskList.length > 0 ? (
-                      <div className="space-y-3">
-                        {taskList.map((task) => (
-                          <div
-                            key={task.id}
-                            className="group relative flex items-center gap-4 p-4 rounded-xl bg-card border border-zinc-900 hover:border-zinc-700 hover:bg-zinc-900/30 transition-all cursor-pointer"
-                            onClick={() => setSelectedTask(task)}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') setSelectedTask(task);
-                            }}
-                          >
-                            {/* Status Indicator Bar */}
-                            <div className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-colors",
-                              task.priority === 'High' ? "bg-red-500" : "bg-zinc-700 group-hover:bg-zinc-500"
-                            )} />
-
-                            {/* Quick Complete Action (Hover) */}
-                            <div
-                              className="ml-3 h-5 w-5 rounded-full border-2 border-zinc-700 flex items-center justify-center text-transparent hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500 transition-all z-10"
-                              onClick={(e) => handleQuickComplete(e, task)}
-                              title="Mark as Completed"
+                    <AnimatePresence mode="popLayout">
+                      {taskList.length > 0 ? (
+                        <div className="space-y-3">
+                          {taskList.map((task) => (
+                            <motion.div
+                              layout
+                              variants={itemVariants}
+                              initial="hidden"
+                              animate="visible"
+                              exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                              key={task.id}
+                              className="group relative flex items-center gap-4 p-4 rounded-xl bg-card border border-zinc-200 dark:border-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-all cursor-pointer hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50"
+                              whileHover={{ y: -2, transition: { duration: 0.2 } }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => setSelectedTask(task)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') setSelectedTask(task);
+                              }}
                             >
-                              <Check className="w-3 h-3" />
-                            </div>
+                              {/* Status Indicator Bar */}
+                              <div className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-colors",
+                                task.priority === 'High' ? "bg-red-500" : "bg-zinc-700 group-hover:bg-zinc-500"
+                              )} />
 
-                            {/* Content */}
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-800">
-                                  {task.team?.name || "Unassigned"}
-                                </span>
-                                {task.priority === 'High' && (
-                                  <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" title="High Priority" />
-                                )}
+                              {/* Quick Complete Action (Hover) */}
+                              <div
+                                className="ml-3 h-5 w-5 rounded-full border-2 border-zinc-700 flex items-center justify-center text-transparent hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500 transition-all z-10"
+                                onClick={(e) => handleQuickComplete(e, task)}
+                                title="Mark as Completed"
+                              >
+                                <Check className="w-3 h-3" />
                               </div>
-                              <h3 className="font-medium text-zinc-200 group-hover:text-white transition-colors">
-                                {task.title}
-                              </h3>
-                            </div>
 
-                            {/* Meta */}
-                            <div className="flex items-center gap-6 text-sm text-zinc-500">
-                              <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900/50 border border-transparent group-hover:border-zinc-800 transition-colors text-xs font-medium">
-                                <Calendar className="w-3.5 h-3.5" />
-                                {formatDaysLeft(task.deadline)}
-                              </span>
-                              <span className={cn(
-                                "hidden sm:flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
-                                task.status === "active"
-                                  ? "bg-blue-950/20 text-blue-400 border-blue-900/30"
-                                  : "bg-zinc-900 text-zinc-500 border-zinc-800"
-                              )}>
-                                {task.status}
-                              </span>
-                            </div>
+                              {/* Content */}
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-200 dark:border-zinc-800">
+                                    {task.team?.name || "Unassigned"}
+                                  </span>
+                                  {task.priority === 'High' && (
+                                    <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" title="High Priority" />
+                                  )}
+                                </div>
+                                <h3 className="font-medium text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors">
+                                  {task.title}
+                                </h3>
+                              </div>
 
-                            <ArrowRight className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="py-8 px-4 border border-dashed border-zinc-900 rounded-xl bg-zinc-900/20 text-center flex flex-col items-center justify-center gap-2 group hover:border-zinc-800 transition-colors">
-                        <p className="text-zinc-600 text-xs">{emptyMsg}</p>
-                        <button
-                          onClick={() => setIsCreateModalOpen(true)}
-                          className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-white flex items-center gap-1 transition-colors px-3 py-1.5 rounded hover:bg-zinc-800"
+                              <div className="flex items-center gap-6 text-sm text-zinc-500">
+                                <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-900/50 border border-transparent group-hover:border-zinc-200 dark:group-hover:border-zinc-800 transition-colors text-xs font-medium">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  {formatDaysLeft(task.deadline)}
+                                </span>
+                                <span className={cn(
+                                  "hidden sm:flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
+                                  task.status === "active"
+                                    ? "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/30"
+                                    : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800"
+                                )}>
+                                  {task.status}
+                                </span>
+                              </div>
+
+                              <ArrowRight className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="py-8 px-4 border border-dashed border-zinc-300 dark:border-zinc-900 rounded-xl bg-zinc-50 dark:bg-zinc-900/20 text-center flex flex-col items-center justify-center gap-2 group hover:border-zinc-400 dark:hover:border-zinc-800 transition-colors"
                         >
-                          <Plus className="w-3 h-3" />
-                          Create Task
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                          <p className="text-zinc-500 dark:text-zinc-600 text-xs">{emptyMsg}</p>
+                          <button
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 transition-colors px-3 py-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                          >
+                            <Plus className="w-3 h-3" />
+                            Create Task
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
                 );
 
                 return (
@@ -407,8 +449,8 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
           {/* B. My Teams (Secondary) */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
-                <Users className="w-5 h-5 text-zinc-400" />
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2 tracking-tight">
+                <Users className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
                 My Teams
               </h2>
             </div>
@@ -416,19 +458,21 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
             <div className="grid gap-4 h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent content-start">
               {teams && teams.length > 0 ? (
                 (teams as Team[]).map((team) => (
-                  <div
+                  <motion.div
                     key={team.id}
                     onClick={() => router.push(`/teams/${team.id}`)}
-                    className="group p-5 rounded-xl bg-card border border-zinc-900 hover:border-zinc-700 cursor-pointer transition-all hover:-translate-y-[1px]"
+                    className="relative group p-5 rounded-xl bg-card border border-zinc-200 dark:border-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer transition-all hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50"
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 font-bold shadow-sm group-hover:bg-zinc-800 transition-colors">
+                        <div className="h-10 w-10 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold shadow-sm group-hover:bg-zinc-200 dark:group-hover:bg-zinc-800 transition-colors">
                           {team.name.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <h3 className="font-bold text-zinc-200 leading-tight group-hover:text-white transition-colors">{team.name}</h3>
-                          <p className="text-xs text-zinc-600 uppercase tracking-wider font-bold">Member</p>
+                          <h3 className="font-bold text-zinc-800 dark:text-zinc-200 leading-tight group-hover:text-black dark:group-hover:text-white transition-colors">{team.name}</h3>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-600 uppercase tracking-wider font-bold">Member</p>
                         </div>
                       </div>
                       {/* Alert for unassigned tasks */}
@@ -441,9 +485,9 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
                     <div className="flex items-center gap-4 text-xs font-mono mt-2">
                       <div className="flex flex-col">
                         <span className="text-zinc-500 uppercase text-[10px] font-bold">Total</span>
-                        <span className="text-white font-medium">{team.tasks?.length || 0}</span>
+                        <span className="text-zinc-900 dark:text-white font-medium">{team.tasks?.length || 0}</span>
                       </div>
-                      <div className="w-px h-6 bg-zinc-800" />
+                      <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800" />
                       <div className="flex flex-col">
                         <span className="text-zinc-500 uppercase text-[10px] font-bold">Unassigned</span>
                         <span className="text-amber-500 font-medium">{team._count?.tasks || 0}</span>
@@ -451,11 +495,11 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
                     </div>
 
 
-                  </div>
+                  </motion.div>
                 ))
               ) : (
-                <div className="p-6 text-center border border-zinc-900 rounded-xl bg-card/50">
-                  <p className="text-sm text-zinc-600">You are not in any teams.</p>
+                <div className="p-6 text-center border border-zinc-200 dark:border-zinc-900 rounded-xl bg-card/50">
+                  <p className="text-sm text-zinc-500 dark:text-zinc-600">You are not in any teams.</p>
                 </div>
               )}
             </div>
@@ -479,28 +523,30 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
             ))}
           </div>
         </div> */}
-      </div>
+      </div >
 
       {/* Task Detail Drawer */}
-      {selectedTask && (
-        <TaskDetailDrawer
-          selectedTask={selectedTask}
-          setSelectedTask={setSelectedTask}
-          updateTaskMutation={updateTaskMutation}
-          refreshTasks={refreshTasks}
-          isLeader={
-            // User can delete if:
-            // 1. Task is from Personal workspace (team name is "Personal")
-            // 2. User is the leader of the task's team
-            selectedTask.team?.name === 'Personal' ||
-            (teams as Team[] || []).some(team =>
-              team.id === selectedTask.teamId &&
-              (team as Team).leader?.email === session?.user?.email
-            )
-          }
-          members={[]}
-        />
-      )}
+      {
+        selectedTask && (
+          <TaskDetailDrawer
+            selectedTask={selectedTask}
+            setSelectedTask={setSelectedTask}
+            updateTaskMutation={updateTaskMutation}
+            refreshTasks={refreshTasks}
+            isLeader={
+              // User can delete if:
+              // 1. Task is from Personal workspace (team name is "Personal")
+              // 2. User is the leader of the task's team
+              selectedTask.team?.name === 'Personal' ||
+              (teams as Team[] || []).some(team =>
+                team.id === selectedTask.teamId &&
+                (team as Team).leader?.email === session?.user?.email
+              )
+            }
+            members={[]}
+          />
+        )
+      }
 
       <CreateTaskModal
         isOpen={isCreateModalOpen}
@@ -523,6 +569,6 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
         confirmText="Yes, Complete"
         variant="info"
       />
-    </div>
+    </motion.div >
   );
 }

@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
 import { Loader2, Users, X } from "lucide-react";
 import { toast } from "sonner";
@@ -57,85 +58,104 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
     };
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-            onClick={onClose} // Close on click outside
-        >
-            <div
-                className="w-full max-w-2xl bg-card border border-zinc-800 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200"
-                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
-            >
-                <div className="p-6 md:p-8">
-                    <div className="flex items-center justify-between mb-8 pb-6 border-b border-zinc-900">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center text-zinc-100 shadow-sm border border-zinc-800">
-                                <Users className="w-6 h-6" />
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        transition={{ type: "spring", duration: 0.3 }}
+                        className="w-full max-w-lg bg-card border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-900 bg-zinc-50 dark:bg-zinc-900/20">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-zinc-900 dark:bg-white flex items-center justify-center">
+                                    <Users className="w-5 h-5 text-white dark:text-black" />
+                                </div>
+                                <div>
+                                    <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Create Team</h1>
+                                    <p className="text-zinc-500 text-xs">Start a new team to collaborate</p>
+                                </div>
                             </div>
-                            <div>
-                                <h1 className="text-xl font-bold text-zinc-100">Create Team</h1>
-                                <p className="text-zinc-500 text-sm mt-0.5">Start a new team to collaborate</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 rounded-lg transition-colors"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-400 mb-2">
-                                Team Name
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="e.g. Engineering Team"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 placeholder-zinc-600"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-400 mb-2">
-                                Description
-                            </label>
-                            <textarea
-                                placeholder="What is this team about?"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                rows={4}
-                                className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 placeholder-zinc-600 resize-none"
-                            />
-                        </div>
-
-                        <div className="pt-6 flex items-center justify-end gap-3 border-t border-zinc-900">
-                            <button
-                                type="button"
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
                                 onClick={onClose}
-                                className="px-6 py-3 rounded-xl border border-zinc-800 text-zinc-300 hover:bg-zinc-900 font-medium transition-all"
+                                className="p-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                             >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="px-8 py-3 rounded-xl bg-zinc-100 hover:bg-white text-black font-semibold shadow-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed hover:-translate-y-[1px]"
-                            >
-                                {loading ? (
-                                    <div className="flex items-center gap-2">
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Creating...
-                                    </div>
-                                ) : "Create Team"}
-                            </button>
+                                <X className="w-5 h-5" />
+                            </motion.button>
                         </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1.5">
+                                        Team Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Engineering Team"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1.5">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        placeholder="What is this team about?"
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        rows={3}
+                                        className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm resize-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-zinc-200 dark:border-zinc-900">
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    type="button"
+                                    onClick={onClose}
+                                    className="px-5 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 font-medium transition-all text-sm"
+                                >
+                                    Cancel
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    type="submit"
+                                    disabled={loading}
+                                    className="px-6 py-2.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-700 dark:hover:bg-white text-white dark:text-black font-semibold shadow-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed text-sm"
+                                >
+                                    {loading ? (
+                                        <div className="flex items-center gap-2">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Creating...
+                                        </div>
+                                    ) : "Create Team"}
+                                </motion.button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 }

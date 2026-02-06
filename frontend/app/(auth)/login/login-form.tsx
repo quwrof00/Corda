@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Lock, Mail, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 export default function LoginForm() {
     const router = useRouter();
@@ -58,7 +59,12 @@ export default function LoginForm() {
 
     return (
         <main className="min-h-screen flex items-center justify-center bg-background text-zinc-300 p-4 font-sans selection:bg-zinc-800">
-            <div className="w-full max-w-md bg-card border border-zinc-900 p-8 shadow-2xl relative">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="w-full max-w-md bg-card border border-zinc-900 p-8 shadow-2xl relative"
+            >
                 {/* Decorative corner accents */}
                 <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-zinc-500"></div>
                 <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-zinc-500"></div>
@@ -67,9 +73,13 @@ export default function LoginForm() {
 
                 <div className="text-center mb-8">
                     <Link href="/" className="inline-block mb-6 group">
-                        <div className="w-12 h-12 bg-white flex items-center justify-center text-black font-bold font-mono text-xl group-hover:scale-105 transition-transform">
+                        <motion.div
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="w-12 h-12 bg-white flex items-center justify-center text-black font-bold font-mono text-xl transition-transform"
+                        >
                             <ShieldCheck className="w-6 h-6" />
-                        </div>
+                        </motion.div>
                     </Link>
                     <h1 className="text-xl font-bold text-white tracking-widest uppercase font-mono">Login</h1>
                     <p className="text-zinc-500 mt-2 text-xs font-mono uppercase">Sign in to your account</p>
@@ -115,10 +125,12 @@ export default function LoginForm() {
                         </div>
                     </div>
 
-                    <button
+                    <motion.button
+                        whileHover={{ y: -2 }}
+                        whileTap={{ scale: 0.98 }}
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-white text-black hover:bg-zinc-200 font-bold py-3 text-sm font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-4"
+                        className="w-full bg-white text-black hover:bg-zinc-200 font-bold py-3 text-sm font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-4 shadow-md hover:shadow-lg"
                     >
                         {loading ? (
                             <>
@@ -131,7 +143,7 @@ export default function LoginForm() {
                                 <ArrowRight className="w-4 h-4" />
                             </>
                         )}
-                    </button>
+                    </motion.button>
 
                     <div className="relative my-6">
                         <div className="absolute inset-0 flex items-center">
@@ -142,10 +154,12 @@ export default function LoginForm() {
                         </div>
                     </div>
 
-                    <button
+                    <motion.button
+                        whileHover={{ y: -2 }}
+                        whileTap={{ scale: 0.98 }}
                         type="button"
                         onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-                        className="w-full bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 font-medium py-3 text-sm font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:-translate-y-[1px]"
+                        className="w-full bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 font-medium py-3 text-sm font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
                     >
                         <svg className="h-5 w-5" viewBox="0 0 24 24">
                             <path
@@ -166,7 +180,7 @@ export default function LoginForm() {
                             />
                         </svg>
                         Google
-                    </button>
+                    </motion.button>
                 </form>
 
                 <div className="mt-8 text-center border-t border-zinc-900 pt-6">
@@ -177,7 +191,7 @@ export default function LoginForm() {
                         </Link>
                     </p>
                 </div>
-            </div>
+            </motion.div>
         </main>
     );
 }

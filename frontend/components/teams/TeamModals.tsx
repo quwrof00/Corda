@@ -40,13 +40,13 @@ export function InviteModal({
             onClick={onClose}
         >
             <div
-                className="w-full max-w-md bg-card border border-zinc-800 p-6 shadow-2xl rounded-2xl"
+                className="w-full max-w-md bg-card border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl rounded-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
-                <h3 className="text-sm font-bold text-white mb-6 border-b border-zinc-800 pb-2">Invite New Member</h3>
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-6 border-b border-zinc-200 dark:border-zinc-800 pb-2">Invite New Member</h3>
                 {!inviteLink ? (
                     <form onSubmit={handleInvite} className="space-y-4">
-                        <input type="email" placeholder="Email Address" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm outline-none focus:border-zinc-500 rounded-xl" required />
+                        <input type="email" placeholder="Email Address" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-200 text-sm outline-none focus:border-zinc-500 rounded-xl" required />
                         <div className="flex justify-end gap-3 pt-2">
                             <button type="button" onClick={onClose} className="px-4 py-2 text-xs text-zinc-500 hover:text-zinc-300">Cancel</button>
                             <button
@@ -62,8 +62,8 @@ export function InviteModal({
                 ) : (
                     <div className="space-y-4">
                         <p className="text-emerald-500 text-xs">Link Generated Successfully.</p>
-                        <input readOnly value={inviteLink} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-400 text-xs font-mono cursor-text select-all rounded-xl" />
-                        <button onClick={onClose} className="w-full py-2 bg-zinc-800 text-white text-xs font-bold hover:bg-zinc-700 rounded-lg">Done</button>
+                        <input readOnly value={inviteLink} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-mono cursor-text select-all rounded-xl" />
+                        <button onClick={onClose} className="w-full py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white text-xs font-bold hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg">Done</button>
                     </div>
                 )}
             </div>
@@ -111,13 +111,13 @@ export function EditTeamModal({
             onClick={onClose}
         >
             <div
-                className="bg-card p-6 border border-zinc-800 w-full max-w-lg shadow-2xl rounded-2xl"
+                className="bg-card p-6 border border-zinc-200 dark:border-zinc-800 w-full max-w-lg shadow-2xl rounded-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 <form onSubmit={handleSaveTeam} className="space-y-4">
-                    <h3 className="text-sm font-bold text-white mb-4">Edit Team</h3>
-                    <input value={editingTeamName} onChange={e => setEditingTeamName(e.target.value)} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl" placeholder="Team Name" />
-                    <textarea value={editingTeamDesc} onChange={e => setEditingTeamDesc(e.target.value)} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm h-32 rounded-xl resize-none" placeholder="Description" />
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-4">Edit Team</h3>
+                    <input value={editingTeamName} onChange={e => setEditingTeamName(e.target.value)} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-200 text-sm rounded-xl" placeholder="Team Name" />
+                    <textarea value={editingTeamDesc} onChange={e => setEditingTeamDesc(e.target.value)} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-200 text-sm h-32 rounded-xl resize-none" placeholder="Description" />
                     <div className="flex justify-end gap-3 pt-2">
                         <button type="button" onClick={onClose} className="text-zinc-500 hover:text-zinc-300 text-xs">Cancel</button>
                         <button
@@ -179,14 +179,14 @@ export function EditTaskModal({
             onClick={onClose}
         >
             <div
-                className="bg-card p-6 border border-zinc-800 w-full max-w-lg shadow-2xl rounded-2xl"
+                className="bg-card p-6 border border-zinc-200 dark:border-zinc-800 w-full max-w-lg shadow-2xl rounded-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 <form onSubmit={handleSaveTask} className="space-y-4">
-                    <h3 className="text-sm font-bold text-white mb-4">Edit Task</h3>
-                    <input value={editingTask.title} onChange={e => setEditingTask({ ...editingTask, title: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl" placeholder="Task Title" />
-                    <input value={editingTask.requiredSkill || ""} onChange={e => setEditingTask({ ...editingTask, requiredSkill: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl" placeholder="Required Skill" />
-                    <select value={editingTask.assignedToId || ""} onChange={e => setEditingTask({ ...editingTask, assignedToId: e.target.value })} className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl">
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-4">Edit Task</h3>
+                    <input value={editingTask.title} onChange={e => setEditingTask({ ...editingTask, title: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-200 text-sm rounded-xl" placeholder="Task Title" />
+                    <input value={editingTask.requiredSkill || ""} onChange={e => setEditingTask({ ...editingTask, requiredSkill: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-200 text-sm rounded-xl" placeholder="Required Skill" />
+                    <select value={editingTask.assignedToId || ""} onChange={e => setEditingTask({ ...editingTask, assignedToId: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-200 text-sm rounded-xl">
                         <option value="">-- Unassigned --</option>
                         {members?.map((m: Member) => <option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
@@ -194,7 +194,7 @@ export function EditTaskModal({
                         type="date"
                         value={editingTask.deadline ? new Date(editingTask.deadline).toISOString().split('T')[0] : ""}
                         onChange={e => setEditingTask({ ...editingTask, deadline: e.target.value })}
-                        className="w-full p-3 bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm rounded-xl [color-scheme:dark]"
+                        className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-200 text-sm rounded-xl [color-scheme:light] dark:[color-scheme:dark]"
                     />
                     <div className="flex justify-between items-center pt-2">
                         <button
@@ -211,7 +211,7 @@ export function EditTaskModal({
                             <button
                                 type="submit"
                                 disabled={updateTaskPending}
-                                className="bg-white text-black px-4 py-2 text-xs font-bold rounded-lg flex items-center gap-2"
+                                className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-black px-4 py-2 text-xs font-bold rounded-lg flex items-center gap-2"
                             >
                                 {updateTaskPending && <Loader2 className="w-3 h-3 animate-spin" />}
                                 Save

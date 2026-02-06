@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Corda</string>
+    <string name="title_activity_main">Corda</string>
+    <string name="package_name">com.corda.app</string>
+    <string name="custom_url_scheme">com.corda.app</string>
+</resources>

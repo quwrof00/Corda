@@ -39,7 +39,7 @@ export default function AmbientBackground() {
 
     return (
         <div
-            className={`fixed top-0 left-0 right-0 h-48 sm:h-64 md:h-96 w-full pointer-events-none z-[1] bg-gradient-to-b ${gradients[timeOfDay]} transition-colors duration-1000 opacity-50`}
+            className={`fixed top-0 left-0 right-0 h-48 sm:h-64 md:h-96 w-full pointer-events-none z-[1] bg-gradient-to-b ${gradients[timeOfDay]} transition-colors duration-1000 opacity-30 dark:opacity-50`}
             aria-hidden="true"
         />
     );

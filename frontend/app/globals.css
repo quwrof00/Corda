@@ -1,6 +1,43 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
 :root {
+  /* Light Mode Variables (Default) */
+  --background: #fafafa;
+  --foreground: #09090b;
+
+  --card: #ffffff;
+  --card-foreground: #09090b;
+
+  --popover: #ffffff;
+  --popover-foreground: #09090b;
+
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #18181b;
+
+  --success: #10b981;
+  --warning: #f59e0b;
+
+  --radius: 0.25rem;
+}
+
+.dark {
   /* Control Machine Theme - Less Extreme Dark */
   --background: #131316;
   /* Slightly lighter than Zinc 950 */
@@ -45,9 +82,6 @@
   --input: #2e2e32;
   --ring: #52525b;
   /* Zinc 600 */
-
-  --radius: 0.25rem;
-  /* Sharper corners for industrial feel */
 }
 
 body {

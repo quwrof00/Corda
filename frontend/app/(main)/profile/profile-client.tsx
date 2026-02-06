@@ -2,8 +2,9 @@
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useUser, useUpdateUser } from "@/hooks/useUser";
-import { Loader2, Plus, Save, User, X, FileUp, Trash2 } from "lucide-react";
+import { Loader2, Plus, Save, User, X, FileUp, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProfileClientProps {
@@ -19,6 +20,46 @@ interface ProfileClientProps {
     } | null;
     userId: string;
 }
+
+// Skill categorization
+const SKILL_CATEGORIES = {
+    "Frontend": ["React", "Vue", "Angular", "Next.js", "TypeScript", "JavaScript", "HTML", "CSS", "Tailwind", "SCSS", "Redux", "Svelte"],
+    "Backend": ["Node.js", "Python", "Java", "Go", "Ruby", "PHP", "C#", ".NET", "Express", "Django", "Flask", "Spring"],
+    "Database": ["PostgreSQL", "MySQL", "MongoDB", "Redis", "SQL", "NoSQL", "Firebase", "Supabase", "DynamoDB"],
+    "DevOps": ["Docker", "Kubernetes", "AWS", "Azure", "GCP", "CI/CD", "Jenkins", "GitHub Actions", "Terraform"],
+    "Mobile": ["React Native", "Flutter", "Swift", "Kotlin", "iOS", "Android"],
+    "Other": [] as string[]
+};
+
+const categorizeSkills = (skills: string[]) => {
+    const categorized: Record<string, string[]> = {
+        "Frontend": [],
+        "Backend": [],
+        "Database": [],
+        "DevOps": [],
+        "Mobile": [],
+        "Other": []
+    };
+
+    skills.forEach(skill => {
+        let placed = false;
+        for (const [category, keywords] of Object.entries(SKILL_CATEGORIES)) {
+            if (keywords.some(keyword => skill.toLowerCase().includes(keyword.toLowerCase()) || keyword.toLowerCase().includes(skill.toLowerCase()))) {
+                categorized[category].push(skill);
+                placed = true;
+                break;
+            }
+        }
+        if (!placed) {
+            categorized["Other"].push(skill);
+        }
+    });
+
+    // Remove empty categories
+    return Object.fromEntries(
+        Object.entries(categorized).filter(([, skills]) => skills.length > 0)
+    );
+};
 
 export default function ProfileClient({ initialUser, userId }: ProfileClientProps) {
     const { data: session } = useSession();
@@ -37,6 +78,7 @@ export default function ProfileClient({ initialUser, userId }: ProfileClientProp
     const [isEditing, setIsEditing] = useState(false);
     const [uploadStatus, setUploadStatus] = useState<"IDLE" | "UPLOADING" | "PARSING" | "EXTRACTING" | "COMPLETE">("IDLE");
     const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+    const [showAllSkills, setShowAllSkills] = useState(false);
 
     // Sync skills when user data loads
     useEffect(() => {
@@ -171,8 +213,17 @@ export default function ProfileClient({ initialUser, userId }: ProfileClientProp
         }
     };
 
+    const categorizedSkills = categorizeSkills(skills);
+    const totalSkills = skills.length;
+    const visibleSkillsLimit = 4;
+
     return (
-        <main className="min-h-screen bg-background text-zinc-300 font-sans p-6 lg:p-12 mb-20 selection:bg-zinc-800">
+        <motion.main
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="min-h-screen bg-background text-zinc-300 font-sans p-6 lg:p-12 mb-20 selection:bg-zinc-800"
+        >
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-10 pb-6 border-b border-zinc-900">
@@ -236,23 +287,99 @@ export default function ProfileClient({ initialUser, userId }: ProfileClientProp
                         </div>
                     </div>
 
-                    {/* Right Column: Skills */}
-                    <div className="lg:col-span-2">
-                        <div className="bg-card border border-zinc-900 p-8 shadow-xl rounded-xl h-full">
+                    {/* Right Column: Resume & Skills */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Resume Upload Section - PRIORITY */}
+                        <div className="bg-card border border-zinc-900 p-8 shadow-xl rounded-xl">
+                            <div className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-900">
+                                <div>
+                                    <h2 className="text-lg font-bold text-white font-mono uppercase tracking-tight">Resume Upload</h2>
+                                    <p className="text-zinc-500 text-xs mt-1">Upload your resume to auto-extract technical capabilities</p>
+                                </div>
+                            </div>
+
+                            {resumeUrl ? (
+                                <div className="flex items-center justify-between p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <FileUp className="w-5 h-5 text-emerald-500" />
+                                        <div>
+                                            <p className="text-white text-sm font-mono">Resume Uploaded</p>
+                                            <a
+                                                href={resumeUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-zinc-500 text-xs hover:text-white transition-colors"
+                                            >
+                                                View Document
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={handleResumeDelete}
+                                        disabled={uploadStatus !== "IDLE"}
+                                        className="flex items-center gap-2 px-3 py-2 bg-red-950/30 hover:bg-red-950/50 border border-red-900/50 text-red-400 rounded-md text-xs font-bold uppercase transition-colors disabled:opacity-50"
+                                    >
+                                        {uploadStatus !== "IDLE" ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                            <Trash2 className="w-3 h-3" />
+                                        )}
+                                        Delete
+                                    </motion.button>
+                                </div>
+                            ) : (
+                                <div className="relative">
+                                    <input
+                                        type="file"
+                                        id="resume-upload"
+                                        accept=".pdf,.doc,.docx"
+                                        onChange={handleResumeUpload}
+                                        disabled={uploadStatus !== "IDLE"}
+                                        className="hidden"
+                                    />
+                                    <label
+                                        htmlFor="resume-upload"
+                                        className={`flex items-center justify-center gap-3 p-8 bg-zinc-900 border-2 border-dashed border-zinc-800 hover:border-emerald-500/50 rounded-lg cursor-pointer transition-all ${uploadStatus !== "IDLE" ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        {uploadStatus !== "IDLE" ? (
+                                            <>
+                                                <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+                                                <span className="text-emerald-500 text-sm font-mono uppercase">Processing...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FileUp className="w-6 h-6 text-emerald-500" />
+                                                <div className="text-center">
+                                                    <span className="text-white text-base font-mono uppercase block">Click to Upload Resume</span>
+                                                    <span className="text-zinc-600 text-xs">(PDF, DOC, DOCX - Max 5MB)</span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </label>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Skills Section */}
+                        <div className="bg-card border border-zinc-900 p-8 shadow-xl rounded-xl">
                             <div className="flex items-center justify-between mb-8 pb-4 border-b border-zinc-900">
                                 <div>
                                     <h2 className="text-lg font-bold text-white font-mono uppercase tracking-tight">Technical Capabilities</h2>
                                     <p className="text-zinc-500 text-xs mt-1">Manage specialized skillsets for auto-allocation protocols.</p>
                                 </div>
                                 {isEditing && (
-                                    <button
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
                                         onClick={handleSave}
                                         disabled={updateUserMutation.isPending}
                                         className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-lg shadow-sm transition-all text-xs font-bold uppercase tracking-wider disabled:opacity-50"
                                     >
                                         {updateUserMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
                                         Save Data
-                                    </button>
+                                    </motion.button>
                                 )}
                             </div>
 
@@ -270,99 +397,84 @@ export default function ProfileClient({ initialUser, userId }: ProfileClientProp
                                         onKeyDown={(e) => e.key === "Enter" && handleAddSkill()}
                                         className="w-full pl-10 pr-4 py-4 bg-zinc-900 border border-zinc-800 focus:border-white focus:ring-1 focus:ring-white outline-none transition-all text-white font-mono text-sm placeholder:text-zinc-700 rounded-lg"
                                     />
-                                    <button
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
                                         onClick={handleAddSkill}
                                         className="absolute right-2 top-2 bottom-2 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold uppercase rounded-md transition-colors"
                                     >
                                         Add
-                                    </button>
+                                    </motion.button>
                                 </div>
 
-                                {/* Skills Grid */}
+                                {/* Skills Grid - Categorized */}
                                 <div>
-                                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Registered Capabilities</h3>
-
-                                    <div className="flex flex-wrap gap-3">
-                                        {skills.map((skill, index) => (
-                                            <div key={index} className="group flex items-center gap-2 pl-3 pr-2 py-1.5 bg-zinc-900/80 border border-zinc-800 text-zinc-300 text-xs font-mono uppercase tracking-wide rounded-md hover:border-zinc-600 transition-all">
-                                                {skill}
-                                                <button
-                                                    onClick={() => handleRemoveSkill(skill)}
-                                                    className="p-0.5 hover:bg-zinc-800 hover:text-red-400 rounded transition-colors"
-                                                >
-                                                    <X className="w-3 h-3" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                        {skills.length === 0 && (
-                                            <div className="w-full py-8 text-center border-2 border-dashed border-zinc-900 rounded-xl">
-                                                <p className="text-zinc-700 font-mono text-xs uppercase">No capabilities registered</p>
-                                            </div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Registered Capabilities ({totalSkills})</h3>
+                                        {totalSkills > visibleSkillsLimit && (
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => setShowAllSkills(!showAllSkills)}
+                                                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors"
+                                            >
+                                                {showAllSkills ? (
+                                                    <>Show Less <ChevronUp className="w-3 h-3" /></>
+                                                ) : (
+                                                    <>Show All <ChevronDown className="w-3 h-3" /></>
+                                                )}
+                                            </motion.button>
                                         )}
                                     </div>
-                                </div>
 
-                                {/* Resume Upload Section */}
-                                <div>
-                                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Resume Upload</h3>
-                                    <p className="text-zinc-600 text-xs mb-4">Upload your resume for skills verification</p>
-
-                                    {resumeUrl ? (
-                                        <div className="flex items-center justify-between p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-                                            <div className="flex items-center gap-3">
-                                                <FileUp className="w-5 h-5 text-emerald-500" />
-                                                <div>
-                                                    <p className="text-white text-sm font-mono">Resume Uploaded</p>
-                                                    <a
-                                                        href={resumeUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-zinc-500 text-xs hover:text-white transition-colors"
-                                                    >
-                                                        View Document
-                                                    </a>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={handleResumeDelete}
-                                                disabled={uploadStatus !== "IDLE"}
-                                                className="flex items-center gap-2 px-3 py-2 bg-red-950/30 hover:bg-red-950/50 border border-red-900/50 text-red-400 rounded-md text-xs font-bold uppercase transition-colors disabled:opacity-50"
-                                            >
-                                                {uploadStatus !== "IDLE" ? (
-                                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                                ) : (
-                                                    <Trash2 className="w-3 h-3" />
-                                                )}
-                                                Delete
-                                            </button>
+                                    {skills.length === 0 ? (
+                                        <div className="w-full py-8 text-center border-2 border-dashed border-zinc-900 rounded-xl">
+                                            <p className="text-zinc-700 font-mono text-xs uppercase">No capabilities registered</p>
+                                            <p className="text-zinc-800 text-xs mt-2">Upload a resume or add skills manually</p>
                                         </div>
                                     ) : (
-                                        <div className="relative">
-                                            <input
-                                                type="file"
-                                                id="resume-upload"
-                                                accept=".pdf,.doc,.docx"
-                                                onChange={handleResumeUpload}
-                                                disabled={uploadStatus !== "IDLE"}
-                                                className="hidden"
-                                            />
-                                            <label
-                                                htmlFor="resume-upload"
-                                                className={`flex items-center justify-center gap-3 p-6 bg-zinc-900 border-2 border-dashed border-zinc-800 hover:border-zinc-600 rounded-lg cursor-pointer transition-all ${uploadStatus !== "IDLE" ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            >
-                                                {uploadStatus !== "IDLE" ? (
-                                                    <>
-                                                        <Loader2 className="w-5 h-5 text-zinc-500 animate-spin" />
-                                                        <span className="text-zinc-500 text-sm font-mono uppercase">Processing...</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <FileUp className="w-5 h-5 text-zinc-500" />
-                                                        <span className="text-zinc-400 text-sm font-mono uppercase">Click to Upload Resume</span>
-                                                        <span className="text-zinc-600 text-xs">(PDF, DOC, DOCX - Max 5MB)</span>
-                                                    </>
-                                                )}
-                                            </label>
+                                        <div className="space-y-6">
+                                            <AnimatePresence mode="popLayout">
+                                                {Object.entries(categorizedSkills).map(([category, categorySkills]) => {
+                                                    const displaySkills = showAllSkills ? categorySkills : categorySkills.slice(0, visibleSkillsLimit);
+
+                                                    return (
+                                                        <motion.div
+                                                            key={category}
+                                                            layout
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            className="space-y-3"
+                                                        >
+                                                            <h4 className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider">{category}</h4>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                <AnimatePresence mode="popLayout">
+                                                                    {displaySkills.map((skill) => (
+                                                                        <motion.div
+                                                                            layout
+                                                                            initial={{ opacity: 0, scale: 0.8 }}
+                                                                            animate={{ opacity: 1, scale: 1 }}
+                                                                            exit={{ opacity: 0, scale: 0.8 }}
+                                                                            key={skill}
+                                                                            className="group flex items-center gap-2 pl-3 pr-2 py-1.5 bg-zinc-900/80 border border-zinc-800 text-zinc-300 text-xs font-mono uppercase tracking-wide rounded-md hover:border-zinc-600 transition-all"
+                                                                        >
+                                                                            {skill}
+                                                                            <motion.button
+                                                                                whileHover={{ scale: 1.2 }}
+                                                                                whileTap={{ scale: 0.9 }}
+                                                                                onClick={() => handleRemoveSkill(skill)}
+                                                                                className="p-0.5 hover:bg-zinc-800 hover:text-red-400 rounded transition-colors"
+                                                                            >
+                                                                                <X className="w-3 h-3" />
+                                                                            </motion.button>
+                                                                        </motion.div>
+                                                                    ))}
+                                                                </AnimatePresence>
+                                                            </div>
+                                                        </motion.div>
+                                                    );
+                                                })}
+                                            </AnimatePresence>
                                         </div>
                                     )}
                                 </div>
@@ -423,6 +535,6 @@ export default function ProfileClient({ initialUser, userId }: ProfileClientProp
                     </div>
                 )
             }
-        </main>
+        </motion.main>
     );
 }

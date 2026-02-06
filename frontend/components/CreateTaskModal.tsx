@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTeams } from "@/hooks/useTeams";
 import { useCreateTask } from "@/hooks/useTasks";
 import { Loader2, ListTodo, X } from "lucide-react";
 import { toast } from "sonner";
-import { clsx } from "clsx";
 
 interface CreateTaskModalProps {
     isOpen: boolean;
@@ -157,197 +157,208 @@ export default function CreateTaskModal({
     };
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-            onClick={onClose}
-        >
-            <div
-                className="w-full max-w-2xl bg-card border border-zinc-800 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="p-6 md:p-8">
-                    <div className="flex items-center justify-between mb-8 pb-6 border-b border-zinc-900">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center text-zinc-100 shadow-sm border border-zinc-800">
-                                <ListTodo className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h1 className="text-xl font-bold text-zinc-100">New Task</h1>
-                                <p className="text-zinc-500 text-sm mt-0.5">
-                                    {isPersonalWorkspace ? "Add to your personal list" : "Create a task for your team"}
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 rounded-lg transition-colors"
-                            title="Close (Esc)"
-                            type="button"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Title */}
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-400 mb-2">
-                                Task Title
-                            </label>
-                            <input
-                                ref={titleInputRef}
-                                type="text"
-                                placeholder={isPersonalWorkspace ? "e.g. Buy groceries" : "e.g. Implement Auth Flow"}
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 placeholder-zinc-600"
-                                required
-                                autoComplete="off"
-                            />
-                        </div>
-
-                        {/* Description */}
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-400 mb-2">
-                                Description (Optional)
-                            </label>
-                            <textarea
-                                placeholder="Details about the task..."
-                                value={desc}
-                                onChange={(e) => setDesc(e.target.value)}
-                                rows={4}
-                                className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 placeholder-zinc-600 resize-none"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Team Selection */}
-                            {!isPersonalWorkspace ? (
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        transition={{ type: "spring", duration: 0.3 }}
+                        className="w-full max-w-4xl bg-card border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-900 bg-zinc-50 dark:bg-zinc-900/20">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-zinc-900 dark:bg-white flex items-center justify-center">
+                                    <ListTodo className="w-5 h-5 text-white dark:text-black" />
+                                </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-400 mb-2">
-                                        Assign to Team
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            value={teamId}
-                                            onChange={(e) => setTeamId(e.target.value)}
-                                            className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 appearance-none"
-                                            required
-                                        >
-                                            {!teamId && <option value="" disabled>Select a team</option>}
-                                            {teams?.map((team: { id: string, name: string }) => (
-                                                <option key={team.id} value={team.id}>
-                                                    {team.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-zinc-500">
-                                            <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <input type="hidden" value={teamId} />
-                            )}
-
-                            {/* Required Skill */}
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-400 mb-2">
-                                    Required Skill (Optional)
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g. React, Python (Optional)"
-                                    value={requiredSkill}
-                                    onChange={(e) => setRequiredSkill(e.target.value)}
-                                    className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 placeholder-zinc-600"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Assign to Me Checkbox */}
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                id="assignToMe"
-                                checked={assignToMe}
-                                disabled={isCheckboxDisabled}
-                                onChange={(e) => {
-                                    setAssignToMe(e.target.checked);
-                                    if (e.target.checked && currentUserId) {
-                                        setAssignedToId(currentUserId);
-                                    } else {
-                                        setAssignedToId("");
-                                    }
-                                }}
-                                className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-emerald-500 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                            />
-                            <label htmlFor="assignToMe" className={clsx("text-sm font-medium text-zinc-300 cursor-pointer select-none", isCheckboxDisabled && "cursor-not-allowed opacity-50")}>
-                                Assign to me
-                            </label>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Priority */}
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-400 mb-2">
-                                    Priority
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        value={priority}
-                                        onChange={(e) => setPriority(e.target.value)}
-                                        className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 appearance-none"
-                                    >
-                                        <option value="Low">Low</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="High">High</option>
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-zinc-500">
-                                        <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
-                                    </div>
+                                    <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">New Task</h1>
+                                    <p className="text-zinc-500 text-xs">
+                                        {isPersonalWorkspace ? "Add to your personal list" : "Create a task for your team"}
+                                    </p>
                                 </div>
                             </div>
-
-                            {/* Deadline */}
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-400 mb-2">
-                                    Deadline
-                                </label>
-                                <input
-                                    type="date"
-                                    value={deadline}
-                                    onChange={(e) => setDeadline(e.target.value)}
-                                    className="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-700/50 focus:border-zinc-700 outline-none transition-all text-zinc-200 placeholder-zinc-600 [color-scheme:dark]"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div className="pt-6 flex items-center justify-end gap-3 border-t border-zinc-900">
-                            <button
-                                type="button"
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
                                 onClick={onClose}
-                                className="px-6 py-3 rounded-xl border border-zinc-800 text-zinc-300 hover:bg-zinc-900 font-medium transition-all"
+                                className="p-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                                title="Close (Esc)"
+                                type="button"
                             >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={createTaskMutation.isPending}
-                                className="px-8 py-3 rounded-xl bg-zinc-100 hover:bg-white text-black font-semibold shadow-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed hover:-translate-y-[1px]"
-                            >
-                                {createTaskMutation.isPending ? (
-                                    <div className="flex items-center gap-2">
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Creating...
-                                    </div>
-                                ) : "Create Task"}
-                            </button>
+                                <X className="w-5 h-5" />
+                            </motion.button>
                         </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6">
+                            {/* 2-Column Compact Layout */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Left Column */}
+                                <div className="space-y-4">
+                                    {/* Title */}
+                                    <div>
+                                        <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1.5">
+                                            Task Title *
+                                        </label>
+                                        <input
+                                            ref={titleInputRef}
+                                            type="text"
+                                            placeholder={isPersonalWorkspace ? "Buy groceries" : "Implement Auth Flow"}
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm"
+                                            required
+                                            autoComplete="off"
+                                        />
+                                    </div>
+
+                                    {/* Description */}
+                                    <div>
+                                        <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1.5">
+                                            Description
+                                        </label>
+                                        <textarea
+                                            placeholder="Details about the task..."
+                                            value={desc}
+                                            onChange={(e) => setDesc(e.target.value)}
+                                            rows={3}
+                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm resize-none"
+                                        />
+                                    </div>
+
+                                    {/* Team Selection (if not personal workspace) */}
+                                    {!isPersonalWorkspace && (
+                                        <div>
+                                            <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1.5">
+                                                Team *
+                                            </label>
+                                            <select
+                                                value={teamId}
+                                                onChange={(e) => setTeamId(e.target.value)}
+                                                className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm"
+                                                required
+                                            >
+                                                {!teamId && <option value="" disabled>Select a team</option>}
+                                                {teams?.map((team: { id: string, name: string }) => (
+                                                    <option key={team.id} value={team.id}>
+                                                        {team.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {/* Assign to Me Checkbox */}
+                                    <div className="flex items-center gap-2 pt-1">
+                                        <input
+                                            type="checkbox"
+                                            id="assignToMe"
+                                            checked={assignToMe}
+                                            disabled={isCheckboxDisabled}
+                                            onChange={(e) => {
+                                                setAssignToMe(e.target.checked);
+                                                if (e.target.checked && currentUserId) {
+                                                    setAssignedToId(currentUserId);
+                                                } else {
+                                                    setAssignedToId("");
+                                                }
+                                            }}
+                                            className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-zinc-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                        />
+                                        <label htmlFor="assignToMe" className={`text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer select-none ${isCheckboxDisabled && "cursor-not-allowed opacity-50"}`}>
+                                            Assign to me
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Right Column */}
+                                <div className="space-y-4">
+                                    {/* Priority */}
+                                    <div>
+                                        <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1.5">
+                                            Priority *
+                                        </label>
+                                        <select
+                                            value={priority}
+                                            onChange={(e) => setPriority(e.target.value)}
+                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm"
+                                        >
+                                            <option value="Low">Low</option>
+                                            <option value="Medium">Medium</option>
+                                            <option value="High">High</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Deadline */}
+                                    <div>
+                                        <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1.5">
+                                            Deadline *
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={deadline}
+                                            onChange={(e) => setDeadline(e.target.value)}
+                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm [color-scheme:light] dark:[color-scheme:dark]"
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Required Skill */}
+                                    <div>
+                                        <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1.5">
+                                            Required Skill
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. React, Python"
+                                            value={requiredSkill}
+                                            onChange={(e) => setRequiredSkill(e.target.value)}
+                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Footer Actions */}
+                            <div className="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-zinc-200 dark:border-zinc-900">
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    type="button"
+                                    onClick={onClose}
+                                    className="px-5 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 font-medium transition-all text-sm"
+                                >
+                                    Cancel
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    type="submit"
+                                    disabled={createTaskMutation.isPending}
+                                    className="px-6 py-2.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-700 dark:hover:bg-white text-white dark:text-black font-semibold shadow-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed text-sm"
+                                >
+                                    {createTaskMutation.isPending ? (
+                                        <div className="flex items-center gap-2">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Creating...
+                                        </div>
+                                    ) : "Create Task"}
+                                </motion.button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 }

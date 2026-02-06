@@ -39,14 +39,14 @@ export function WorkloadAnalysis({
                     const isOverloaded = workload > 80;
 
                     return (
-                        <div key={member.id} className="group relative bg-card border border-zinc-800 hover:border-zinc-700 p-4 transition-all rounded-xl">
+                        <div key={member.id} className="group relative bg-card border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 p-4 transition-all rounded-xl">
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-zinc-900 flex items-center justify-center text-zinc-500 rounded-lg border border-zinc-800">
+                                    <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-zinc-500 rounded-lg border border-zinc-200 dark:border-zinc-800">
                                         <User className="w-4 h-4" />
                                     </div>
                                     <div>
-                                        <h3 className="text-xs font-bold text-zinc-300">{member.name}</h3>
+                                        <h3 className="text-xs font-bold text-zinc-900 dark:text-zinc-300">{member.name}</h3>
                                         <p className="text-[10px] text-zinc-500">{member.skills?.[0] || "Generalist"}</p>
                                     </div>
                                 </div>
@@ -58,7 +58,7 @@ export function WorkloadAnalysis({
                                     <span>{memberTasks.length} Tasks</span>
                                     <span>{Math.round(workload)}%</span>
                                 </div>
-                                <div className="h-1.5 w-full bg-zinc-900 overflow-hidden rounded-full">
+                                <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-900 overflow-hidden rounded-full">
                                     <div
                                         className={cn("h-full transition-all duration-500 rounded-full",
                                             workload > 80 ? "bg-red-500" : workload > 50 ? "bg-amber-500" : "bg-emerald-500"
@@ -76,7 +76,7 @@ export function WorkloadAnalysis({
                                             setSelectedMemberId(member.id);
                                             setCreateTaskModalOpen(true);
                                         }}
-                                        className="p-1 text-zinc-500 hover:text-zinc-200 transition-colors rounded hover:bg-zinc-800"
+                                        className="p-1 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors rounded hover:bg-zinc-200 dark:hover:bg-zinc-800"
                                         title="Assign Task"
                                     >
                                         <Plus className="w-3.5 h-3.5" />
@@ -84,7 +84,7 @@ export function WorkloadAnalysis({
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleRemoveMember(member.id); }}
                                         disabled={removeMemberMutationPending}
-                                        className="p-1 text-zinc-500 hover:text-red-500 transition-colors rounded hover:bg-zinc-800 disabled:opacity-50"
+                                        className="p-1 text-zinc-500 hover:text-red-500 transition-colors rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-50"
                                         title="Remove Member"
                                     >
                                         {removeMemberMutationPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserMinus className="w-3.5 h-3.5" />}

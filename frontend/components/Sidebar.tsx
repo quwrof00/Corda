@@ -6,7 +6,8 @@ import { LayoutDashboard, CheckSquare, Users, LogOut, User, Terminal, Lock, Aler
 import { usePersonalWorkspace } from "@/hooks/usePersonalWorkspace";
 import { useUser } from "@/hooks/useUser";
 import { useSession, signOut } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
 import ConfirmModal from "./ConfirmModal";
 import { clsx } from "clsx";
 import Image from "next/image";
@@ -23,6 +24,12 @@ export default function Sidebar() {
     const { data: user } = useUser(userId, { enabled: !!userId });
 
     const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+    // const { theme, setTheme } = useTheme();
+    // const [mounted, setMounted] = useState(false);
+
+    // useEffect(() => {
+    //     setMounted(true);
+    // }, []);
 
 
     if (!session) return null;
@@ -34,14 +41,20 @@ export default function Sidebar() {
     ];
 
     return (
-        <aside className="hidden md:flex fixed left-0 top-0 z-40 h-screen w-64 border-r border-zinc-800 bg-zinc-950 flex-col justify-between p-0 font-mono">
-            <div>
+        <aside className="hidden md:flex fixed left-0 top-0 z-40 h-screen w-64 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex-col justify-between p-0 font-mono">
+            <div className="bg-white dark:bg-zinc-950">
                 {/* Logo */}
-                <div className="flex h-16 items-center gap-3 px-6 border-b border-zinc-800 bg-zinc-950">
-                    <div className="flex h-8 w-8 items-center justify-center bg-white text-black font-bold border border-zinc-500">
+                <div className="flex h-16 items-center gap-3 px-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+                    <div className="flex h-8 w-8 items-center justify-center bg-zinc-950 dark:bg-white text-white dark:text-black font-bold border border-zinc-200 dark:border-zinc-500">
                         <Terminal className="w-5 h-5" />
                     </div>
-                    <Link href='/dashboard' className="text-xl font-bold tracking-tight text-white uppercase">CORDA</Link>
+                    <Link href='/dashboard' className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white uppercase">CORDA</Link>
+                    {/* <button
+                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        className="ml-auto flex items-center justify-center w-8 h-8 rounded-md text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                        {mounted && (theme === 'light' ? <Moon size={16} /> : <Sun size={16} />)}
+                    </button> */}
                 </div>
 
                 {/* Navigation */}
@@ -54,14 +67,15 @@ export default function Sidebar() {
                                 key={item.href}
                                 href={item.href}
                                 className={clsx(
-                                    "group flex items-center gap-3 px-6 py-4 text-xs font-bold uppercase tracking-wider border-b border-zinc-800/50 hover:bg-zinc-900 transition-none",
+                                    "group flex items-center gap-3 px-6 py-4 text-xs font-bold uppercase tracking-wider border-b transition-none",
+                                    "border-zinc-200/50 dark:border-zinc-800/50",
                                     isActive
-                                        ? "bg-zinc-900 text-white border-r-4 border-r-white"
-                                        : "text-zinc-500 hover:text-zinc-300"
+                                        ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white border-r-4 border-r-black dark:border-r-white"
+                                        : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900"
                                 )}
                                 prefetch={false}
                             >
-                                <item.icon className={clsx("h-4 w-4", isActive ? "text-white" : "text-zinc-600 group-hover:text-zinc-400")} />
+                                <item.icon className={clsx("h-4 w-4", isActive ? "text-zinc-900 dark:text-white" : "text-zinc-600 group-hover:text-zinc-400")} />
                                 {item.name}
                             </Link>
                         );
@@ -69,19 +83,19 @@ export default function Sidebar() {
                 </nav>
 
                 {/* Personal Workspace - Separate Section */}
-                <div className="mt-6 pt-6 border-t border-zinc-900">
+                <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-900">
                     <h3 className="px-6 text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Personal</h3>
                     {personalTeamId ? (
                         <Link
                             href={`/teams/${personalTeamId}`}
                             className={clsx(
-                                "group flex items-center gap-3 px-6 py-3 text-xs font-bold uppercase tracking-wider hover:bg-zinc-900 transition-none",
+                                "group flex items-center gap-3 px-6 py-3 text-xs font-bold uppercase tracking-wider transition-none",
                                 pathname === `/teams/${personalTeamId}`
-                                    ? "bg-zinc-900 text-white border-r-4 border-r-white"
-                                    : "text-zinc-500 hover:text-zinc-300"
+                                    ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white border-r-4 border-r-black dark:border-r-white"
+                                    : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900"
                             )}
                         >
-                            <Lock className={clsx("h-4 w-4", pathname === `/teams/${personalTeamId}` ? "text-white" : "text-zinc-600 group-hover:text-zinc-400")} />
+                            <Lock className={clsx("h-4 w-4", pathname === `/teams/${personalTeamId}` ? "text-zinc-900 dark:text-white" : "text-zinc-600 group-hover:text-zinc-400")} />
                             My Tasks
                         </Link>
                     ) : (
@@ -113,9 +127,9 @@ export default function Sidebar() {
                 )}
 
                 {/* User Profile */}
-                <div className="border-t border-zinc-800 p-6 bg-zinc-950">
+                <div className="border-t border-zinc-200 dark:border-zinc-800 p-6 bg-white dark:bg-zinc-950">
                     <Link href="/profile" className="flex items-center gap-3 mb-4 cursor-pointer group hover:opacity-80">
-                        <div className="h-10 w-10 bg-zinc-900 border border-zinc-700 flex items-center justify-center relative">
+                        <div className="h-10 w-10 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center relative">
                             {session.user?.image ? (
                                 <Image
                                     src={session.user.image}
@@ -129,14 +143,14 @@ export default function Sidebar() {
                             )}
                         </div>
                         <div className="flex-1 overflow-hidden">
-                            <p className="truncate text-xs font-bold text-zinc-200 uppercase">{session.user?.name}</p>
+                            <p className="truncate text-xs font-bold text-zinc-900 dark:text-zinc-200 uppercase">{session.user?.name}</p>
                             <p className="truncate text-xs text-zinc-500 uppercase font-mono">ID: {session.user?.email?.split('@')[0]}</p>
                         </div>
                     </Link>
 
                     <button
                         onClick={() => setLogoutModalOpen(true)}
-                        className="w-full flex items-center justify-center gap-2 py-3 text-xs font-bold text-zinc-400 hover:bg-red-950/20 hover:text-red-500 uppercase tracking-wider border border-zinc-800 hover:border-red-900 transition-none"
+                        className="w-full flex items-center justify-center gap-2 py-3 text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 dark:hover:text-red-500 uppercase tracking-wider border border-zinc-200 dark:border-zinc-800 hover:border-red-200 dark:hover:border-red-900 transition-none"
                     >
                         <LogOut size={14} />
                         <span>Disconnect</span>

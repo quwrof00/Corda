@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { useTeam, useTeamMembers, useDeleteTeam, useRemoveMember, useUpdateTeam } from "@/hooks/useTeams";
 import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 import { api } from "@/lib/api";
@@ -219,7 +220,12 @@ export default function TeamDetailsPage() {
     const currentUserMemberId = (members as Member[])?.find((m: Member) => m.email === session?.user?.email)?.id;
 
     return (
-        <main className="min-h-screen bg-background text-zinc-300 font-sans pb-20 selection:bg-zinc-800">
+        <motion.main
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="min-h-screen bg-background text-zinc-900 dark:text-zinc-300 font-sans pb-20 selection:bg-zinc-200 dark:selection:bg-zinc-800"
+        >
             <TeamHeader
                 team={team}
                 isScrolled={isScrolled}
@@ -335,6 +341,6 @@ export default function TeamDetailsPage() {
                 variant={confirmModal.variant}
                 confirmText={confirmModal.confirmText}
             />
-        </main>
+        </motion.main>
     );
 }
