@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import MoodleSyncButton from "@/components/tasks/moodle-sync-button";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 import { useTeams } from "@/hooks/useTeams";
 import {
@@ -287,6 +289,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <MoodleSyncButton variant="button" />
             {/* Main Action - HCI: Fitts's Law / Visibility */}
             <PrimaryButton onClick={() => setIsCreateModalOpen(true)}>
               <div className="flex items-center gap-2">
@@ -338,6 +341,9 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
                 <CheckCircle2 className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
                 My Tasks
               </h2>
+              <Link href="/tasks" className="text-xs font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 uppercase tracking-wider flex items-center gap-1 transition-colors mr-2">
+                View All <ArrowRight className="w-3 h-3" />
+              </Link>
             </div>
 
             <div className="space-y-10">
@@ -357,7 +363,12 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
                               animate="visible"
                               exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
                               key={task.id}
-                              className="group relative flex items-center gap-4 p-4 rounded-xl bg-card border border-zinc-200 dark:border-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-all cursor-pointer hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50"
+                              className={cn(
+                                "group relative flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50",
+                                task.source === 'moodle'
+                                  ? "bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/30 dark:to-transparent border-orange-200/80 dark:border-orange-800/50 hover:from-orange-100/50 dark:hover:from-orange-900/50"
+                                  : "bg-card border-zinc-200 dark:border-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-900/30",
+                              )}
                               whileHover={{ y: -2, transition: { duration: 0.2 } }}
                               whileTap={{ scale: 0.98 }}
                               onClick={() => setSelectedTask(task)}
@@ -403,11 +414,13 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
                                 </span>
                                 <span className={cn(
                                   "hidden sm:flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
-                                  task.status === "active"
+                                  task.status === "active" || task.status === "in-progress"
                                     ? "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/30"
                                     : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800"
                                 )}>
-                                  {task.status}
+                                  {task.status === 'pending' || task.status === 'to-do' ? 'To Do' :
+                                    task.status === 'active' || task.status === 'in-progress' ? 'In Progress' :
+                                      task.status.replace('-', ' ')}
                                 </span>
                               </div>
 
@@ -453,6 +466,9 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
                 <Users className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
                 My Teams
               </h2>
+              <Link href="/teams" className="text-xs font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 uppercase tracking-wider flex items-center gap-1 transition-colors mr-2">
+                View All <ArrowRight className="w-3 h-3" />
+              </Link>
             </div>
 
             <div className="grid gap-4 h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent content-start">

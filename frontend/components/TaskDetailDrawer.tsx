@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Pause, Play, X, Calendar, Users, Flag, Edit2, Save, Loader2, Trash2 } from "lucide-react"
+import { Pause, Play, X, Calendar, Users, Flag, Edit2, Save, Loader2, Trash2, CheckCircle2 } from "lucide-react"
 import cn from "clsx"
 import { motion, AnimatePresence } from "framer-motion";
 import { Task, useDeleteTask } from "@/hooks/useTasks";
@@ -287,9 +287,11 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                                 {selectedTask.priority || "Normal"} Priority
                                             </span>
                                             <span className={cn("px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
-                                                selectedTask.status === 'active' || selectedTask.status === 'in-progress' ? "bg-blue-950/20 text-blue-400 border-blue-900/50" : "bg-zinc-900 text-zinc-500 border-zinc-800"
+                                                selectedTask.status === 'active' || selectedTask.status === 'in-progress' || selectedTask.status === 'to-do' || selectedTask.status === 'pending' ? "bg-blue-950/20 text-blue-400 border-blue-900/50" : "bg-zinc-900 text-zinc-500 border-zinc-800"
                                             )}>
-                                                {selectedTask.status}
+                                                {selectedTask.status === 'pending' || selectedTask.status === 'to-do' ? 'To Do' :
+                                                    selectedTask.status === 'active' || selectedTask.status === 'in-progress' ? 'In Progress' :
+                                                        selectedTask.status.replace('-', ' ')}
                                             </span>
                                         </div>
                                     )}
@@ -380,60 +382,119 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                 </div>
 
                                 <div className="pt-6 mt-auto flex gap-3 border-t border-zinc-900">
-                                    {selectedTask.status !== 'in-progress' && selectedTask.status !== 'completed' && (
-                                        <motion.button
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            onClick={() => handleStatusUpdate('in-progress')}
-                                            disabled={updateTaskMutation.isPending}
-                                            className="flex-1 py-3 bg-zinc-100 text-black font-bold rounded-xl hover:bg-white transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            {updateTaskMutation.isPending ? (
-                                                <>
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                    Updating...
-                                                </>
+                                    {/* Personal Workspace Actions: Toggle To-Do <-> Completed */}
+                                    {/* Personal Workspace Actions: Toggle To-Do <-> Completed */}
+                                    {isPersonal ? (
+                                        <>
+                                            {selectedTask.status === 'completed' ? (
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => handleStatusUpdate('pending')}
+                                                    disabled={updateTaskMutation.isPending}
+                                                    className="flex-1 py-3 bg-zinc-100 text-black font-bold rounded-xl hover:bg-white transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {updateTaskMutation.isPending ? (
+                                                        <>
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                            Updating...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Edit2 className="w-4 h-4" />
+                                                            Mark as To Do
+                                                        </>
+                                                    )}
+                                                </motion.button>
                                             ) : (
-                                                <>
-                                                    <Play className="w-4 h-4" />
-                                                    Start Task
-                                                </>
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => handleStatusUpdate('completed')}
+                                                    disabled={updateTaskMutation.isPending}
+                                                    className="flex-1 py-3 bg-zinc-900 text-white dark:text-zinc-300 font-bold rounded-xl hover:bg-zinc-800 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {updateTaskMutation.isPending ? (
+                                                        <>
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                            Completing...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <CheckCircle2 className="w-4 h-4" />
+                                                            Complete Task
+                                                        </>
+                                                    )}
+                                                </motion.button>
                                             )}
-                                        </motion.button>
-                                    )}
-                                    {selectedTask.status === 'in-progress' && (
-                                        <motion.button
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            onClick={() => handleStatusUpdate('active')}
-                                            disabled={updateTaskMutation.isPending}
-                                            className="flex-1 py-3 bg-amber-500 text-black font-bold rounded-xl hover:bg-amber-400 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            {updateTaskMutation.isPending ? (
-                                                <>
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                    Updating...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Pause className="w-4 h-4" />
-                                                    Pause Task
-                                                </>
+                                        </>
+                                    ) : (
+                                        /* Team Workspace Actions: To Do -> In Progress -> Completed */
+                                        <>
+                                            {(selectedTask.status === 'to-do' || selectedTask.status === 'pending') && (
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => handleStatusUpdate('active')}
+                                                    disabled={updateTaskMutation.isPending}
+                                                    className="flex-1 py-3 bg-zinc-100 text-black font-bold rounded-xl hover:bg-white transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {updateTaskMutation.isPending ? (
+                                                        <>
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                            Updating...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Play className="w-4 h-4" />
+                                                            Start Task
+                                                        </>
+                                                    )}
+                                                </motion.button>
                                             )}
-                                        </motion.button>
+                                            {(selectedTask.status === 'active' || selectedTask.status === 'in-progress') && (
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => handleStatusUpdate('pending')}
+                                                    disabled={updateTaskMutation.isPending}
+                                                    className="flex-1 py-3 bg-amber-500 text-black font-bold rounded-xl hover:bg-amber-400 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {updateTaskMutation.isPending ? (
+                                                        <>
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                            Updating...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Pause className="w-4 h-4" />
+                                                            Pause Task
+                                                        </>
+                                                    )}
+                                                </motion.button>
+                                            )}
+                                            {selectedTask.status !== 'completed' && (
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => handleStatusUpdate('completed')}
+                                                    disabled={updateTaskMutation.isPending}
+                                                    className={cn(
+                                                        "px-6 py-3 bg-zinc-900 text-white dark:text-zinc-300 font-bold rounded-xl hover:bg-zinc-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
+                                                        (selectedTask.status === 'completed') && "opacity-50 cursor-not-allowed"
+                                                    )}
+                                                >
+                                                    Complete
+                                                </motion.button>
+                                            )}
+                                            {selectedTask.status === 'completed' && (
+                                                <div className="flex-1 py-3 flex items-center justify-center text-zinc-500 font-medium">
+                                                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                    Completed
+                                                </div>
+                                            )}
+                                        </>
                                     )}
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => handleStatusUpdate('completed')}
-                                        disabled={updateTaskMutation.isPending}
-                                        className={cn(
-                                            "px-6 py-3 bg-zinc-900 text-white dark:text-zinc-300 font-bold rounded-xl hover:bg-zinc-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
-                                            (selectedTask.status === 'completed') && "opacity-50 cursor-not-allowed"
-                                        )}
-                                    >
-                                        {selectedTask.status === 'completed' ? "Completed" : "Complete"}
-                                    </motion.button>
                                 </div>
                             </div>
                         </motion.div>

@@ -30,6 +30,7 @@ model User {
 
   accounts      Account[]
   sessions      Session[]
+  moodleIntegration MoodleIntegration?
 }
 
 model Team {
@@ -74,6 +75,12 @@ model Task {
   team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
   assignedToId String?
   assignedTo   User?   @relation(fields: [assignedToId], references: [id])
+  
+  // Fields for external integrations (Moodle)
+  source      String   @default("manual") // "manual", "moodle"
+  externalId  String?  // UID from ICS
+
+  @@unique([externalId, assignedToId]) // Ensure unique task mapping per user (if assigned)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -111,4 +118,18 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model MoodleIntegration {
+  id                 String    @id @default(cuid())
+  userId             String    @unique
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  icsUrl             String
+  lastSyncedAt       DateTime?
+  lastSyncHash       String?
+  isActive           Boolean   @default(true)
+  syncFrequencyHours Int       @default(6)
+  
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }

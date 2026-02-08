@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import CreateTaskModal from "@/components/CreateTaskModal";
 import CreateTeamModal from "@/components/CreateTeamModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
+
 import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -86,8 +87,8 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
         if (statusFilter !== "All") {
             res = res.filter((t) => {
                 const s = (t.status || "pending").toLowerCase();
-                if (statusFilter === "Todo") return s === "pending" || s === "active";
-                if (statusFilter === "In Progress") return s === "in-progress";
+                if (statusFilter === "Todo") return s === "pending" || s === "to-do";
+                if (statusFilter === "In Progress") return s === "active" || s === "in-progress";
                 if (statusFilter === "Blocked") return s === "blocked";
                 if (statusFilter === "Done") return s === "completed";
                 return true;
@@ -131,18 +132,21 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                                 Manage and track your tasks
                             </p>
                         </div>
-                        <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setIsCreateModalOpen(true)}
-                            className="group flex items-center gap-2 px-5 py-2.5 bg-zinc-100 hover:bg-white text-black transition-all duration-200 font-medium text-sm overflow-hidden relative border-none rounded-lg"
-                        >
-                            <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
-                            <span className="font-bold tracking-wide">New Task</span>
-                            <div className="hidden md:flex items-center gap-0.5 ml-1 px-1.5 py-0.5 bg-black/10 rounded text-[9px] font-mono">
-                                <span>C</span>
-                            </div>
-                        </motion.button>
+                        <div className="flex items-center gap-3">
+
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="group flex items-center gap-2 px-5 py-2.5 bg-zinc-100 hover:bg-white text-black transition-all duration-200 font-medium text-sm overflow-hidden relative border-none rounded-lg"
+                            >
+                                <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
+                                <span className="font-bold tracking-wide">New Task</span>
+                                <div className="hidden md:flex items-center gap-0.5 ml-1 px-1.5 py-0.5 bg-black/10 rounded text-[9px] font-mono">
+                                    <span>C</span>
+                                </div>
+                            </motion.button>
+                        </div>
                     </div>
 
                     {/* Filter Bar */}
@@ -194,21 +198,26 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                                     whileHover={{ scale: 1.01, x: 4 }}
                                     whileTap={{ scale: 0.99 }}
                                     key={task.id}
-                                    className="group relative bg-card border border-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900 transition-colors duration-200 p-4 flex items-center gap-4 rounded-lg cursor-pointer hover:z-10"
+                                    className={cn(
+                                        "group relative border transition-colors duration-200 p-4 flex items-center gap-4 rounded-lg cursor-pointer hover:z-10",
+                                        task.source === 'moodle'
+                                            ? "bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/30 dark:to-transparent border-orange-200/80 dark:border-orange-800/50 hover:from-orange-100/50 dark:hover:from-orange-900/50 hover:border-orange-300 dark:hover:border-orange-700"
+                                            : "bg-card border-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900"
+                                    )}
                                     onClick={() => setSelectedTask(task)}
                                 >
                                     {/* Status Indicator */}
                                     <div className={cn(
                                         "w-1 h-12 flex-shrink-0 transition-colors duration-300 rounded-full",
                                         task.status === 'completed' ? "bg-emerald-500" :
-                                            task.status === 'in-progress' ? "bg-blue-500" :
+                                            (task.status === 'active' || task.status === 'in-progress') ? "bg-blue-500" :
                                                 task.status === 'blocked' ? "bg-red-500" :
                                                     "bg-zinc-700 group-hover:bg-zinc-500"
                                     )} />
 
                                     {/* Checkbox/Status Action */}
                                     <button
-                                        onClick={(e) => handleStatusUpdate(task.id, task.status === 'completed' ? 'active' : 'completed', e)}
+                                        onClick={(e) => handleStatusUpdate(task.id, task.status === 'completed' ? 'pending' : 'completed', e)}
                                         className={cn(
                                             "flex-shrink-0 w-6 h-6 border flex items-center justify-center transition-all duration-200 rounded-full",
                                             task.status === 'completed'
@@ -263,9 +272,9 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
 
                                     {/* Hover Actions */}
                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pl-4 border-l border-zinc-800 ml-4">
-                                        {task.status !== 'in-progress' && task.status !== 'completed' && (
+                                        {task.status !== 'active' && task.status !== 'in-progress' && task.status !== 'completed' && (
                                             <button
-                                                onClick={(e) => handleStatusUpdate(task.id, 'in-progress', e)}
+                                                onClick={(e) => handleStatusUpdate(task.id, 'active', e)}
                                                 className="p-1.5 text-zinc-500 hover:text-blue-400 hover:bg-blue-950/30 transition-colors rounded-md"
                                                 title="Start Task"
                                             >
@@ -273,9 +282,9 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                                             </button>
                                         )}
 
-                                        {task.status === 'in-progress' && (
+                                        {(task.status === 'active' || task.status === 'in-progress') && (
                                             <button
-                                                onClick={(e) => handleStatusUpdate(task.id, 'active', e)}
+                                                onClick={(e) => handleStatusUpdate(task.id, 'pending', e)}
                                                 className="p-1.5 text-zinc-500 hover:text-amber-400 hover:bg-amber-950/30 transition-colors rounded-md"
                                                 title="Pause Task"
                                             >

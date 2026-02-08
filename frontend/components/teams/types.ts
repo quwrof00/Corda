@@ -17,6 +17,7 @@ export interface Task {
     assignedToId?: string;
     deadline?: string;
     createdAt?: string;
+    source?: string;
     team?: { id?: string; name?: string;[key: string]: unknown } | null;
     [key: string]: unknown;
 }

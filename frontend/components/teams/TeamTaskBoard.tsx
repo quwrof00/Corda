@@ -91,9 +91,10 @@ export function TeamTaskBoard({
                                             "bg-card p-2 border border-zinc-200 dark:border-zinc-800 transition-colors text-xs text-zinc-600 dark:text-zinc-400 ml-3 border-l-2 rounded-r-md group relative",
                                             isLeader ? "cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-700" : "cursor-default",
                                             task.status === 'completed' ? "border-l-emerald-500 hover:border-l-emerald-400" :
-                                                task.status === 'in-progress' ? "border-l-blue-500 hover:border-l-blue-400" :
-                                                    task.status === 'blocked' ? "border-l-red-500 hover:border-l-red-400" :
-                                                        "border-l-zinc-300 dark:border-l-zinc-800 hover:border-l-zinc-500"
+                                                (task.status === 'active' || task.status === 'in-progress') ? "border-l-blue-500 hover:border-l-blue-400" :
+                                                    (task.status === 'pending' || task.status === 'to-do') ? "border-l-zinc-300 dark:border-l-zinc-700 hover:border-l-zinc-500" :
+                                                        task.status === 'blocked' ? "border-l-red-500 hover:border-l-red-400" :
+                                                            "border-l-zinc-300 dark:border-l-zinc-800 hover:border-l-zinc-500"
                                         )}
                                     >
                                         <div className="flex justify-between items-center gap-2">

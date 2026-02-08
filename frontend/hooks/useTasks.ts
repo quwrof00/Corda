@@ -16,6 +16,7 @@ export interface Task {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   team?: { id?: string; name?: string;[key: string]: any } | null;
   requiredSkill?: string | null;
+  source?: string;
   [key: string]: unknown;
 }
 

@@ -6,8 +6,7 @@ import { LayoutDashboard, CheckSquare, Users, LogOut, User, Terminal, Lock, Aler
 import { usePersonalWorkspace } from "@/hooks/usePersonalWorkspace";
 import { useUser } from "@/hooks/useUser";
 import { useSession, signOut } from "next-auth/react";
-import { useState, useEffect } from "react";
-import { useTheme } from "next-themes";
+import { useState } from "react";
 import ConfirmModal from "./ConfirmModal";
 import { clsx } from "clsx";
 import Image from "next/image";
@@ -96,7 +95,7 @@ export default function Sidebar() {
                             )}
                         >
                             <Lock className={clsx("h-4 w-4", pathname === `/teams/${personalTeamId}` ? "text-zinc-900 dark:text-white" : "text-zinc-600 group-hover:text-zinc-400")} />
-                            My Tasks
+                            My Workspace
                         </Link>
                     ) : (
                         <div className="px-6 py-3 flex items-center gap-2 text-zinc-700 text-xs">

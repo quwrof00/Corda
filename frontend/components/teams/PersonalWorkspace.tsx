@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Task } from "./types";
 import { cn, formatDaysLeft } from "./utils";
 import { CheckCircle2, Plus } from "lucide-react";
+import MoodleSyncButton from "@/components/tasks/moodle-sync-button";
 
 interface PersonalWorkspaceProps {
     assignedTasks: Task[];
@@ -103,16 +104,13 @@ export function PersonalWorkspace({
                     </div>
                 </motion.div>
 
+
+
                 <motion.div
                     whileHover={{ scale: 1.02, y: -2 }}
-                    className="bg-zinc-50 dark:bg-zinc-900/50 p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between h-32 relative overflow-hidden group"
+                    className="h-32"
                 >
-                    <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Workspace</span>
-                    <div className="flex items-center gap-2 mt-2">
-                        <div className="text-xs bg-zinc-200 dark:bg-zinc-800 px-2 py-1 rounded text-zinc-600 dark:text-zinc-300">Private</div>
-                        <div className="text-xs bg-zinc-200 dark:bg-zinc-800 px-2 py-1 rounded text-zinc-600 dark:text-zinc-300">Secure</div>
-                    </div>
-                    <p className="text-[10px] text-zinc-600 mt-2">Only you can see these tasks</p>
+                    <MoodleSyncButton variant="card" />
                 </motion.div>
             </motion.div>
 
@@ -148,7 +146,12 @@ export function PersonalWorkspace({
                                         whileHover={{ x: 4 }}
                                         key={task.id}
                                         onClick={() => openEditTask(task)}
-                                        className="group flex flex-col sm:flex-row sm:items-center justify-between p-5 hover:bg-zinc-100 dark:hover:bg-zinc-900/40 transition-colors cursor-pointer border-l-4 border-transparent hover:border-l-emerald-500"
+                                        className={cn(
+                                            "group flex flex-col sm:flex-row sm:items-center justify-between p-5 transition-colors cursor-pointer border-l-4",
+                                            task.source === 'moodle'
+                                                ? "bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/30 dark:to-transparent hover:from-orange-100/50 dark:hover:from-orange-900/50 border-l-orange-500"
+                                                : "hover:bg-zinc-100 dark:hover:bg-zinc-900/40 border-l-transparent hover:border-l-emerald-500"
+                                        )}
                                     >
                                         <div className="flex items-start gap-4 mb-3 sm:mb-0">
                                             <div
@@ -187,10 +190,12 @@ export function PersonalWorkspace({
                                         <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity self-end sm:self-center">
                                             <div className={cn("px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
                                                 task.status === 'completed' ? "bg-emerald-950/10 text-emerald-500 border-emerald-900/30" :
-                                                    task.status === 'in-progress' ? "bg-blue-950/10 text-blue-500 border-blue-900/30" :
+                                                    (task.status === 'active' || task.status === 'in-progress') ? "bg-blue-950/10 text-blue-500 border-blue-900/30" :
                                                         "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800"
                                             )}>
-                                                {task.status.replace('-', ' ')}
+                                                {task.status === 'pending' || task.status === 'to-do' ? 'To Do' :
+                                                    task.status === 'active' || task.status === 'in-progress' ? 'In Progress' :
+                                                        task.status.replace('-', ' ')}
                                             </div>
                                         </div>
                                     </motion.div>
