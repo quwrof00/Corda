@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTeams } from "@/hooks/useTeams";
-import { useCreateTask, useTasks, Task } from "@/hooks/useTasks";
+import { useCreateTask } from "@/hooks/useTasks";
 import { Loader2, ListTodo, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,8 +39,7 @@ export default function CreateTaskModal({
     const [assignToMe, setAssignToMe] = useState(false);
     const [parentId, setParentId] = useState(initialParentId || "");
 
-    // Fetch tasks to populate parent dropdown
-    const { data: allTasks } = useTasks();
+
 
 
     // Reset and initialize state when modal opens

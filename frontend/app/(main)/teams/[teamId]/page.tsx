@@ -335,7 +335,6 @@ export default function TeamDetailsPage() {
                 updateTaskMutation={updateTaskMutation}
                 refreshTasks={() => queryClient.invalidateQueries({ queryKey: ["tasks", teamId] })}
                 isLeader={isLeader}
-                members={members as Member[]}
                 teamName={team?.name}
                 currentUserId={currentUserMemberId}
             />

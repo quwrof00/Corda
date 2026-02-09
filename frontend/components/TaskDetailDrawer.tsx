@@ -7,11 +7,7 @@ import ConfirmModal from "./ConfirmModal";
 import { UseMutationResult } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-interface Member {
-    id: string;
-    name: string;
-    email: string;
-}
+
 
 interface TaskDetailDrawerProps {
     selectedTask: Task | null;
