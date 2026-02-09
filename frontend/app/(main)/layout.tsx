@@ -9,7 +9,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             <div className="min-h-screen flex flex-col md:flex-row bg-background">
                 <Sidebar />
                 <MobileNav />
-                <main className="flex-1 min-w-0 transition-all duration-300 md:ml-64">
+                <main className="flex-1 min-w-0 transition-all duration-300 md:ml-[var(--sidebar-width,16rem)]">
                     {children}
                 </main>
             </div>

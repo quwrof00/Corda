@@ -53,7 +53,12 @@ export function PersonalWorkspace({
 
     // Build tree and flatten for rendering
     const tasksToRender = useMemo(() => {
-        const tree = buildTaskTree(assignedTasks);
+        const sortedTasks = [...assignedTasks].sort((a, b) => {
+            if (!a.deadline) return 1;
+            if (!b.deadline) return -1;
+            return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+        });
+        const tree = buildTaskTree(sortedTasks);
         return flattenTree(tree, expandedIds);
     }, [assignedTasks, expandedIds]);
 

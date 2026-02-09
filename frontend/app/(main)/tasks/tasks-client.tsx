@@ -1,6 +1,6 @@
 "use client";
-import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, RefreshCw, ChevronRight } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, RefreshCw, ChevronRight, ArrowUpDown, Filter, ChevronDown, ListFilter } from "lucide-react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import CreateTaskModal from "@/components/CreateTaskModal";
@@ -8,6 +8,7 @@ import CreateTeamModal from "@/components/CreateTeamModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
 
 import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
+import { useTeams } from "@/hooks/useTeams";
 import { buildTaskTree } from "@/lib/taskTreeUtils";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -132,20 +133,9 @@ const TaskItem = ({ task, onSelect, onStatusUpdate, getPriorityColor, onToggleEx
                 </div>
             </div>
 
-            {/* Hover Actions - now always visible */}
+            {/* Hover Actions - always visible for better UX */}
             <div className="flex items-center gap-1 pl-4 border-l border-zinc-800 ml-4">
-                {hasChildren && (
-                    <button
-                        onClick={(e) => onToggleExpand(task.id, e)}
-                        className={cn(
-                            "p-1.5 text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors rounded-md",
-                            isExpanded && "bg-zinc-800 text-white"
-                        )}
-                        title={isExpanded ? "Hide Subtasks" : "Show Subtasks"}
-                    >
-                        <ChevronRight className={cn("w-4 h-4 transition-transform duration-200", isExpanded && "rotate-90")} />
-                    </button>
-                )}
+                {/* Logic for expand repeated here for redundancy/ease of access if needed, but chevron is primary */}
                 <button
                     onClick={(e) => onAddSubtask(task.id, task.teamId || "", e)}
                     className="p-1.5 text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors rounded-md"
@@ -185,33 +175,158 @@ const TaskItem = ({ task, onSelect, onStatusUpdate, getPriorityColor, onToggleEx
     );
 };
 
+const priorityScore: Record<string, number> = { "High": 3, "Medium": 2, "Low": 1 };
+
+const FilterDropdown = ({
+    icon: Icon,
+    label,
+    value,
+    options,
+    onChange,
+    width = "w-32",
+    align = "left"
+}: {
+    icon: React.ElementType,
+    label?: string,
+    value: string,
+    options: { label: string, value: string }[],
+    onChange: (val: string) => void,
+    width?: string,
+    align?: "left" | "right"
+}) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const selectedLabel = options.find(o => o.value === value)?.label || value;
+
+    return (
+        <div className="relative" ref={dropdownRef}>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={cn(
+                    "flex items-center justify-between gap-2 px-3 py-2 bg-zinc-900 border border-zinc-800/60 rounded-lg text-xs font-medium text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 hover:bg-zinc-800/40 transition-all",
+                    width,
+                    isOpen && "border-zinc-700 bg-zinc-800/60 text-zinc-200 ring-1 ring-zinc-800"
+                )}
+            >
+                <div className="flex items-center gap-2 truncate">
+                    <Icon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                    <span className="truncate">{label ? `${label}: ${selectedLabel}` : selectedLabel}</span>
+                </div>
+                <ChevronDown className={cn("w-3 h-3 text-zinc-600 shrink-0 transition-transform duration-200", isOpen && "rotate-180")} />
+            </button>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                        transition={{ duration: 0.1, ease: "easeOut" }}
+                        className={cn(
+                            "absolute top-full mt-1 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl shadow-black/40 z-50 overflow-hidden py-1 min-w-[140px]",
+                            align === "right" ? "right-0" : "left-0",
+                            width
+                        )}
+                    >
+                        {options.map((opt) => (
+                            <button
+                                key={opt.value}
+                                onClick={() => {
+                                    onChange(opt.value);
+                                    setIsOpen(false);
+                                }}
+                                className={cn(
+                                    "w-full text-left px-3 py-1.5 text-xs font-medium transition-colors flex items-center justify-between group",
+                                    value === opt.value ? "text-white bg-zinc-800" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                                )}
+                            >
+                                <span className="truncate">{opt.label}</span>
+                                {value === opt.value && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                )}
+                            </button>
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
 export default function TasksClient({ initialTasks, userId }: { initialTasks: Task[], userId: string }) {
     const { data: session } = useSession();
+
+    // Filters & Sort State
+    const [sortBy, setSortBy] = useState<"deadline" | "priority" | "newest">("deadline");
+    const [dateFilter, setDateFilter] = useState<"all" | "today" | "week" | "overdue" | "custom">("all");
+    const [priorityFilter, setPriorityFilter] = useState<"all" | "High" | "Medium" | "Low">("all");
+    const [teamFilter, setTeamFilter] = useState<"all" | string>("all");
     const [statusFilter, setStatusFilter] = useState<"All" | "Todo" | "In Progress" | "Blocked" | "Done">("Todo");
 
-    // Use the hook with initialData
-    const { data: tasksData, isLoading, refetch } = useTasks(undefined, { initialData: initialTasks });
+    // Custom date range (simple implementation)
+    const [customStartDate, setCustomStartDate] = useState("");
+    const [customEndDate, setCustomEndDate] = useState("");
 
-    // Memoize tasks to prevent dependency changes on every render
+    // Toggle for Tree View vs Flat View
+    const [isTreeView, setIsTreeView] = useState(true); // Default to Tree View per requirement
+
+    // Data Hooks
+    const { data: tasksData, isLoading, refetch } = useTasks(undefined, { initialData: initialTasks });
+    const { data: teamsData } = useTeams();
+
     const tasks = useMemo(() => (tasksData as Task[]) || [], [tasksData]);
+    const teams = useMemo(() => teamsData || [], [teamsData]);
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-    // Hook for updates
     const updateTaskMutation = useUpdateTask();
+
+    const handleStatusUpdate = async (taskId: string, newStatus: string, e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        try {
+            // 1. Update the target task
+            await updateTaskMutation.mutateAsync({ id: taskId, status: newStatus });
+
+            // 2. Propagate to children (User: "children should follow the parent task's state at all times")
+            const getDescendants = (rootId: string, allTasks: Task[]): string[] => {
+                const children = allTasks.filter(t => t.parentId === rootId);
+                let descendantIds = children.map(c => c.id);
+                for (const child of children) {
+                    descendantIds = [...descendantIds, ...getDescendants(child.id, allTasks)];
+                }
+                return descendantIds;
+            };
+
+            const descendants = getDescendants(taskId, tasks);
+            if (descendants.length > 0) {
+                await Promise.all(descendants.map(id => updateTaskMutation.mutateAsync({ id, status: newStatus })));
+            }
+
+        } catch (err) {
+            console.error("Failed to update task", err);
+        }
+    };
 
     const handleToggleExpand = (taskId: string, e: React.MouseEvent) => {
         e.stopPropagation();
         setExpandedIds(prev => {
             const next = new Set(prev);
-            if (next.has(taskId)) {
-                next.delete(taskId);
-            } else {
-                next.add(taskId);
-            }
+            if (next.has(taskId)) next.delete(taskId);
+            else next.add(taskId);
             return next;
         });
     };
@@ -224,14 +339,11 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
         setCreateParentId(parentId);
         setCreateTeamId(teamId);
         setIsCreateModalOpen(true);
-        // Auto-expand parent so user can see the new subtask
         setExpandedIds(prev => new Set(prev).add(parentId));
     };
 
-    // HCI: Keyboard Shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // 'C' for Task, 'N' for Team
             const isInput = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
             if (isInput || e.ctrlKey || e.metaKey) return;
 
@@ -243,7 +355,6 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                 setIsCreateTeamModalOpen(true);
             }
 
-            // 'Esc' to close drawer
             if (e.key === 'Escape' && selectedTask) {
                 setSelectedTask(null);
             }
@@ -253,90 +364,117 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [selectedTask]);
 
-    const handleStatusUpdate = async (taskId: string, newStatus: string, e?: React.MouseEvent) => {
-        e?.stopPropagation();
-        try {
-            await updateTaskMutation.mutateAsync({ id: taskId, status: newStatus });
-        } catch (err) {
-            console.error("Failed to update task", err);
+    // Auto-switch sort to 'deadline' when 'Personal' team is selected
+    useEffect(() => {
+        const personalTeam = teams.find(t => t.name === 'Personal');
+        if (personalTeam && teamFilter === personalTeam.id) {
+            setSortBy('deadline');
         }
-    };
+    }, [teamFilter, teams]);
+
+
 
     const flatTasks = useMemo(() => {
-        // 1. Sort all tasks first so tree is built with correct order
-        const sortedTasks = [...tasks];
-        const priorityScore: Record<string, number> = { "High": 3, "Medium": 2, "Low": 1 };
-        sortedTasks.sort((a, b) => (priorityScore[b.priority] || 0) - (priorityScore[a.priority] || 0));
+        let result = [...tasks];
 
-        // 2. Build FULL tree (all tasks included)
-        const fullTree = buildTaskTree(sortedTasks);
-
-        // 3. Recursive Filter & Flatten
-        const result: (Task & { level: number })[] = [];
-
-        function processNode(node: Task, level: number, parentVisible: boolean) {
-            const matchesFilter = (() => {
-                if (statusFilter === "All") return true;
-                const s = (node.status || "pending").toLowerCase();
+        // 1. FILTERING
+        // Status
+        if (statusFilter !== "All") {
+            result = result.filter(t => {
+                const s = (t.status || "pending").toLowerCase();
                 if (statusFilter === "Todo") return s === "pending" || s === "to-do";
                 if (statusFilter === "In Progress") return s === "active" || s === "in-progress";
                 if (statusFilter === "Blocked") return s === "blocked";
                 if (statusFilter === "Done") return s === "completed";
                 return false;
-            })();
-
-            // Should this node be visible?
-            // Yes if: 
-            // 1. It matches the filter
-            // 2. OR its parent is visible (so we keep subtree context)
-            const isVisible = matchesFilter || parentVisible;
-
-            if (isVisible) {
-                // If parent was visible, we are a child (level).
-                // If parent was NOT visible (but we matched), we are a new root (level 0).
-                // Wait, if parent was visible, we continue the chain.
-                // If parent was NOT visible, 'level' passed in here would be confusing.
-                // Actually:
-                // If parentVisible was true, we are expanding on 'level' passed in.
-                // If parentVisible was false, force level to 0?
-                // logic check:
-                // Root (Done) -> Child (Todo). Filter "Todo".
-                // Root: matches=false, visible=false.
-                //    Child: matches=true, visible=true. Parent NOT visible. Child level should be 0.
-            }
-
-            // Allow display if visible
-            if (isVisible) {
-                result.push({ ...node, level });
-            }
-
-            // Process children
-            if (node.children && node.children.length > 0) {
-                // If WE are visible AND expanded, show children with level+1.
-                // If WE are visible BUT collapsed, don't show children (unless we want to pre-calculate, but flat list implies rendered)
-                // Wait, user wants "nested view". If collapsed, children shouldn't be in flat list.
-                // BUT, if parent is "Todo", and child is "Done", user wants to see Child *nested*.
-                // So if Parent is visible, we trigger "parentVisible=true" for children.
-
-                // If we are NOT excluded from rendering (i.e. we are visible), then:
-                // Check if we are expanded.
-                if (isVisible) {
-                    if (expandedIds.has(node.id)) {
-                        node.children.forEach(child => processNode(child, level + 1, true));
-                    }
-                } else {
-                    // We are NOT visible. But our children might be matches.
-                    // If we are not visible, we can't be "expanded" visually.
-                    // But we still traverse children to see if they need to be roots.
-                    node.children.forEach(child => processNode(child, 0, false));
-                }
-            }
+            });
         }
 
-        fullTree.forEach(root => processNode(root, 0, false));
-        return result;
+        // Team
+        if (teamFilter !== "all") {
+            result = result.filter(t => t.teamId === teamFilter);
+        }
 
-    }, [tasks, statusFilter, expandedIds]);
+        // Priority
+        if (priorityFilter !== "all") {
+            result = result.filter(t => t.priority === priorityFilter);
+        }
+
+        // Date
+        if (dateFilter !== "all") {
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const endOfToday = new Date(startOfToday); endOfToday.setDate(endOfToday.getDate() + 1);
+            const endOfWeek = new Date(startOfToday); endOfWeek.setDate(endOfWeek.getDate() + 7);
+
+            result = result.filter(t => {
+                if (!t.deadline) return false;
+                const d = new Date(t.deadline);
+                // Reset time for comparisons
+                const dDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+                if (dateFilter === "today") return dDate.getTime() === startOfToday.getTime();
+                if (dateFilter === "week") return dDate >= startOfToday && dDate < endOfWeek;
+                if (dateFilter === "overdue") return dDate < startOfToday && t.status !== 'completed';
+                if (dateFilter === "custom") {
+                    if (!customStartDate || !customEndDate) return true;
+                    // Simple string comparison or proper date object creation
+                    const startRaw = new Date(customStartDate);
+                    const endRaw = new Date(customEndDate);
+                    return dDate >= startRaw && dDate <= endRaw;
+                }
+                return true;
+            });
+        }
+
+
+        // 2. SORTING
+        result.sort((a, b) => {
+            if (sortBy === 'deadline') {
+                // Ascending
+                if (!a.deadline) return 1;
+                if (!b.deadline) return -1;
+                return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+            }
+            if (sortBy === 'priority') {
+                // Descending
+                return (priorityScore[b.priority] || 0) - (priorityScore[a.priority] || 0);
+            }
+            if (sortBy === 'newest') {
+                return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+            }
+            return 0;
+        });
+
+
+        // 3. TREE vs FLAT
+        if (isTreeView) {
+            // Build tree
+            const tree = buildTaskTree(result);
+            // Flatten functionality for rendering
+            const hierarchy: (Task & { level: number })[] = [];
+
+            // Re-implement flatten with recursive visibility if needed, 
+            // but since we already filtered the *nodes* list, buildTaskTree might have orphans.
+            // lib/taskTreeUtils handles this by making orphans roots.
+            // We just need to traverse valid children.
+
+            function traverse(nodes: Task[], level: number) {
+                for (const node of nodes) {
+                    hierarchy.push({ ...node, level });
+                    if (node.children && node.children.length > 0 && expandedIds.has(node.id)) {
+                        traverse(node.children, level + 1);
+                    }
+                }
+            }
+            traverse(tree, 0);
+            return hierarchy;
+        } else {
+            // Flat list
+            return result.map(t => ({ ...t, level: 0 }));
+        }
+
+    }, [tasks, statusFilter, teamFilter, priorityFilter, dateFilter, customStartDate, customEndDate, sortBy, isTreeView, expandedIds]);
 
     const getPriorityColor = (priority: string) => {
         switch (priority) {
@@ -359,61 +497,160 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
         >
             <div className="max-w-7xl mx-auto px-6 py-12">
 
-                {/* Header & Filters */}
-                <div className="mb-10">
-                    <div className="flex items-center justify-between mb-8">
+                {/* Header & Controls */}
+                <div className="mb-8 space-y-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-white">
-                                Tasks
-                            </h1>
-                            <p className="text-zinc-500 text-sm mt-1">
-                                Manage and track your tasks
-                            </p>
+                            <h1 className="text-3xl font-bold tracking-tight text-white">Tasks</h1>
+                            <p className="text-zinc-500 text-sm mt-1">Manage, filter, and track your team&apos;s workload.</p>
                         </div>
                         <div className="flex items-center gap-3">
-
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => {
-                                    setCreateParentId(undefined);
-                                    setIsCreateModalOpen(true);
-                                }}
-                                className="group flex items-center gap-2 px-5 py-2.5 bg-zinc-100 hover:bg-white text-black transition-all duration-200 font-medium text-sm overflow-hidden relative border-none rounded-lg"
-                            >
-                                <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
-                                <span className="font-bold tracking-wide">New Task</span>
-                                <div className="hidden md:flex items-center gap-0.5 ml-1 px-1.5 py-0.5 bg-black/10 rounded text-[9px] font-mono">
-                                    <span>C</span>
-                                </div>
+                            <motion.button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-zinc-100 text-black rounded-lg font-bold text-sm hover:bg-white transition-colors">
+                                <Plus className="w-4 h-4" /> New Task
                             </motion.button>
                         </div>
                     </div>
 
-                    {/* Filter Bar */}
-                    <div className="flex flex-wrap gap-2 border-b border-zinc-800 pb-4">
-                        {(["Todo", "In Progress", "Blocked", "Done"] as const).map((filter) => (
+                    {/* FILTER BAR - Premium Design */}
+                    {/* FILTER BAR - Premium Design */}
+                    <div className="p-1 rounded-xl bg-zinc-900/30 border border-zinc-900/50 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+
+                        {/* Status Tabs */}
+                        <div className="flex items-center gap-1 p-1 bg-zinc-950/50 rounded-lg border border-zinc-900/50 overflow-x-auto scrollbar-hide max-w-full">
+                            {(["All", "Todo", "In Progress", "Blocked", "Done"] as const).map((s) => (
+                                <button
+                                    key={s}
+                                    onClick={() => setStatusFilter(s)}
+                                    className={cn(
+                                        "relative px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md whitespace-nowrap transition-all z-0",
+                                        statusFilter === s
+                                            ? "text-white"
+                                            : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50"
+                                    )}
+                                >
+                                    {statusFilter === s && (
+                                        <motion.div
+                                            layoutId="activeRxFilter"
+                                            className="absolute inset-0 bg-zinc-800 rounded-md shadow-sm border border-zinc-700/50 -z-10"
+                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                        />
+                                    )}
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Dropdowns */}
+                        <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto p-1">
+
+                            <FilterDropdown
+                                icon={ArrowUpDown}
+                                value={sortBy}
+                                options={[
+                                    { label: "Deadline", value: "deadline" },
+                                    { label: "Priority", value: "priority" },
+                                    { label: "Newest", value: "newest" }
+                                ]}
+                                onChange={(val) => setSortBy(val as "deadline" | "priority" | "newest")}
+                                width="w-36"
+                            />
+
+                            <FilterDropdown
+                                icon={Calendar}
+                                value={dateFilter}
+                                options={[
+                                    { label: "Any Date", value: "all" },
+                                    { label: "Today", value: "today" },
+                                    { label: "This Week", value: "week" },
+                                    { label: "Overdue", value: "overdue" },
+                                    { label: "Custom...", value: "custom" }
+                                ]}
+                                onChange={(val) => setDateFilter(val as "all" | "today" | "week" | "overdue" | "custom")}
+                                width="w-32"
+                            />
+
+                            <FilterDropdown
+                                icon={Flag}
+                                value={priorityFilter}
+                                options={[
+                                    { label: "Priority", value: "all" },
+                                    { label: "High", value: "High" },
+                                    { label: "Medium", value: "Medium" },
+                                    { label: "Low", value: "Low" }
+                                ]}
+                                onChange={(val) => setPriorityFilter(val as "all" | "High" | "Medium" | "Low")}
+                                width="w-28"
+                            />
+
+                            <FilterDropdown
+                                icon={Filter}
+                                value={teamFilter}
+                                options={[
+                                    { label: "All Teams", value: "all" },
+                                    ...teams.map(t => ({ label: t.name, value: t.id }))
+                                ]}
+                                onChange={(val) => setTeamFilter(val)}
+                                width="w-36"
+                            />
+
+                            {/* TREE TOGGLE */}
+                            <div className="w-px h-6 bg-zinc-800 mx-2 hidden sm:block"></div>
+
                             <button
-                                key={filter}
-                                onClick={() => setStatusFilter(filter)}
+                                onClick={() => setIsTreeView(!isTreeView)}
                                 className={cn(
-                                    "relative px-4 py-1.5 text-xs font-medium tracking-wide transition-all duration-200 rounded-md z-0",
-                                    statusFilter === filter
-                                        ? "text-white"
-                                        : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50 border border-transparent"
+                                    "p-2 rounded-lg border transition-colors ml-auto xl:ml-0",
+                                    isTreeView ? "bg-zinc-800 border-zinc-700 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700"
                                 )}
+                                title={isTreeView ? "Tree View" : "List View"}
                             >
-                                {statusFilter === filter && (
-                                    <motion.div
-                                        layoutId="activeTaskFilter"
-                                        className="absolute inset-0 bg-zinc-800 rounded-md border border-zinc-700 -z-10"
-                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                    />
-                                )}
-                                {filter}
+                                <ListFilter className="w-4 h-4" />
                             </button>
-                        ))}
+
+                        </div>
                     </div>
+
+                    {/* Custom Date Inputs (Conditional) */}
+                    <AnimatePresence>
+                        {dateFilter === 'custom' && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="flex items-center gap-4 p-4 bg-zinc-900/20 rounded-lg border border-zinc-900/50 w-full max-w-lg mx-auto md:mx-0">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[10px] uppercase font-bold text-zinc-500">From</label>
+                                        <input
+                                            type="date"
+                                            value={customStartDate}
+                                            onChange={(e) => setCustomStartDate(e.target.value)}
+                                            className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-xs text-white outline-none focus:border-zinc-600"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[10px] uppercase font-bold text-zinc-500">To</label>
+                                        <input
+                                            type="date"
+                                            value={customEndDate}
+                                            onChange={(e) => setCustomEndDate(e.target.value)}
+                                            className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-xs text-white outline-none focus:border-zinc-600"
+                                        />
+                                    </div>
+                                    <button
+                                        className="mt-4 text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors"
+                                        onClick={() => {
+                                            // Optional: apply logic explicitly if manual trigger needed
+                                            // Currently filters update automatically on state change
+                                        }}
+                                    >
+                                        Apply Range
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* Task List */}
