@@ -190,7 +190,12 @@ export function PersonalWorkspace({
                                             whileHover={{ x: 4 }}
                                             key={task.id}
                                             onClick={() => openEditTask(task)}
-                                            className="group relative flex flex-col sm:flex-row sm:items-center justify-between p-5 hover:bg-zinc-100 dark:hover:bg-zinc-900/40 transition-colors cursor-pointer border-l-4 border-transparent hover:border-l-emerald-500"
+                                            className={cn(
+                                                "group relative flex flex-col sm:flex-row sm:items-center justify-between p-5 transition-colors cursor-pointer border-l-4 border-transparent hover:border-l-emerald-500",
+                                                task.source === 'moodle'
+                                                    ? "bg-gradient-to-r from-orange-100/60 to-transparent dark:from-orange-900/40 dark:to-transparent border-orange-200/50 dark:border-orange-800/30 hover:from-orange-200/60 dark:hover:from-orange-800/50"
+                                                    : "hover:bg-zinc-100 dark:hover:bg-zinc-900/40"
+                                            )}
                                             style={{ paddingLeft: task.level > 0 ? `${1.25 + task.level * 1.5}rem` : '1.25rem' }}
                                         >
                                             <div className="flex items-start gap-3 mb-3 sm:mb-0">
