@@ -3,7 +3,6 @@ import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import axios from "axios";
 
-// import ical from "node-ical";
 import crypto from "crypto";
 
 import { parseICS } from "@/lib/simple-ical";

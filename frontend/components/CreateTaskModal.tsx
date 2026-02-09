@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTeams } from "@/hooks/useTeams";
-import { useCreateTask } from "@/hooks/useTasks";
+import { useCreateTask, useTasks, Task } from "@/hooks/useTasks";
 import { Loader2, ListTodo, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,6 +13,7 @@ interface CreateTaskModalProps {
     initialAssignedToId?: string;
     isPersonalWorkspace?: boolean;
     currentUserId?: string;
+    initialParentId?: string;
 }
 
 export default function CreateTaskModal({
@@ -22,7 +23,8 @@ export default function CreateTaskModal({
     initialTeamId,
     initialAssignedToId,
     isPersonalWorkspace,
-    currentUserId
+    currentUserId,
+    initialParentId
 }: CreateTaskModalProps) {
     const { data: teams } = useTeams();
     const createTaskMutation = useCreateTask();
@@ -35,6 +37,11 @@ export default function CreateTaskModal({
     const [teamId, setTeamId] = useState(initialTeamId || "");
     const [assignedToId, setAssignedToId] = useState(initialAssignedToId || "");
     const [assignToMe, setAssignToMe] = useState(false);
+    const [parentId, setParentId] = useState(initialParentId || "");
+
+    // Fetch tasks to populate parent dropdown
+    const { data: allTasks } = useTasks();
+
 
     // Reset and initialize state when modal opens
     useEffect(() => {
@@ -50,14 +57,17 @@ export default function CreateTaskModal({
 
             setTeamId(initialTeamId || "");
             setAssignedToId(initialAssignedToId || "");
+            setParentId(initialParentId || "");
 
             // Logic for "Assign to me":
             // 1. Personal workspace implicitly assigns to me
             // 2. If the initial assignee is the current user, check it
             const shouldAssignToMe = isPersonalWorkspace || (!!currentUserId && initialAssignedToId === currentUserId);
+            // Also assign to me if creating a subtask (optional, but convenient mainly for personal tasks) 
+            // - decided to stick to prop logic for consistency
             setAssignToMe(shouldAssignToMe);
         }
-    }, [isOpen, initialTeamId, initialAssignedToId, isPersonalWorkspace, currentUserId]);
+    }, [isOpen, initialTeamId, initialAssignedToId, isPersonalWorkspace, currentUserId, initialParentId]);
 
     // Auto-select "Personal" team if no team is pre-selected
     useEffect(() => {
@@ -103,6 +113,12 @@ export default function CreateTaskModal({
             setAssignToMe(false);
             setAssignedToId("");
         }
+
+        // Reset parent if team changes, as parent must belong to same team
+        if (teamId !== initialTeamId) {
+            setParentId("");
+        }
+
     }, [teamId, teams, initialTeamId, currentUserId]);
 
     if (!isOpen) return null;
@@ -130,6 +146,7 @@ export default function CreateTaskModal({
                 requiredSkill,
                 teamId,
                 assignedToId: finalAssignedToId || undefined,
+                parentId: parentId || undefined,
             });
 
             if (onTaskCreated) {
@@ -149,6 +166,7 @@ export default function CreateTaskModal({
             setRequiredSkill("");
             setTeamId(initialTeamId || "");
             setAssignedToId(initialAssignedToId || "");
+            setParentId(initialParentId || "");
             setAssignToMe(isPersonalWorkspace || false);
         } catch (err) {
             console.error(err);
@@ -164,7 +182,7 @@ export default function CreateTaskModal({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
                     onClick={onClose}
                 >
                     <motion.div
@@ -172,11 +190,11 @@ export default function CreateTaskModal({
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
                         transition={{ type: "spring", duration: 0.3 }}
-                        className="w-full max-w-4xl bg-card border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden"
+                        className="w-full max-w-4xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-900 bg-zinc-50 dark:bg-zinc-900/20">
+                        <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-900 bg-zinc-50 dark:bg-zinc-900">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-lg bg-zinc-900 dark:bg-white flex items-center justify-center">
                                     <ListTodo className="w-5 h-5 text-white dark:text-black" />
@@ -216,7 +234,7 @@ export default function CreateTaskModal({
                                             placeholder={isPersonalWorkspace ? "Buy groceries" : "Implement Auth Flow"}
                                             value={title}
                                             onChange={(e) => setTitle(e.target.value)}
-                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm"
+                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm"
                                             required
                                             autoComplete="off"
                                         />
@@ -232,7 +250,7 @@ export default function CreateTaskModal({
                                             value={desc}
                                             onChange={(e) => setDesc(e.target.value)}
                                             rows={3}
-                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm resize-none"
+                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm resize-none"
                                         />
                                     </div>
 
@@ -245,7 +263,7 @@ export default function CreateTaskModal({
                                             <select
                                                 value={teamId}
                                                 onChange={(e) => setTeamId(e.target.value)}
-                                                className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm"
+                                                className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm"
                                                 required
                                             >
                                                 {!teamId && <option value="" disabled>Select a team</option>}
@@ -257,6 +275,8 @@ export default function CreateTaskModal({
                                             </select>
                                         </div>
                                     )}
+
+
 
                                     {/* Assign to Me Checkbox */}
                                     <div className="flex items-center gap-2 pt-1">
@@ -291,7 +311,7 @@ export default function CreateTaskModal({
                                         <select
                                             value={priority}
                                             onChange={(e) => setPriority(e.target.value)}
-                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm"
+                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm"
                                         >
                                             <option value="Low">Low</option>
                                             <option value="Medium">Medium</option>
@@ -308,7 +328,7 @@ export default function CreateTaskModal({
                                             type="date"
                                             value={deadline}
                                             onChange={(e) => setDeadline(e.target.value)}
-                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm [color-scheme:light] dark:[color-scheme:dark]"
+                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm [color-scheme:light] dark:[color-scheme:dark]"
                                             required
                                         />
                                     </div>
@@ -323,7 +343,7 @@ export default function CreateTaskModal({
                                             placeholder="e.g. React, Python"
                                             value={requiredSkill}
                                             onChange={(e) => setRequiredSkill(e.target.value)}
-                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm"
+                                            className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-500/50 focus:border-zinc-700 outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm"
                                         />
                                     </div>
                                 </div>

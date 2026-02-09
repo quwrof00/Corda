@@ -47,6 +47,7 @@ export async function POST(req: Request) {
             assignedToId,
             teamId,
             status = "pending",
+            parentId,
         } = await req.json();
 
         if (!teamId || !title || !deadline) {
@@ -64,6 +65,7 @@ export async function POST(req: Request) {
                 status,
                 teamId,
                 assignedToId: assignedToId || null,
+                parentId: parentId || null,
             }
         });
 

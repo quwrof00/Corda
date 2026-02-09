@@ -36,11 +36,11 @@ export function InviteModal({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
             onClick={onClose}
         >
             <div
-                className="w-full max-w-md bg-card border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl rounded-2xl"
+                className="w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl rounded-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-6 border-b border-zinc-200 dark:border-zinc-800 pb-2">Invite New Member</h3>
@@ -107,11 +107,11 @@ export function EditTeamModal({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
             onClick={onClose}
         >
             <div
-                className="bg-card p-6 border border-zinc-200 dark:border-zinc-800 w-full max-w-lg shadow-2xl rounded-2xl"
+                className="bg-white dark:bg-zinc-950 p-6 border border-zinc-200 dark:border-zinc-800 w-full max-w-lg shadow-2xl rounded-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 <form onSubmit={handleSaveTeam} className="space-y-4">
@@ -175,11 +175,11 @@ export function EditTaskModal({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
             onClick={onClose}
         >
             <div
-                className="bg-card p-6 border border-zinc-200 dark:border-zinc-800 w-full max-w-lg shadow-2xl rounded-2xl"
+                className="bg-white dark:bg-zinc-950 p-6 border border-zinc-200 dark:border-zinc-800 w-full max-w-lg shadow-2xl rounded-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 <form onSubmit={handleSaveTask} className="space-y-4">

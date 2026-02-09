@@ -76,11 +76,17 @@ model Task {
   assignedToId String?
   assignedTo   User?   @relation(fields: [assignedToId], references: [id])
   
+  // Subtasks
+  parentId String?
+  parent   Task?   @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
+  children Task[]  @relation("SubTasks")
+
   // Fields for external integrations (Moodle)
   source      String   @default("manual") // "manual", "moodle"
   externalId  String?  // UID from ICS
 
   @@unique([externalId, assignedToId]) // Ensure unique task mapping per user (if assigned)
+  @@index([parentId])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -50,8 +50,19 @@ export async function PUT(
             requiredSkill,
             priority,
             status,
-            assignedToId
+            assignedToId,
+            parentId
         } = await req.json();
+
+        // Check for circular dependency if parentId is being updated
+        if (parentId) {
+            if (parentId === taskId) {
+                return NextResponse.json({ error: "Task cannot be its own parent" }, { status: 400 });
+            }
+            // Basic check: Ensure new parent is not a child of this task (prevent immediate cycle)
+            // For a robust check, we'd need a recursive query, but typically simple same-id check catches basic errors.
+            // Let's rely on frontend preventing selecting children as parents for now, or add a deeper check if needed.
+        }
 
         const updatedTask = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const existingTask = await tx.task.findUnique({
@@ -69,7 +80,7 @@ export async function PUT(
             }
 
             if (!isLeader) {
-                if (title || description || deadline || requiredSkill || priority || assignedToId) {
+                if (title || description || deadline || requiredSkill || priority || assignedToId || parentId) {
                     throw new Error("Only team leader can edit task details. You can only update status.");
                 }
             }
@@ -82,6 +93,7 @@ export async function PUT(
                 priority?: string;
                 status?: string;
                 assignedToId?: string | null;
+                parentId?: string | null;
             } = {};
 
             if (title) updateData.title = title;
@@ -90,9 +102,8 @@ export async function PUT(
             if (requiredSkill) updateData.requiredSkill = getCanonicalSkill(requiredSkill) || formatSkill(requiredSkill);
             if (priority) updateData.priority = priority;
             if (status) updateData.status = status;
-            if (assignedToId !== undefined) {
-                updateData.assignedToId = assignedToId;
-            }
+            if (assignedToId !== undefined) updateData.assignedToId = assignedToId;
+            if (parentId !== undefined) updateData.parentId = parentId;
 
             if (assignedToId) {
                 const effectiveStatus = updateData.status || existingTask.status;

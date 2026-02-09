@@ -1,5 +1,5 @@
 "use client";
-import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, RefreshCw } from "lucide-react";
+import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, RefreshCw, ChevronRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,6 +8,7 @@ import CreateTeamModal from "@/components/CreateTeamModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
 
 import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
+import { buildTaskTree } from "@/lib/taskTreeUtils";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return inputs.filter(Boolean).join(' ');
@@ -28,6 +29,162 @@ const itemVariants = {
     visible: { opacity: 1, x: 0 }
 };
 
+interface TaskItemProps {
+    task: Task & { level: number };
+    onSelect: (task: Task) => void;
+    onStatusUpdate: (id: string, status: string, e?: React.MouseEvent) => void;
+    getPriorityColor: (priority: string) => string;
+    onToggleExpand: (taskId: string, e: React.MouseEvent) => void;
+    isExpanded: boolean;
+    onAddSubtask: (taskId: string, teamId: string, e: React.MouseEvent) => void;
+}
+
+const TaskItem = ({ task, onSelect, onStatusUpdate, getPriorityColor, onToggleExpand, isExpanded, onAddSubtask }: TaskItemProps) => {
+    const hasChildren = task.children && task.children.length > 0;
+
+    return (
+        <motion.div
+            variants={itemVariants}
+            initial="hidden"
+            animate="visible"
+            className={cn(
+                "group relative border transition-colors duration-200 p-4 flex items-center gap-4 rounded-lg cursor-pointer hover:z-10",
+                task.source === 'moodle'
+                    ? "bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/30 dark:to-transparent border-orange-200/80 dark:border-orange-800/50 hover:from-orange-100/50 dark:hover:from-orange-900/50 hover:border-orange-300 dark:hover:border-orange-700"
+                    : "bg-card border-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900",
+                task.level > 0 && "border-l-4 border-l-zinc-800"
+            )}
+            onClick={() => onSelect(task)}
+            style={{ marginLeft: task.level > 0 ? `${task.level * 1.5}rem` : 0 }}
+        >
+            {/* Status Indicator */}
+            <div className={cn(
+                "w-1 h-12 flex-shrink-0 transition-colors duration-300 rounded-full",
+                task.status === 'completed' ? "bg-emerald-500" :
+                    (task.status === 'active' || task.status === 'in-progress') ? "bg-blue-500" :
+                        task.status === 'blocked' ? "bg-red-500" :
+                            "bg-zinc-700 group-hover:bg-zinc-500"
+            )} />
+
+            {/* Checkbox/Status Action */}
+            <button
+                onClick={(e) => onStatusUpdate(task.id, task.status === 'completed' ? 'pending' : 'completed', e)}
+                className={cn(
+                    "flex-shrink-0 w-6 h-6 border flex items-center justify-center transition-all duration-200 rounded-full",
+                    task.status === 'completed'
+                        ? "bg-emerald-500/10 border-emerald-500 text-emerald-500"
+                        : "border-zinc-700 text-transparent hover:border-zinc-500"
+                )}
+            >
+                <CheckCircle2 className="w-4 h-4" />
+            </button>
+
+            {/* Chevron between checkbox and title */}
+            {hasChildren && (
+                <button
+                    onClick={(e) => onToggleExpand(task.id, e)}
+                    className="flex-shrink-0 p-0.5 hover:bg-zinc-800 rounded transition-colors"
+                    title={isExpanded ? "Collapse" : "Expand"}
+                >
+                    <ChevronRight className={cn("w-3.5 h-3.5 text-zinc-500 transition-transform duration-200", isExpanded && "rotate-90")} />
+                </button>
+            )}
+
+            {/* Content */}
+            <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                <div className="md:col-span-6">
+                    <h3 className={cn(
+                        "font-medium text-sm transition-all truncate font-sans",
+                        task.status === 'completed' ? "text-zinc-600 line-through" : "text-zinc-200"
+                    )}>
+                        {task.title}
+                    </h3>
+                    <div className="flex items-center gap-2 text-[10px] text-zinc-600 font-medium mt-1 uppercase tracking-wider">
+                        <span>{task.team?.name || "Unassigned"}</span>
+                        {task.requiredSkill && (
+                            <>
+                                <span className="text-zinc-800">|</span>
+                                <span>{task.requiredSkill}</span>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Priority */}
+                <div className="md:col-span-3 flex items-center">
+                    <span className={cn(
+                        "inline-flex items-center gap-1.5 px-2 py-1 text-[10px] font-medium border uppercase tracking-wide rounded",
+                        getPriorityColor(task.priority)
+                    )}>
+                        <Flag className="w-3 h-3" />
+                        {task.priority || "Normal"}
+                    </span>
+                </div>
+
+                {/* Date */}
+                <div className="md:col-span-3 flex items-center gap-2 text-xs text-zinc-500 font-mono justify-end">
+                    {task.deadline && (
+                        <>
+                            <Calendar className="w-3.5 h-3.5" />
+                            {new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* Hover Actions - now always visible */}
+            <div className="flex items-center gap-1 pl-4 border-l border-zinc-800 ml-4">
+                {hasChildren && (
+                    <button
+                        onClick={(e) => onToggleExpand(task.id, e)}
+                        className={cn(
+                            "p-1.5 text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors rounded-md",
+                            isExpanded && "bg-zinc-800 text-white"
+                        )}
+                        title={isExpanded ? "Hide Subtasks" : "Show Subtasks"}
+                    >
+                        <ChevronRight className={cn("w-4 h-4 transition-transform duration-200", isExpanded && "rotate-90")} />
+                    </button>
+                )}
+                <button
+                    onClick={(e) => onAddSubtask(task.id, task.teamId || "", e)}
+                    className="p-1.5 text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors rounded-md"
+                    title="Add Subtask"
+                >
+                    <Plus className="w-4 h-4" />
+                </button>
+                {task.status !== 'active' && task.status !== 'in-progress' && task.status !== 'completed' && (
+                    <button
+                        onClick={(e) => onStatusUpdate(task.id, 'active', e)}
+                        className="p-1.5 text-zinc-500 hover:text-blue-400 hover:bg-blue-950/30 transition-colors rounded-md"
+                        title="Start Task"
+                    >
+                        <Play className="w-4 h-4" />
+                    </button>
+                )}
+
+                {(task.status === 'active' || task.status === 'in-progress') && (
+                    <button
+                        onClick={(e) => onStatusUpdate(task.id, 'pending', e)}
+                        className="p-1.5 text-zinc-500 hover:text-amber-400 hover:bg-amber-950/30 transition-colors rounded-md"
+                        title="Pause Task"
+                    >
+                        <Pause className="w-4 h-4" />
+                    </button>
+                )}
+
+                <button
+                    onClick={(e) => onStatusUpdate(task.id, 'blocked', e)}
+                    className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-950/30 transition-colors rounded-md"
+                    title="Block Task"
+                >
+                    <Ban className="w-4 h-4" />
+                </button>
+            </div>
+        </motion.div>
+    );
+};
+
 export default function TasksClient({ initialTasks, userId }: { initialTasks: Task[], userId: string }) {
     const { data: session } = useSession();
     const [statusFilter, setStatusFilter] = useState<"All" | "Todo" | "In Progress" | "Blocked" | "Done">("Todo");
@@ -41,10 +198,35 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-    // Remove local fetchTasks, use refetch from hook
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
     // Hook for updates
     const updateTaskMutation = useUpdateTask();
+
+    const handleToggleExpand = (taskId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(taskId)) {
+                next.delete(taskId);
+            } else {
+                next.add(taskId);
+            }
+            return next;
+        });
+    };
+
+    const [createParentId, setCreateParentId] = useState<string | undefined>(undefined);
+    const [createTeamId, setCreateTeamId] = useState<string | undefined>(undefined);
+
+    const handleCreateSubtask = (parentId: string, teamId: string, e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        setCreateParentId(parentId);
+        setCreateTeamId(teamId);
+        setIsCreateModalOpen(true);
+        // Auto-expand parent so user can see the new subtask
+        setExpandedIds(prev => new Set(prev).add(parentId));
+    };
 
     // HCI: Keyboard Shortcuts
     useEffect(() => {
@@ -61,7 +243,6 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                 setIsCreateTeamModalOpen(true);
             }
 
-            // 'Esc' to close drawer
             // 'Esc' to close drawer
             if (e.key === 'Escape' && selectedTask) {
                 setSelectedTask(null);
@@ -81,24 +262,81 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
         }
     };
 
-    const filteredTasks = useMemo(() => {
-        let res = [...tasks];
+    const flatTasks = useMemo(() => {
+        // 1. Sort all tasks first so tree is built with correct order
+        const sortedTasks = [...tasks];
+        const priorityScore: Record<string, number> = { "High": 3, "Medium": 2, "Low": 1 };
+        sortedTasks.sort((a, b) => (priorityScore[b.priority] || 0) - (priorityScore[a.priority] || 0));
 
-        if (statusFilter !== "All") {
-            res = res.filter((t) => {
-                const s = (t.status || "pending").toLowerCase();
+        // 2. Build FULL tree (all tasks included)
+        const fullTree = buildTaskTree(sortedTasks);
+
+        // 3. Recursive Filter & Flatten
+        const result: (Task & { level: number })[] = [];
+
+        function processNode(node: Task, level: number, parentVisible: boolean) {
+            const matchesFilter = (() => {
+                if (statusFilter === "All") return true;
+                const s = (node.status || "pending").toLowerCase();
                 if (statusFilter === "Todo") return s === "pending" || s === "to-do";
                 if (statusFilter === "In Progress") return s === "active" || s === "in-progress";
                 if (statusFilter === "Blocked") return s === "blocked";
                 if (statusFilter === "Done") return s === "completed";
-                return true;
-            });
+                return false;
+            })();
+
+            // Should this node be visible?
+            // Yes if: 
+            // 1. It matches the filter
+            // 2. OR its parent is visible (so we keep subtree context)
+            const isVisible = matchesFilter || parentVisible;
+
+            if (isVisible) {
+                // If parent was visible, we are a child (level).
+                // If parent was NOT visible (but we matched), we are a new root (level 0).
+                // Wait, if parent was visible, we continue the chain.
+                // If parent was NOT visible, 'level' passed in here would be confusing.
+                // Actually:
+                // If parentVisible was true, we are expanding on 'level' passed in.
+                // If parentVisible was false, force level to 0?
+                // logic check:
+                // Root (Done) -> Child (Todo). Filter "Todo".
+                // Root: matches=false, visible=false.
+                //    Child: matches=true, visible=true. Parent NOT visible. Child level should be 0.
+            }
+
+            // Allow display if visible
+            if (isVisible) {
+                result.push({ ...node, level });
+            }
+
+            // Process children
+            if (node.children && node.children.length > 0) {
+                // If WE are visible AND expanded, show children with level+1.
+                // If WE are visible BUT collapsed, don't show children (unless we want to pre-calculate, but flat list implies rendered)
+                // Wait, user wants "nested view". If collapsed, children shouldn't be in flat list.
+                // BUT, if parent is "Todo", and child is "Done", user wants to see Child *nested*.
+                // So if Parent is visible, we trigger "parentVisible=true" for children.
+
+                // If we are NOT excluded from rendering (i.e. we are visible), then:
+                // Check if we are expanded.
+                if (isVisible) {
+                    if (expandedIds.has(node.id)) {
+                        node.children.forEach(child => processNode(child, level + 1, true));
+                    }
+                } else {
+                    // We are NOT visible. But our children might be matches.
+                    // If we are not visible, we can't be "expanded" visually.
+                    // But we still traverse children to see if they need to be roots.
+                    node.children.forEach(child => processNode(child, 0, false));
+                }
+            }
         }
 
-        const priorityScore: Record<string, number> = { "High": 3, "Medium": 2, "Low": 1 };
-        res.sort((a, b) => (priorityScore[b.priority] || 0) - (priorityScore[a.priority] || 0));
-        return res;
-    }, [tasks, statusFilter]);
+        fullTree.forEach(root => processNode(root, 0, false));
+        return result;
+
+    }, [tasks, statusFilter, expandedIds]);
 
     const getPriorityColor = (priority: string) => {
         switch (priority) {
@@ -137,7 +375,10 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => setIsCreateModalOpen(true)}
+                                onClick={() => {
+                                    setCreateParentId(undefined);
+                                    setIsCreateModalOpen(true);
+                                }}
                                 className="group flex items-center gap-2 px-5 py-2.5 bg-zinc-100 hover:bg-white text-black transition-all duration-200 font-medium text-sm overflow-hidden relative border-none rounded-lg"
                             >
                                 <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
@@ -186,121 +427,19 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                         <div className="text-zinc-500 text-sm py-10 flex items-center justify-center gap-2">
                             <RefreshCw className="w-4 h-4 animate-spin" /> Loading tasks...
                         </div>
-                    ) : filteredTasks.length > 0 ? (
+                    ) : flatTasks.length > 0 ? (
                         <AnimatePresence mode="popLayout">
-                            {filteredTasks.map((task) => (
-                                <motion.div
-                                    layout
-                                    variants={itemVariants}
-                                    initial="hidden"
-                                    animate="visible"
-                                    exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
-                                    whileHover={{ scale: 1.01, x: 4 }}
-                                    whileTap={{ scale: 0.99 }}
+                            {flatTasks.map((task) => (
+                                <TaskItem
                                     key={task.id}
-                                    className={cn(
-                                        "group relative border transition-colors duration-200 p-4 flex items-center gap-4 rounded-lg cursor-pointer hover:z-10",
-                                        task.source === 'moodle'
-                                            ? "bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/30 dark:to-transparent border-orange-200/80 dark:border-orange-800/50 hover:from-orange-100/50 dark:hover:from-orange-900/50 hover:border-orange-300 dark:hover:border-orange-700"
-                                            : "bg-card border-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900"
-                                    )}
-                                    onClick={() => setSelectedTask(task)}
-                                >
-                                    {/* Status Indicator */}
-                                    <div className={cn(
-                                        "w-1 h-12 flex-shrink-0 transition-colors duration-300 rounded-full",
-                                        task.status === 'completed' ? "bg-emerald-500" :
-                                            (task.status === 'active' || task.status === 'in-progress') ? "bg-blue-500" :
-                                                task.status === 'blocked' ? "bg-red-500" :
-                                                    "bg-zinc-700 group-hover:bg-zinc-500"
-                                    )} />
-
-                                    {/* Checkbox/Status Action */}
-                                    <button
-                                        onClick={(e) => handleStatusUpdate(task.id, task.status === 'completed' ? 'pending' : 'completed', e)}
-                                        className={cn(
-                                            "flex-shrink-0 w-6 h-6 border flex items-center justify-center transition-all duration-200 rounded-full",
-                                            task.status === 'completed'
-                                                ? "bg-emerald-500/10 border-emerald-500 text-emerald-500"
-                                                : "border-zinc-700 text-transparent hover:border-zinc-500"
-                                        )}
-                                    >
-                                        <CheckCircle2 className="w-4 h-4" />
-                                    </button>
-
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                                        <div className="md:col-span-6">
-                                            <h3 className={cn(
-                                                "font-medium text-sm transition-all truncate font-sans",
-                                                task.status === 'completed' ? "text-zinc-600 line-through" : "text-zinc-200"
-                                            )}>
-                                                {task.title}
-                                            </h3>
-                                            <div className="flex items-center gap-2 text-[10px] text-zinc-600 font-medium mt-1 uppercase tracking-wider">
-                                                <span>{task.team?.name || "Unassigned"}</span>
-                                                {task.requiredSkill && (
-                                                    <>
-                                                        <span className="text-zinc-800">|</span>
-                                                        <span>{task.requiredSkill}</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Priority */}
-                                        <div className="md:col-span-3 flex items-center">
-                                            <span className={cn(
-                                                "inline-flex items-center gap-1.5 px-2 py-1 text-[10px] font-medium border uppercase tracking-wide rounded",
-                                                getPriorityColor(task.priority)
-                                            )}>
-                                                <Flag className="w-3 h-3" />
-                                                {task.priority || "Normal"}
-                                            </span>
-                                        </div>
-
-                                        {/* Date */}
-                                        <div className="md:col-span-3 flex items-center gap-2 text-xs text-zinc-500 font-mono justify-end">
-                                            {task.deadline && (
-                                                <>
-                                                    <Calendar className="w-3.5 h-3.5" />
-                                                    {new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Hover Actions */}
-                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pl-4 border-l border-zinc-800 ml-4">
-                                        {task.status !== 'active' && task.status !== 'in-progress' && task.status !== 'completed' && (
-                                            <button
-                                                onClick={(e) => handleStatusUpdate(task.id, 'active', e)}
-                                                className="p-1.5 text-zinc-500 hover:text-blue-400 hover:bg-blue-950/30 transition-colors rounded-md"
-                                                title="Start Task"
-                                            >
-                                                <Play className="w-4 h-4" />
-                                            </button>
-                                        )}
-
-                                        {(task.status === 'active' || task.status === 'in-progress') && (
-                                            <button
-                                                onClick={(e) => handleStatusUpdate(task.id, 'pending', e)}
-                                                className="p-1.5 text-zinc-500 hover:text-amber-400 hover:bg-amber-950/30 transition-colors rounded-md"
-                                                title="Pause Task"
-                                            >
-                                                <Pause className="w-4 h-4" />
-                                            </button>
-                                        )}
-
-                                        <button
-                                            onClick={(e) => handleStatusUpdate(task.id, 'blocked', e)}
-                                            className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-950/30 transition-colors rounded-md"
-                                            title="Block Task"
-                                        >
-                                            <Ban className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </motion.div>
+                                    task={task}
+                                    onSelect={setSelectedTask}
+                                    onStatusUpdate={handleStatusUpdate}
+                                    getPriorityColor={getPriorityColor}
+                                    onToggleExpand={handleToggleExpand}
+                                    isExpanded={expandedIds.has(task.id)}
+                                    onAddSubtask={handleCreateSubtask}
+                                />
                             ))}
                         </AnimatePresence>
                     ) : (
@@ -319,7 +458,10 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => setIsCreateModalOpen(true)}
+                                onClick={() => {
+                                    setCreateParentId(undefined);
+                                    setIsCreateModalOpen(true);
+                                }}
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors"
                             >
                                 <Plus className="w-3 h-3" />
@@ -332,9 +474,15 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
 
             <CreateTaskModal
                 isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
+                onClose={() => {
+                    setIsCreateModalOpen(false);
+                    setCreateParentId(undefined);
+                    setCreateTeamId(undefined);
+                }}
                 onTaskCreated={refetch}
                 currentUserId={userId}
+                initialParentId={createParentId}
+                initialTeamId={createTeamId}
             />
 
             <CreateTeamModal
@@ -348,6 +496,8 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                     setSelectedTask={setSelectedTask}
                     updateTaskMutation={updateTaskMutation}
                     refreshTasks={refetch}
+                    currentUserId={userId}
+                    onCreateSubtask={(parentId) => handleCreateSubtask(parentId, selectedTask.teamId!)}
                 />
             )}
         </motion.div>

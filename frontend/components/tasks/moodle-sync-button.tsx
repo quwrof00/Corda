@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { FolderSync, X, Loader2 } from "lucide-react";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,9 +31,6 @@ export default function MoodleSyncButton({ variant = "button" }: MoodleSyncButto
             return res.data;
         },
     });
-
-    // ... (rest of the mutation logic - unchanged, I will include it to match the replace block size if needed, but for simplicity I will replace the whole component body or use strategic chunks. I'll replace the render part primarily but I need the state)
-    // Actually, to be safe and clean, I will just rewrite the component body with the mounted check.
 
     // Sync mutation
     const syncMutation = useMutation({

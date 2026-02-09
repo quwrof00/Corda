@@ -49,7 +49,7 @@ export default function ConfirmModal({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
                     onClick={onClose}
                 >
                     <motion.div
@@ -57,7 +57,7 @@ export default function ConfirmModal({
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
                         transition={{ type: "spring", duration: 0.3 }}
-                        className="w-full max-w-md bg-card border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl rounded-2xl"
+                        className="w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl rounded-2xl"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-start gap-4 mb-6">

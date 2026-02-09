@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 import { useTeams } from "@/hooks/useTeams";
+import { buildTaskTree, flattenTree } from "@/lib/taskTreeUtils";
 import {
   Calendar,
   CheckCircle2,
@@ -14,6 +15,7 @@ import {
   Users,
   Plus,
   Check,
+  ChevronRight,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -22,7 +24,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import CreateTaskModal from "@/components/CreateTaskModal";
 import CreateTeamModal from "@/components/CreateTeamModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
-import ConfirmModal from "@/components/ConfirmModal";
 
 function formatDaysLeft(dateString?: string) {
   if (!dateString) return "";
@@ -94,6 +95,8 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
+  const [parentTaskId, setParentTaskId] = useState<string | undefined>(undefined);
+  const [parentTeamId, setParentTeamId] = useState<string | undefined>(undefined);
   const updateTaskMutation = useUpdateTask();
   const [greeting, setGreeting] = useState("Good morning");
 
@@ -153,34 +156,30 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const [confirmModalState, setConfirmModalState] = useState<{
-    isOpen: boolean;
-    title: string;
-    description: string;
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: "",
-    description: "",
-    onConfirm: () => { },
-  });
 
-  const handleQuickComplete = (e: React.MouseEvent, task: Task) => {
+
+  const handleQuickComplete = async (e: React.MouseEvent, task: Task) => {
     e.stopPropagation();
-    setConfirmModalState({
-      isOpen: true,
-      title: "Complete Task",
-      description: "Are you sure you want to mark this task as completed?",
-      onConfirm: () => {
-        updateTaskMutation.mutate({ id: task.id, status: 'completed' });
-        setConfirmModalState(prev => ({ ...prev, isOpen: false }));
-      }
+    const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+    try {
+      await updateTaskMutation.mutateAsync({ id: task.id, status: newStatus });
+    } catch (err) {
+      console.error("Failed to update task", err);
+    }
+  };
+
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const handleToggleExpand = (taskId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
     });
   };
 
-  // Filter Tasks Logic (Mocked logic for dates as existing data might not have dates)
-  // Filter Tasks Logic
-  // Group Tasks Logic
   const groupedTasks = useMemo(() => {
     if (!tasks) return { today: [], week: [], overdue: [] };
     const safeTasks = tasks as Task[];
@@ -189,35 +188,67 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfToday = new Date(startOfToday);
     endOfToday.setDate(endOfToday.getDate() + 1);
-
     const endOfWeek = new Date(startOfToday);
     endOfWeek.setDate(endOfWeek.getDate() + 7);
 
-    const today: Task[] = [];
-    const week: Task[] = [];
-    const overdue: Task[] = [];
+    // Helpers for filtering
+    const isOverdue = (t: Task): boolean => !!(t.deadline && new Date(t.deadline) < startOfToday && t.status !== 'completed');
+    const isToday = (t: Task): boolean => !!(t.deadline && new Date(t.deadline) >= startOfToday && new Date(t.deadline) < endOfToday && t.status !== 'completed');
+    const isWeek = (t: Task): boolean => !!(t.deadline && new Date(t.deadline) >= endOfToday && new Date(t.deadline) < endOfWeek && t.status !== 'completed');
 
-    safeTasks.forEach((t) => {
-      if (t.status === "completed" || !t.deadline) return;
-      const taskDate = new Date(t.deadline);
+    // Build full tree first
+    const fullTree = buildTaskTree(safeTasks);
 
-      if (taskDate < startOfToday) {
-        overdue.push(t);
-      } else if (taskDate >= startOfToday && taskDate < endOfToday) {
-        today.push(t);
-      } else if (taskDate >= startOfToday && taskDate < endOfWeek) {
-        // "This Week" in the separate view usually implies future tasks in the week
-        // To avoid duplicates with "Today", we start from endOfToday
-        // However, if the user wants "This Week" to mean "Next 7 days", we might include today.
-        // Given the vertical layout, disjoint is better.
-        if (taskDate >= endOfToday) {
-          week.push(t);
+    // Filter tree while preserving ALL children of matching parents
+    const filterTree = (nodes: Task[], predicate: (t: Task) => boolean): Task[] => {
+      const result: Task[] = [];
+
+      for (const node of nodes) {
+        const nodeMatches = predicate(node);
+
+        // Recursively check if any descendant matches
+        const hasMatchingDescendant = (task: Task): boolean => {
+          if (predicate(task)) return true;
+          if (task.children && task.children.length > 0) {
+            return task.children.some(child => hasMatchingDescendant(child));
+          }
+          return false;
+        };
+
+        const descendantMatches = node.children && node.children.length > 0
+          ? node.children.some(child => hasMatchingDescendant(child))
+          : false;
+
+        // Include node if it matches OR if any descendant matches
+        if (nodeMatches || descendantMatches) {
+          // If this node matches, keep ALL its children (don't filter them)
+          // If only descendants match, recursively filter to find the matching branch
+          const childrenToInclude = nodeMatches
+            ? (node.children || [])  // Keep all children if parent matches
+            : filterTree(node.children || [], predicate);  // Filter children if only descendants match
+
+          result.push({
+            ...node,
+            children: childrenToInclude
+          });
         }
       }
-    });
 
-    return { today, week, overdue };
-  }, [tasks]);
+      return result;
+    };
+
+    // Filter trees for each category
+    const overdueTree = filterTree(fullTree, isOverdue);
+    const todayTree = filterTree(fullTree, isToday);
+    const weekTree = filterTree(fullTree, isWeek);
+
+    // Flatten trees respecting expanded state using shared utility
+    return {
+      overdue: flattenTree(overdueTree, expandedIds),
+      today: flattenTree(todayTree, expandedIds),
+      week: flattenTree(weekTree, expandedIds)
+    };
+  }, [tasks, expandedIds]);
 
   const scrollToSection = (section: "Today" | "This Week" | "Overdue") => {
     setActiveFilter(section);
@@ -266,6 +297,151 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
   }
 
   if (!session) return null;
+
+  const renderTaskList = (taskList: (Task & { level: number })[], title: string, id: string, emptyMsg: string) => (
+    <motion.div id={id} className="scroll-mt-24 space-y-4" variants={itemVariants}>
+      <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest pl-1">{title} <span className="text-zinc-600 ml-2 text-xs">({taskList.length})</span></h3>
+      <AnimatePresence mode="popLayout">
+        {taskList.length > 0 ? (
+          <div className="space-y-3">
+            {taskList.map((task) => {
+              const hasChildren = task.children && task.children.length > 0;
+              const isExpanded = expandedIds.has(task.id);
+
+              return (
+                <motion.div
+                  layout
+                  variants={itemVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                  key={task.id}
+                  className={cn(
+                    "group relative flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50",
+                    task.source === 'moodle'
+                      ? "bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/30 dark:to-transparent border-orange-200/80 dark:border-orange-800/50 hover:from-orange-100/50 dark:hover:from-orange-900/50"
+                      : "bg-card border-zinc-200 dark:border-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-900/30",
+                    task.level > 0 && "border-l-4 border-l-zinc-300 dark:border-l-zinc-800",
+                    task.status === 'completed' && "opacity-60"
+                  )}
+                  style={{ marginLeft: task.level > 0 ? `${task.level * 1.5}rem` : 0 }}
+                  whileHover={{ y: -2, transition: { duration: 0.2 } }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSelectedTask(task)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') setSelectedTask(task);
+                  }}
+                >
+                  {/* Status Indicator Bar */}
+                  <div className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-colors",
+                    task.status === 'completed' ? "bg-emerald-500" :
+                      task.priority === 'High' ? "bg-red-500" : "bg-zinc-700 group-hover:bg-zinc-500"
+                  )} />
+
+                  {/* Completion Indicator or Quick Complete Action */}
+                  {task.status === 'completed' ? (
+                    <button
+                      className="ml-3 h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center z-10 hover:bg-emerald-600 transition-colors cursor-pointer"
+                      onClick={(e) => handleQuickComplete(e, task)}
+                      title="Mark as Incomplete"
+                    >
+                      <Check className="w-3 h-3 text-white" />
+                    </button>
+                  ) : (
+                    <button
+                      className="ml-3 h-5 w-5 rounded-full border-2 border-zinc-700 flex items-center justify-center text-zinc-400 hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500 transition-all z-10 cursor-pointer"
+                      onClick={(e) => handleQuickComplete(e, task)}
+                      title="Mark as Completed"
+                    >
+                    </button>
+                  )}
+
+                  {/* Chevron between checkbox and title */}
+                  {hasChildren && (
+                    <button
+                      onClick={(e) => handleToggleExpand(task.id, e)}
+                      className="flex-shrink-0 p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition-colors"
+                      title={isExpanded ? "Collapse" : "Expand"}
+                    >
+                      <ChevronRight className={cn("w-3.5 h-3.5 text-zinc-500 transition-transform duration-200", isExpanded && "rotate-90")} />
+                    </button>
+                  )}
+
+                  {/* Content */}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-200 dark:border-zinc-800">
+                        {task.team?.name || "Unassigned"}
+                      </span>
+                      {task.priority === 'High' && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" title="High Priority" />
+                      )}
+                    </div>
+                    <h3 className={cn(
+                      "font-medium text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors",
+                      task.status === 'completed' && "line-through text-zinc-500"
+                    )}>
+                      {task.title}
+                    </h3>
+                  </div>
+
+                  <div className="flex items-center gap-6 text-sm text-zinc-500">
+                    <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-900/50 border border-transparent group-hover:border-zinc-200 dark:group-hover:border-zinc-800 transition-colors text-xs font-medium">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {formatDaysLeft(task.deadline)}
+                    </span>
+                    <span className={cn(
+                      "hidden sm:flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
+                      task.status === "active" || task.status === "in-progress"
+                        ? "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/30"
+                        : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800"
+                    )}>
+                      {task.status === 'pending' || task.status === 'to-do' ? 'To Do' :
+                        task.status === 'active' || task.status === 'in-progress' ? 'In Progress' :
+                          task.status.replace('-', ' ')}
+                    </span>
+                  </div>
+
+                  {/* Add Subtask Button - Shows on hover */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setParentTaskId(task.id);
+                      setParentTeamId(task.teamId);
+                      setIsCreateModalOpen(true);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md"
+                    title="Add Subtask"
+                  >
+                    <Plus className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                  </button>
+
+                  <ArrowRight className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                </motion.div>
+              )
+            })}
+          </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="py-8 px-4 border border-dashed border-zinc-300 dark:border-zinc-900 rounded-xl bg-zinc-50 dark:bg-zinc-900/20 text-center flex flex-col items-center justify-center gap-2 group hover:border-zinc-400 dark:hover:border-zinc-800 transition-colors"
+          >
+            <p className="text-zinc-500 dark:text-zinc-600 text-xs">{emptyMsg}</p>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 transition-colors px-3 py-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800"
+            >
+              <Plus className="w-3 h-3" />
+              Create Task
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
 
   return (
     <motion.div
@@ -346,116 +522,10 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
               </Link>
             </div>
 
-            <div className="space-y-10">
-              {/* Render Helper */}
-              {(() => {
-                const renderTaskList = (taskList: Task[], title: string, id: string, emptyMsg: string) => (
-                  <motion.div id={id} className="scroll-mt-24 space-y-4" variants={itemVariants}>
-                    <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest pl-1">{title} <span className="text-zinc-600 ml-2 text-xs">({taskList.length})</span></h3>
-                    <AnimatePresence mode="popLayout">
-                      {taskList.length > 0 ? (
-                        <div className="space-y-3">
-                          {taskList.map((task) => (
-                            <motion.div
-                              layout
-                              variants={itemVariants}
-                              initial="hidden"
-                              animate="visible"
-                              exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-                              key={task.id}
-                              className={cn(
-                                "group relative flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50",
-                                task.source === 'moodle'
-                                  ? "bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/30 dark:to-transparent border-orange-200/80 dark:border-orange-800/50 hover:from-orange-100/50 dark:hover:from-orange-900/50"
-                                  : "bg-card border-zinc-200 dark:border-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-900/30",
-                              )}
-                              whileHover={{ y: -2, transition: { duration: 0.2 } }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={() => setSelectedTask(task)}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') setSelectedTask(task);
-                              }}
-                            >
-                              {/* Status Indicator Bar */}
-                              <div className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-colors",
-                                task.priority === 'High' ? "bg-red-500" : "bg-zinc-700 group-hover:bg-zinc-500"
-                              )} />
-
-                              {/* Quick Complete Action (Hover) */}
-                              <div
-                                className="ml-3 h-5 w-5 rounded-full border-2 border-zinc-700 flex items-center justify-center text-transparent hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500 transition-all z-10"
-                                onClick={(e) => handleQuickComplete(e, task)}
-                                title="Mark as Completed"
-                              >
-                                <Check className="w-3 h-3" />
-                              </div>
-
-                              {/* Content */}
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-200 dark:border-zinc-800">
-                                    {task.team?.name || "Unassigned"}
-                                  </span>
-                                  {task.priority === 'High' && (
-                                    <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" title="High Priority" />
-                                  )}
-                                </div>
-                                <h3 className="font-medium text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors">
-                                  {task.title}
-                                </h3>
-                              </div>
-
-                              <div className="flex items-center gap-6 text-sm text-zinc-500">
-                                <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-900/50 border border-transparent group-hover:border-zinc-200 dark:group-hover:border-zinc-800 transition-colors text-xs font-medium">
-                                  <Calendar className="w-3.5 h-3.5" />
-                                  {formatDaysLeft(task.deadline)}
-                                </span>
-                                <span className={cn(
-                                  "hidden sm:flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
-                                  task.status === "active" || task.status === "in-progress"
-                                    ? "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/30"
-                                    : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800"
-                                )}>
-                                  {task.status === 'pending' || task.status === 'to-do' ? 'To Do' :
-                                    task.status === 'active' || task.status === 'in-progress' ? 'In Progress' :
-                                      task.status.replace('-', ' ')}
-                                </span>
-                              </div>
-
-                              <ArrowRight className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
-                            </motion.div>
-                          ))}
-                        </div>
-                      ) : (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="py-8 px-4 border border-dashed border-zinc-300 dark:border-zinc-900 rounded-xl bg-zinc-50 dark:bg-zinc-900/20 text-center flex flex-col items-center justify-center gap-2 group hover:border-zinc-400 dark:hover:border-zinc-800 transition-colors"
-                        >
-                          <p className="text-zinc-500 dark:text-zinc-600 text-xs">{emptyMsg}</p>
-                          <button
-                            onClick={() => setIsCreateModalOpen(true)}
-                            className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 transition-colors px-3 py-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800"
-                          >
-                            <Plus className="w-3 h-3" />
-                            Create Task
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                );
-
-                return (
-                  <div className="h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-                    {renderTaskList(groupedTasks.today, "Today", "section-today", "No tasks due today.")}
-                    {renderTaskList(groupedTasks.week, "This Week", "section-this-week", "No upcoming tasks for this week.")}
-                    {renderTaskList(groupedTasks.overdue, "Overdue", "section-overdue", "No overdue tasks. Great job!")}
-                  </div>
-                );
-              })()}
+            <div className="h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+              {renderTaskList(groupedTasks.today, "Today", "section-today", "No tasks due today.")}
+              {renderTaskList(groupedTasks.week, "This Week", "section-this-week", "No upcoming tasks for this week.")}
+              {renderTaskList(groupedTasks.overdue, "Overdue", "section-overdue", "No overdue tasks. Great job!")}
             </div>
           </div>
 
@@ -523,23 +593,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
 
         </div>
 
-        {/* Bottom: Recently Updated (Activity Feed)
-        <div className="pt-6 border-t border-zinc-900">
-          <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Recently Updated</h3>
-          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="min-w-[280px] p-4 rounded-xl bg-card border border-zinc-900 hover:border-zinc-700 transition-all cursor-pointer">
-                <div className="flex items-center gap-2 mb-2 text-xs text-zinc-500 font-medium">
-                  <Clock className="w-3 h-3" />
-                  <span>2 hours ago</span>
-                </div>
-                <p className="font-medium text-zinc-200 text-sm">Updated styling for dashboard</p>
-                <p className="text-xs text-zinc-600 mt-1 uppercase tracking-wider font-bold">Moved to In Progress</p>
-              </div>
-            ))}
-          </div>
-        </div> */}
-      </div >
+      </div>
 
       {/* Task Detail Drawer */}
       {
@@ -559,32 +613,29 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
                 (team as Team).leader?.email === session?.user?.email
               )
             }
-            members={[]}
+            currentUserId={session?.user?.id}
           />
         )
       }
 
       <CreateTaskModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setParentTaskId(undefined);
+          setParentTeamId(undefined);
+        }}
         onTaskCreated={refreshTasks}
         currentUserId={session.user?.id}
+        initialParentId={parentTaskId}
+        initialTeamId={parentTeamId}
       />
 
       <CreateTeamModal
         isOpen={isCreateTeamModalOpen}
         onClose={() => setIsCreateTeamModalOpen(false)}
       />
-
-      <ConfirmModal
-        isOpen={confirmModalState.isOpen}
-        onClose={() => setConfirmModalState(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmModalState.onConfirm}
-        title={confirmModalState.title}
-        description={confirmModalState.description}
-        confirmText="Yes, Complete"
-        variant="info"
-      />
-    </motion.div >
+    </motion.div>
   );
 }
+

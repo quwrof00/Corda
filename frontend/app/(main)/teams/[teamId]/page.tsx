@@ -49,6 +49,8 @@ export default function TeamDetailsPage() {
     const [createTaskModalOpen, setCreateTaskModalOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [selectedMemberId, setSelectedMemberId] = useState<string>("");
+    const [parentTaskId, setParentTaskId] = useState<string | undefined>(undefined);
+    const [parentTeamId, setParentTeamId] = useState<string | undefined>(undefined);
 
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
@@ -253,6 +255,8 @@ export default function TeamDetailsPage() {
                         currentUserMemberId={currentUserMemberId}
                         setSelectedMemberId={setSelectedMemberId}
                         setCreateTaskModalOpen={setCreateTaskModalOpen}
+                        setParentTaskId={setParentTaskId}
+                        setParentTeamId={setParentTeamId}
                         openEditTask={openEditTask}
                     />
                 ) : (
@@ -301,9 +305,12 @@ export default function TeamDetailsPage() {
                 onClose={() => {
                     setCreateTaskModalOpen(false);
                     setSelectedMemberId("");
+                    setParentTaskId(undefined);
+                    setParentTeamId(undefined);
                 }}
-                initialTeamId={teamId}
+                initialTeamId={parentTeamId || teamId}
                 initialAssignedToId={selectedMemberId}
+                initialParentId={parentTaskId}
                 isPersonalWorkspace={isPersonal}
                 currentUserId={currentUserMemberId}
                 onTaskCreated={() => {
@@ -330,6 +337,7 @@ export default function TeamDetailsPage() {
                 isLeader={isLeader}
                 members={members as Member[]}
                 teamName={team?.name}
+                currentUserId={currentUserMemberId}
             />
 
             <ConfirmModal

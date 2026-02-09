@@ -12,6 +12,8 @@ export interface Task {
   description?: string;
   deadline?: string;
   createdAt?: string;
+  parentId?: string | null;
+  children?: Task[];
   assignedTo?: { id: string; name: string } | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   team?: { id?: string; name?: string;[key: string]: any } | null;
@@ -58,37 +60,53 @@ export const useCreateTask = () => {
       return data;
     },
     onMutate: async (newTask) => {
-      // We need teamId to update the specific list.
-      // Assuming newTask has teamId (it should for creation)
-      const queryKey = ["tasks", newTask.teamId];
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
 
-      await queryClient.cancelQueries({ queryKey });
+      // Snapshot previous values for both team-specific and global lists
+      const teamQueryKey = ["tasks", newTask.teamId];
+      const globalQueryKey = ["tasks", undefined];
 
-      const previousTasks = queryClient.getQueryData(queryKey);
+      const previousTeamTasks = queryClient.getQueryData(teamQueryKey);
+      const previousGlobalTasks = queryClient.getQueryData(globalQueryKey);
 
+      // Create optimistic task
+      const tempTask: Task = {
+        ...newTask,
+        id: "temp-task-" + Date.now(),
+        createdAt: new Date().toISOString(),
+        status: newTask.status || "pending",
+        priority: newTask.priority || "Medium",
+        title: newTask.title || "",
+        assignedTo: newTask.assignedToId ? { id: newTask.assignedToId, name: "Assigned..." } : null,
+        children: [],
+      } as Task;
+
+      // Update team-specific list if teamId exists
       if (newTask.teamId) {
-        queryClient.setQueryData(queryKey, (old: Task[]) => {
-          const tempTask = {
-            ...newTask,
-            id: "temp-task-" + Date.now(),
-            createdAt: new Date().toISOString(),
-            status: newTask.status || "pending",
-            priority: newTask.priority || "Medium",
-            // Mock implicit fields if needed
-            assignedTo: newTask.assignedToId ? { id: newTask.assignedToId, name: "Assigned..." } : null
-          };
+        queryClient.setQueryData(teamQueryKey, (old: Task[] | undefined) => {
           return [...(old || []), tempTask];
         });
       }
 
-      return { previousTasks, queryKey };
+      // Always update global list for dashboard and other views
+      queryClient.setQueryData(globalQueryKey, (old: Task[] | undefined) => {
+        return [...(old || []), tempTask];
+      });
+
+      return { previousTeamTasks, previousGlobalTasks, teamQueryKey, globalQueryKey };
     },
     onError: (err, newTask, context) => {
-      if (context?.queryKey) {
-        queryClient.setQueryData(context.queryKey, context.previousTasks);
+      // Rollback on error
+      if (context?.teamQueryKey && context.previousTeamTasks !== undefined) {
+        queryClient.setQueryData(context.teamQueryKey, context.previousTeamTasks);
+      }
+      if (context?.globalQueryKey && context.previousGlobalTasks !== undefined) {
+        queryClient.setQueryData(context.globalQueryKey, context.previousGlobalTasks);
       }
     },
     onSettled: () => {
+      // Invalidate all task queries to get fresh data from server
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });

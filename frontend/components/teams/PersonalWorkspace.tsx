@@ -1,15 +1,18 @@
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Task } from "./types";
 import { cn, formatDaysLeft } from "./utils";
-import { CheckCircle2, Plus } from "lucide-react";
-import MoodleSyncButton from "@/components/tasks/moodle-sync-button";
+import { CheckCircle2, Plus, ChevronRight } from "lucide-react";
+import { buildTaskTree, flattenTree } from "@/lib/taskTreeUtils";
+import { useUpdateTask } from "@/hooks/useTasks";
 
 interface PersonalWorkspaceProps {
     assignedTasks: Task[];
     currentUserMemberId?: string;
     setSelectedMemberId: (id: string) => void;
     setCreateTaskModalOpen: (open: boolean) => void;
+    setParentTaskId?: (id: string | undefined) => void;
+    setParentTeamId?: (id: string | undefined) => void;
     openEditTask: (task: Task) => void;
 }
 
@@ -18,8 +21,42 @@ export function PersonalWorkspace({
     currentUserMemberId,
     setSelectedMemberId,
     setCreateTaskModalOpen,
+    setParentTaskId,
+    setParentTeamId,
     openEditTask
 }: PersonalWorkspaceProps) {
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+    const updateTaskMutation = useUpdateTask();
+
+    const handleToggleExpand = (taskId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(taskId)) {
+                next.delete(taskId);
+            } else {
+                next.add(taskId);
+            }
+            return next;
+        });
+    };
+
+    const handleStatusToggle = async (e: React.MouseEvent, task: Task) => {
+        e.stopPropagation();
+        const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+        try {
+            await updateTaskMutation.mutateAsync({ id: task.id, status: newStatus });
+        } catch (err) {
+            console.error("Failed to update task", err);
+        }
+    };
+
+    // Build tree and flatten for rendering
+    const tasksToRender = useMemo(() => {
+        const tree = buildTaskTree(assignedTasks);
+        return flattenTree(tree, expandedIds);
+    }, [assignedTasks, expandedIds]);
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             // Check if user is typing in an input or textarea
@@ -104,13 +141,16 @@ export function PersonalWorkspace({
                     </div>
                 </motion.div>
 
-
-
                 <motion.div
                     whileHover={{ scale: 1.02, y: -2 }}
-                    className="h-32"
+                    className="bg-zinc-50 dark:bg-zinc-900/50 p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between h-32 relative overflow-hidden group"
                 >
-                    <MoodleSyncButton variant="card" />
+                    <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Workspace</span>
+                    <div className="flex items-center gap-2 mt-2">
+                        <div className="text-xs bg-zinc-200 dark:bg-zinc-800 px-2 py-1 rounded text-zinc-600 dark:text-zinc-300">Private</div>
+                        <div className="text-xs bg-zinc-200 dark:bg-zinc-800 px-2 py-1 rounded text-zinc-600 dark:text-zinc-300">Secure</div>
+                    </div>
+                    <p className="text-[10px] text-zinc-600 mt-2">Only you can see these tasks</p>
                 </motion.div>
             </motion.div>
 
@@ -135,71 +175,101 @@ export function PersonalWorkspace({
 
                 <div className="flex-1 overflow-y-auto p-0">
                     <AnimatePresence mode="popLayout">
-                        {assignedTasks.length > 0 ? (
+                        {tasksToRender.length > 0 ? (
                             <div className="divide-y divide-zinc-200 dark:divide-zinc-900">
-                                {assignedTasks.map((task) => (
-                                    <motion.div
-                                        layout
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -20 }}
-                                        whileHover={{ x: 4 }}
-                                        key={task.id}
-                                        onClick={() => openEditTask(task)}
-                                        className={cn(
-                                            "group flex flex-col sm:flex-row sm:items-center justify-between p-5 transition-colors cursor-pointer border-l-4",
-                                            task.source === 'moodle'
-                                                ? "bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/30 dark:to-transparent hover:from-orange-100/50 dark:hover:from-orange-900/50 border-l-orange-500"
-                                                : "hover:bg-zinc-100 dark:hover:bg-zinc-900/40 border-l-transparent hover:border-l-emerald-500"
-                                        )}
-                                    >
-                                        <div className="flex items-start gap-4 mb-3 sm:mb-0">
-                                            <div
-                                                className={cn("mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
-                                                    task.status === "completed"
-                                                        ? "bg-emerald-500 border-emerald-500"
-                                                        : "border-zinc-300 dark:border-zinc-700 bg-transparent group-hover:border-zinc-500"
+                                {tasksToRender.map((task) => {
+                                    const hasChildren = task.children && task.children.length > 0;
+                                    const isExpanded = expandedIds.has(task.id);
+
+                                    return (
+                                        <motion.div
+                                            layout
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -20 }}
+                                            whileHover={{ x: 4 }}
+                                            key={task.id}
+                                            onClick={() => openEditTask(task)}
+                                            className="group relative flex flex-col sm:flex-row sm:items-center justify-between p-5 hover:bg-zinc-100 dark:hover:bg-zinc-900/40 transition-colors cursor-pointer border-l-4 border-transparent hover:border-l-emerald-500"
+                                            style={{ paddingLeft: task.level > 0 ? `${1.25 + task.level * 1.5}rem` : '1.25rem' }}
+                                        >
+                                            <div className="flex items-start gap-3 mb-3 sm:mb-0">
+                                                {/* Checkbox */}
+                                                <button
+                                                    onClick={(e) => handleStatusToggle(e, task)}
+                                                    className={cn("mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors cursor-pointer",
+                                                        task.status === "completed"
+                                                            ? "bg-emerald-500 border-emerald-500 hover:bg-emerald-600"
+                                                            : "border-zinc-300 dark:border-zinc-700 bg-transparent group-hover:border-zinc-500 hover:border-emerald-500"
+                                                    )}
+                                                    title={task.status === "completed" ? "Mark as Incomplete" : "Mark as Completed"}
+                                                >
+                                                    {task.status === "completed" && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                                                </button>
+
+                                                {/* Chevron between checkbox and title */}
+                                                {hasChildren && (
+                                                    <button
+                                                        onClick={(e) => handleToggleExpand(task.id, e)}
+                                                        className="flex-shrink-0 mt-1 p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition-colors"
+                                                        title={isExpanded ? "Collapse" : "Expand"}
+                                                    >
+                                                        <ChevronRight className={cn("w-3.5 h-3.5 text-zinc-500 transition-transform duration-200", isExpanded && "rotate-90")} />
+                                                    </button>
                                                 )}
-                                            >
-                                                {task.status === "completed" && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
-                                            </div>
-                                            <div>
-                                                <h4 className={cn("font-medium text-base text-zinc-900 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors",
-                                                    task.status === "completed" && "line-through text-zinc-500"
-                                                )}>
-                                                    {task.title}
-                                                </h4>
-                                                <div className="flex items-center gap-3 mt-1.5">
-                                                    {task.priority === 'High' && (
-                                                        <span className="text-[10px] uppercase font-bold text-red-400 bg-red-950/20 px-1.5 py-0.5 rounded border border-red-900/30">High Priority</span>
-                                                    )}
-                                                    {task.deadline && (
-                                                        <span className={cn("text-[11px] font-medium flex items-center gap-1",
-                                                            new Date(task.deadline) < new Date() && task.status !== 'completed' ? "text-red-400" : "text-zinc-500"
-                                                        )}>
-                                                            {formatDaysLeft(task.deadline)}
-                                                        </span>
-                                                    )}
-                                                    {task.requiredSkill && (
-                                                        <span className="text-[11px] text-zinc-600 bg-zinc-100 dark:bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800">{task.requiredSkill}</span>
-                                                    )}
+
+                                                {/* Task content */}
+                                                <div>
+                                                    <h4 className={cn("font-medium text-base text-zinc-900 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors",
+                                                        task.status === "completed" && "line-through text-zinc-500"
+                                                    )}>
+                                                        {task.title}
+                                                    </h4>
+                                                    <div className="flex items-center gap-3 mt-1.5">
+                                                        {task.priority === 'High' && (
+                                                            <span className="text-[10px] uppercase font-bold text-red-400 bg-red-950/20 px-1.5 py-0.5 rounded border border-red-900/30">High Priority</span>
+                                                        )}
+                                                        {task.deadline && (
+                                                            <span className={cn("text-[11px] font-medium flex items-center gap-1",
+                                                                new Date(task.deadline) < new Date() && task.status !== 'completed' ? "text-red-400" : "text-zinc-500"
+                                                            )}>
+                                                                {formatDaysLeft(task.deadline)}
+                                                            </span>
+                                                        )}
+                                                        {task.requiredSkill && (
+                                                            <span className="text-[11px] text-zinc-600 bg-zinc-100 dark:bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800">{task.requiredSkill}</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity self-end sm:self-center">
-                                            <div className={cn("px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                                                task.status === 'completed' ? "bg-emerald-950/10 text-emerald-500 border-emerald-900/30" :
-                                                    (task.status === 'active' || task.status === 'in-progress') ? "bg-blue-950/10 text-blue-500 border-blue-900/30" :
-                                                        "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800"
-                                            )}>
-                                                {task.status === 'pending' || task.status === 'to-do' ? 'To Do' :
-                                                    task.status === 'active' || task.status === 'in-progress' ? 'In Progress' :
-                                                        task.status.replace('-', ' ')}
+                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity self-end sm:self-center">
+                                                {/* Add Subtask Button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedMemberId(currentUserMemberId || '');
+                                                        if (setParentTaskId) setParentTaskId(task.id);
+                                                        if (setParentTeamId && task.teamId) setParentTeamId(task.teamId as string);
+                                                        setCreateTaskModalOpen(true);
+                                                    }}
+                                                    className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                                                    title="Add Subtask"
+                                                >
+                                                    <Plus className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                                                </button>
+
+                                                <div className={cn("px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                                                    task.status === 'completed' ? "bg-emerald-950/10 text-emerald-500 border-emerald-900/30" :
+                                                        task.status === 'in-progress' ? "bg-blue-950/10 text-blue-500 border-blue-900/30" :
+                                                            "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800"
+                                                )}>
+                                                    {task.status.replace('-', ' ')}
+                                                </div>
                                             </div>
-                                        </div>
-                                    </motion.div>
-                                ))}
+                                        </motion.div>
+                                    );
+                                })}
                             </div>
                         ) : (
                             <motion.div
@@ -227,7 +297,7 @@ export function PersonalWorkspace({
                         )}
                     </AnimatePresence>
                 </div>
-            </motion.div>
-        </motion.div>
+            </motion.div >
+        </motion.div >
     );
 }
