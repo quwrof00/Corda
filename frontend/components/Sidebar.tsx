@@ -62,16 +62,18 @@ export default function Sidebar() {
                             <Terminal className="w-5 h-5" />
                         </div>
                         <AnimatePresence>
-                            {!isCollapsed && (
-                                <motion.span
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -10 }}
-                                    className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white uppercase whitespace-nowrap"
-                                >
-                                    CORDA
-                                </motion.span>
-                            )}
+                            <Link href="/dashboard">
+                                {!isCollapsed && (
+                                    <motion.span
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -10 }}
+                                        className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white uppercase whitespace-nowrap"
+                                    >
+                                        CORDA
+                                    </motion.span>
+                                )}
+                            </Link>
                         </AnimatePresence>
                     </div>
 

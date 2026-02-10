@@ -49,6 +49,16 @@ export async function PUT(
             return NextResponse.json({ error: "Only team leader can update team" }, { status: 403 });
         }
 
+        // Prevent renaming the personal workspace team
+        if (team.name === "Personal" && name !== "Personal") {
+            return NextResponse.json({ error: "Cannot rename your personal workspace" }, { status: 403 });
+        }
+
+        // Prevent renaming any team to "Personal"
+        if (name.trim().toLowerCase() === "personal" && team.name !== "Personal") {
+            return NextResponse.json({ error: "The name 'Personal' is reserved for your personal workspace" }, { status: 400 });
+        }
+
         const updatedTeam = await prisma.team.update({
             where: { id: teamId },
             data: {
@@ -87,6 +97,11 @@ export async function DELETE(
 
         if (team.leaderId !== user.id) {
             return NextResponse.json({ error: "Only team leader can delete team" }, { status: 403 });
+        }
+
+        // Prevent deleting the personal workspace team
+        if (team.name === "Personal") {
+            return NextResponse.json({ error: "Cannot delete your personal workspace" }, { status: 403 });
         }
 
         await prisma.team.delete({ where: { id: teamId } });

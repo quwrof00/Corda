@@ -30,6 +30,8 @@ const itemVariants = {
     visible: { opacity: 1, x: 0 }
 };
 
+
+
 interface TaskItemProps {
     task: Task & { level: number };
     onSelect: (task: Task) => void;
@@ -38,6 +40,7 @@ interface TaskItemProps {
     onToggleExpand: (taskId: string, e: React.MouseEvent) => void;
     isExpanded: boolean;
     onAddSubtask: (taskId: string, teamId: string, e: React.MouseEvent) => void;
+    celebratingTaskId?: never;
 }
 
 const TaskItem = ({ task, onSelect, onStatusUpdate, getPriorityColor, onToggleExpand, isExpanded, onAddSubtask }: TaskItemProps) => {
@@ -297,6 +300,7 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
 
     const handleStatusUpdate = async (taskId: string, newStatus: string, e?: React.MouseEvent) => {
         e?.stopPropagation();
+
         try {
             // 1. Update the target task
             await updateTaskMutation.mutateAsync({ id: taskId, status: newStatus });

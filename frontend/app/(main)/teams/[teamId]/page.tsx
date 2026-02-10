@@ -104,6 +104,12 @@ export default function TeamDetailsPage() {
     }
 
     const handleDeleteTeam = async () => {
+        // Prevent deleting the personal workspace
+        if (team.name === "Personal") {
+            toast.error("Cannot delete your personal workspace");
+            return;
+        }
+
         setConfirmModal({
             isOpen: true,
             title: "Delete Team",
@@ -121,6 +127,19 @@ export default function TeamDetailsPage() {
 
     const handleSaveTeam = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Prevent renaming the personal workspace
+        if (team.name === "Personal" && editingTeamName !== "Personal") {
+            toast.error("Cannot rename your personal workspace");
+            return;
+        }
+
+        // Prevent renaming any team to "Personal"
+        if (editingTeamName.trim().toLowerCase() === "personal" && team.name !== "Personal") {
+            toast.error("The name 'Personal' is reserved for your personal workspace");
+            return;
+        }
+
         try {
             await updateTeamMutation.mutateAsync({
                 id: teamId,

@@ -33,6 +33,13 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate that the name is not "Personal" (case-insensitive)
+        if (name.trim().toLowerCase() === "personal") {
+            toast.error("The name 'Personal' is reserved for your personal workspace");
+            return;
+        }
+
         setLoading(true);
 
         try {

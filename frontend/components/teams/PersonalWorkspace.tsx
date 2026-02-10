@@ -16,6 +16,8 @@ interface PersonalWorkspaceProps {
     openEditTask: (task: Task) => void;
 }
 
+
+
 export function PersonalWorkspace({
     assignedTasks,
     currentUserMemberId,
@@ -44,6 +46,7 @@ export function PersonalWorkspace({
     const handleStatusToggle = async (e: React.MouseEvent, task: Task) => {
         e.stopPropagation();
         const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+
         try {
             await updateTaskMutation.mutateAsync({ id: task.id, status: newStatus });
         } catch (err) {

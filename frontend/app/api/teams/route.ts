@@ -68,6 +68,11 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing or invalid field: name" }, { status: 400 });
         }
 
+        // Prevent creating a team with the reserved name "Personal"
+        if (name.trim().toLowerCase() === "personal") {
+            return NextResponse.json({ error: "The name 'Personal' is reserved for your personal workspace" }, { status: 400 });
+        }
+
         if (!Array.isArray(members)) {
             return NextResponse.json({ error: "members must be an array" }, { status: 400 });
         }

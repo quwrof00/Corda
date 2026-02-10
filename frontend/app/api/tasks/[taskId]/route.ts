@@ -107,7 +107,7 @@ export async function PUT(
 
             if (assignedToId) {
                 const effectiveStatus = updateData.status || existingTask.status;
-                if (effectiveStatus === 'pending') {
+                if (effectiveStatus === 'pending' && existingTask.team.name !== 'Personal') {
                     updateData.status = 'active';
                 }
             } else if (assignedToId === null) {

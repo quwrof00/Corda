@@ -9,21 +9,19 @@ import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 import { useTeams } from "@/hooks/useTeams";
 import { buildTaskTree, flattenTree } from "@/lib/taskTreeUtils";
 import {
-  Calendar,
   CheckCircle2,
   ArrowRight,
   Users,
   Plus,
-  Check,
-  ChevronRight,
 } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 import CreateTaskModal from "@/components/CreateTaskModal";
 import CreateTeamModal from "@/components/CreateTeamModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { TaskItem } from "@/components/tasks/TaskItem";
 
 function formatDaysLeft(dateString?: string) {
   if (!dateString) return "";
@@ -49,10 +47,6 @@ interface Team {
   leader?: { email: string };
   tasks?: { id: string }[];
   _count?: { tasks: number };
-}
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
 }
 
 const containerVariants = {
@@ -304,140 +298,37 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
       <AnimatePresence mode="popLayout">
         {taskList.length > 0 ? (
           <div className="space-y-3">
-            {taskList.map((task) => {
-              const hasChildren = task.children && task.children.length > 0;
-              const isExpanded = expandedIds.has(task.id);
-
-              return (
-                <motion.div
-                  layout
-                  variants={itemVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-                  key={task.id}
-                  className={cn(
-                    "group relative flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50",
-                    task.source === 'moodle'
-                      ? "bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/30 dark:to-transparent border-orange-200/80 dark:border-orange-800/50 hover:from-orange-100/50 dark:hover:from-orange-900/50"
-                      : "bg-card border-zinc-200 dark:border-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-900/30",
-                    task.level > 0 && "border-l-4 border-l-zinc-300 dark:border-l-zinc-800",
-                    task.status === 'completed' && "opacity-60"
-                  )}
-                  style={{ marginLeft: task.level > 0 ? `${task.level * 1.5}rem` : 0 }}
-                  whileHover={{ y: -2, transition: { duration: 0.2 } }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelectedTask(task)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') setSelectedTask(task);
-                  }}
-                >
-                  {/* Status Indicator Bar */}
-                  <div className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-colors",
-                    task.status === 'completed' ? "bg-emerald-500" :
-                      task.priority === 'High' ? "bg-red-500" : "bg-zinc-700 group-hover:bg-zinc-500"
-                  )} />
-
-                  {/* Completion Indicator or Quick Complete Action */}
-                  {task.status === 'completed' ? (
-                    <button
-                      className="ml-3 h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center z-10 hover:bg-emerald-600 transition-colors cursor-pointer"
-                      onClick={(e) => handleQuickComplete(e, task)}
-                      title="Mark as Incomplete"
-                    >
-                      <Check className="w-3 h-3 text-white" />
-                    </button>
-                  ) : (
-                    <button
-                      className="ml-3 h-5 w-5 rounded-full border-2 border-zinc-700 flex items-center justify-center text-zinc-400 hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500 transition-all z-10 cursor-pointer"
-                      onClick={(e) => handleQuickComplete(e, task)}
-                      title="Mark as Completed"
-                    >
-                    </button>
-                  )}
-
-                  {/* Chevron between checkbox and title */}
-                  {hasChildren && (
-                    <button
-                      onClick={(e) => handleToggleExpand(task.id, e)}
-                      className="flex-shrink-0 p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition-colors"
-                      title={isExpanded ? "Collapse" : "Expand"}
-                    >
-                      <ChevronRight className={cn("w-3.5 h-3.5 text-zinc-500 transition-transform duration-200", isExpanded && "rotate-90")} />
-                    </button>
-                  )}
-
-                  {/* Content */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md border border-zinc-200 dark:border-zinc-800">
-                        {task.team?.name || "Unassigned"}
-                      </span>
-                      {task.priority === 'High' && (
-                        <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" title="High Priority" />
-                      )}
-                    </div>
-                    <h3 className={cn(
-                      "font-medium text-zinc-800 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white transition-colors",
-                      task.status === 'completed' && "line-through text-zinc-500"
-                    )}>
-                      {task.title}
-                    </h3>
-                  </div>
-
-                  <div className="flex items-center gap-6 text-sm text-zinc-500">
-                    <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-900/50 border border-transparent group-hover:border-zinc-200 dark:group-hover:border-zinc-800 transition-colors text-xs font-medium">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {formatDaysLeft(task.deadline)}
-                    </span>
-                    <span className={cn(
-                      "hidden sm:flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
-                      task.status === "active" || task.status === "in-progress"
-                        ? "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/30"
-                        : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800"
-                    )}>
-                      {task.status === 'pending' || task.status === 'to-do' ? 'To Do' :
-                        task.status === 'active' || task.status === 'in-progress' ? 'In Progress' :
-                          task.status.replace('-', ' ')}
-                    </span>
-                  </div>
-
-                  {/* Add Subtask Button - Shows on hover */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setParentTaskId(task.id);
-                      setParentTeamId(task.teamId);
-                      setIsCreateModalOpen(true);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md"
-                    title="Add Subtask"
-                  >
-                    <Plus className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-                  </button>
-
-                  <ArrowRight className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
-                </motion.div>
-              )
-            })}
+            {taskList.map((task) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                onSelect={setSelectedTask}
+                onQuickComplete={handleQuickComplete}
+                onToggleExpand={handleToggleExpand}
+                onAddSubtask={(taskId, teamId, e) => {
+                  e.stopPropagation();
+                  setParentTaskId(taskId);
+                  setParentTeamId(teamId);
+                  setIsCreateModalOpen(true);
+                }}
+                isExpanded={expandedIds.has(task.id)}
+                variant="dashboard"
+                showTeamBadge={true}
+                showStatus={true}
+                showDeadline={true}
+                formatDaysLeft={formatDaysLeft}
+              />
+            ))}
           </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="py-8 px-4 border border-dashed border-zinc-300 dark:border-zinc-900 rounded-xl bg-zinc-50 dark:bg-zinc-900/20 text-center flex flex-col items-center justify-center gap-2 group hover:border-zinc-400 dark:hover:border-zinc-800 transition-colors"
-          >
-            <p className="text-zinc-500 dark:text-zinc-600 text-xs">{emptyMsg}</p>
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 transition-colors px-3 py-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800"
-            >
-              <Plus className="w-3 h-3" />
-              Create Task
-            </button>
-          </motion.div>
+          <EmptyState
+            icon={CheckCircle2}
+            title=""
+            description={emptyMsg}
+            actionLabel="Create Task"
+            onAction={() => setIsCreateModalOpen(true)}
+            variant="minimal"
+          />
         )}
       </AnimatePresence>
     </motion.div>
@@ -460,7 +351,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
             </h1>
             <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-500 text-sm">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-              <p>You have <span className="text-zinc-900 dark:text-zinc-300 font-bold">{stats.deadlinesToday == 1 ? `1 deadline` : `${stats.deadlinesToday} deadlines`}</span> approaching.</p>
+              <p>You have <span className="text-zinc-900 dark:text-zinc-300 font-bold">{stats.deadlinesToday === 1 ? `1 deadline` : `${stats.deadlinesToday} deadlines`}</span> approaching.</p>
             </div>
           </div>
 
