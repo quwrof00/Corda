@@ -1,5 +1,5 @@
 "use client";
-import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, RefreshCw, ChevronRight, ArrowUpDown, Filter, ChevronDown, ListFilter } from "lucide-react";
+import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, RefreshCw, ChevronRight, ArrowUpDown, Filter, ChevronDown, ListFilter, Repeat } from "lucide-react";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -111,6 +111,15 @@ const TaskItem = ({ task, onSelect, onStatusUpdate, getPriorityColor, onToggleEx
                                 <span>{task.requiredSkill}</span>
                             </>
                         )}
+                        {task.recurrenceId && (
+                            <>
+                                <span className="text-zinc-800">|</span>
+                                <span className="flex items-center gap-1 text-blue-400">
+                                    <Repeat className="w-2.5 h-2.5" />
+                                    Recurring
+                                </span>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -146,7 +155,7 @@ const TaskItem = ({ task, onSelect, onStatusUpdate, getPriorityColor, onToggleEx
                 >
                     <Plus className="w-4 h-4" />
                 </button>
-                {task.status !== 'active' && task.status !== 'in-progress' && task.status !== 'completed' && (
+                {task.status !== 'active' && task.status !== 'in-progress' && task.status !== 'completed' && task.team?.name !== "Personal" && (
                     <button
                         onClick={(e) => onStatusUpdate(task.id, 'active', e)}
                         className="p-1.5 text-zinc-500 hover:text-blue-400 hover:bg-blue-950/30 transition-colors rounded-md"

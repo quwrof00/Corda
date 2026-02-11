@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Check, ChevronRight, Plus, ArrowRight, Calendar } from "lucide-react";
+import { Check, ChevronRight, Plus, ArrowRight, Calendar, Repeat } from "lucide-react";
 import { Task } from "@/hooks/useTasks";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,7 @@ interface TaskItemProps {
     showStatus?: boolean;
     showDeadline?: boolean;
     formatDaysLeft?: (dateString?: string) => string;
+    loading?: boolean;
 }
 
 export function TaskItem({
@@ -28,7 +29,8 @@ export function TaskItem({
     showTeamBadge = true,
     showStatus = true,
     showDeadline = true,
-    formatDaysLeft
+    formatDaysLeft,
+    loading = false
 }: TaskItemProps) {
     const hasChildren = task.children && task.children.length > 0;
     const level = task.level || 0;
@@ -75,16 +77,18 @@ export function TaskItem({
             {onQuickComplete && (
                 task.status === 'completed' ? (
                     <button
-                        className="ml-3 h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center z-10 hover:bg-emerald-600 transition-colors cursor-pointer"
+                        className="ml-3 h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center z-10 hover:bg-emerald-600 transition-colors cursor-pointer disabled:opacity-50"
                         onClick={(e) => onQuickComplete(e, task)}
+                        disabled={loading}
                         title="Mark as Incomplete"
                     >
                         <Check className="w-3 h-3 text-white" />
                     </button>
                 ) : (
                     <button
-                        className="ml-3 h-5 w-5 rounded-full border-2 border-zinc-700 flex items-center justify-center text-zinc-400 hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500 transition-all z-10 cursor-pointer"
+                        className="ml-3 h-5 w-5 rounded-full border-2 border-zinc-700 flex items-center justify-center text-zinc-400 hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500 transition-all z-10 cursor-pointer disabled:opacity-50"
                         onClick={(e) => onQuickComplete(e, task)}
+                        disabled={loading}
                         title="Mark as Completed"
                     >
                     </button>
@@ -123,6 +127,12 @@ export function TaskItem({
             </div>
 
             <div className="flex items-center gap-6 text-sm text-zinc-500">
+                {task.recurrenceId && (
+                    <span className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 text-[10px] font-bold uppercase tracking-wider transition-colors">
+                        <Repeat className="w-3 h-3" />
+                        Recurring
+                    </span>
+                )}
                 {showDeadline && task.deadline && formatDaysLeft && (
                     <span className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-900/50 border border-transparent group-hover:border-zinc-200 dark:group-hover:border-zinc-800 transition-colors text-xs font-medium">
                         <Calendar className="w-3.5 h-3.5" />

@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Task } from "./types";
 import { cn, formatDaysLeft } from "./utils";
-import { CheckCircle2, Plus, ChevronRight } from "lucide-react";
+import { CheckCircle2, Plus, ChevronRight, Repeat, Loader2 } from "lucide-react";
 import { buildTaskTree, flattenTree } from "@/lib/taskTreeUtils";
 import { useUpdateTask } from "@/hooks/useTasks";
 
@@ -45,6 +45,7 @@ export function PersonalWorkspace({
 
     const handleStatusToggle = async (e: React.MouseEvent, task: Task) => {
         e.stopPropagation();
+        if (updateTaskMutation.isPending) return;
         const newStatus = task.status === 'completed' ? 'pending' : 'completed';
 
         try {
@@ -210,14 +211,18 @@ export function PersonalWorkspace({
                                                 {/* Checkbox */}
                                                 <button
                                                     onClick={(e) => handleStatusToggle(e, task)}
-                                                    className={cn("mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors cursor-pointer",
+                                                    disabled={updateTaskMutation.isPending}
+                                                    className={cn("mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50",
                                                         task.status === "completed"
                                                             ? "bg-emerald-500 border-emerald-500 hover:bg-emerald-600"
                                                             : "border-zinc-300 dark:border-zinc-700 bg-transparent group-hover:border-zinc-500 hover:border-emerald-500"
                                                     )}
                                                     title={task.status === "completed" ? "Mark as Incomplete" : "Mark as Completed"}
                                                 >
-                                                    {task.status === "completed" && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                                                    {task.status === "completed" && (
+                                                        updateTaskMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin text-white" /> : <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                                                    )}
+                                                    {task.status !== "completed" && updateTaskMutation.isPending && <Loader2 className="w-3 h-3 animate-spin text-zinc-500" />}
                                                 </button>
 
                                                 {/* Chevron between checkbox and title */}
@@ -251,6 +256,12 @@ export function PersonalWorkspace({
                                                         )}
                                                         {task.requiredSkill && (
                                                             <span className="text-[11px] text-zinc-600 bg-zinc-100 dark:bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800">{task.requiredSkill}</span>
+                                                        )}
+                                                        {task.recurrenceId && (
+                                                            <span className="text-[10px] uppercase font-bold text-blue-500 bg-blue-950/10 px-1.5 py-0.5 rounded border border-blue-900/30 flex items-center gap-1">
+                                                                <Repeat className="w-2.5 h-2.5" />
+                                                                Recurring
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </div>

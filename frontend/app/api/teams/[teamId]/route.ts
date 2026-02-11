@@ -40,7 +40,7 @@ export async function PUT(
 
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const { name, description } = await req.json();
+        const { name, description, enableAll } = await req.json();
 
         const team = await prisma.team.findUnique({ where: { id: teamId } });
         if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
@@ -55,21 +55,23 @@ export async function PUT(
         }
 
         // Prevent renaming any team to "Personal"
-        if (name.trim().toLowerCase() === "personal" && team.name !== "Personal") {
+        if (name && name.trim().toLowerCase() === "personal" && team.name !== "Personal") {
             return NextResponse.json({ error: "The name 'Personal' is reserved for your personal workspace" }, { status: 400 });
         }
 
         const updatedTeam = await prisma.team.update({
             where: { id: teamId },
             data: {
-                name,
-                desc: description,
+                name: name !== undefined ? name : undefined,
+                desc: description !== undefined ? description : undefined,
+                enableAll: enableAll !== undefined ? enableAll : undefined,
             },
             select: {
                 id: true,
                 name: true,
                 desc: true,
                 leaderId: true,
+                enableAll: true,
             }
         });
 

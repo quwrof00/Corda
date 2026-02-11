@@ -20,7 +20,9 @@ export async function DELETE(
         // Check permissions:
         // 1. Leader can remove anyone
         // 2. User can remove themselves
-        if (team.leaderId !== currentUser.id && currentUser.id !== memberIdToRemove) {
+        // 3. Open permissions allow anyone to remove anyone
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (team.leaderId !== currentUser.id && currentUser.id !== memberIdToRemove && !(team as any).enableAll) {
             return NextResponse.json({ error: "Not authorized to remove this member" }, { status: 403 });
         }
 

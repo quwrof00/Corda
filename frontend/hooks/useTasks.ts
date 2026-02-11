@@ -19,6 +19,7 @@ export interface Task {
   team?: { id?: string; name?: string;[key: string]: any } | null;
   requiredSkill?: string | null;
   source?: string;
+  recurrenceId?: string | null;
   [key: string]: unknown;
 }
 

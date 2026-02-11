@@ -1,6 +1,6 @@
 import { Member, Task } from "./types";
 import { cn, formatDaysLeft } from "./utils";
-import { AlertOctagon, CheckCircle2, ChevronRight } from "lucide-react";
+import { AlertOctagon, CheckCircle2, ChevronRight, Repeat } from "lucide-react";
 import { useState } from "react";
 
 interface TeamTaskBoardProps {
@@ -66,6 +66,9 @@ export function TeamTaskBoard({
                                         )}>
                                             {formatDaysLeft(task.deadline)}
                                         </span>
+                                    )}
+                                    {task.recurrenceId && (
+                                        <Repeat className="w-3 h-3 text-blue-500" />
                                     )}
                                 </div>
                                 {task.requiredSkill && <span className="text-[10px] text-zinc-500">[{task.requiredSkill}]</span>}
@@ -150,6 +153,9 @@ export function TeamTaskBoard({
                                                         </div>
 
                                                         <p className={cn("line-clamp-1 flex-1", task.status === 'completed' && "line-through opacity-70")}>{task.title}</p>
+                                                        {task.recurrenceId && (
+                                                            <Repeat className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                                                        )}
                                                         {task.requiredSkill && (
                                                             <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-[9px] text-zinc-500 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-200 dark:border-zinc-800 px-1.5 py-0.5 rounded whitespace-nowrap hidden sm:inline-block">
                                                                 {task.requiredSkill}

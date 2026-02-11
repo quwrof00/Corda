@@ -63,6 +63,7 @@ export default function TeamDetailsPage() {
 
     const [editingTeamName, setEditingTeamName] = useState("");
     const [editingTeamDesc, setEditingTeamDesc] = useState("");
+    const [editingTeamEnableAll, setEditingTeamEnableAll] = useState(false);
 
     // Scroll state for navbar
     const [isScrolled, setIsScrolled] = useState(false);
@@ -144,7 +145,8 @@ export default function TeamDetailsPage() {
             await updateTeamMutation.mutateAsync({
                 id: teamId,
                 name: editingTeamName,
-                description: editingTeamDesc
+                description: editingTeamDesc,
+                enableAll: editingTeamEnableAll
             });
             queryClient.invalidateQueries({ queryKey: ["team", teamId] });
             toast.success("Team updated successfully");
@@ -205,6 +207,7 @@ export default function TeamDetailsPage() {
     const openEditTeam = () => {
         setEditingTeamName(team.name);
         setEditingTeamDesc(team.desc || "");
+        setEditingTeamEnableAll(team.enableAll || false);
         setTeamModalOpen(true);
     };
 
@@ -236,7 +239,8 @@ export default function TeamDetailsPage() {
 
     if (!team) return <div className="p-10 text-center bg-background text-zinc-500 font-sans">Team Not Found</div>;
 
-    const isLeader = session?.user?.email === team.leader?.email;
+    const isActualLeader = session?.user?.email === team.leader?.email;
+    const isLeader = isActualLeader || team.enableAll;
     const isPersonal = team.name === "Personal";
     const currentUserMemberId = (members as Member[])?.find((m: Member) => m.email === session?.user?.email)?.id;
 
@@ -253,6 +257,7 @@ export default function TeamDetailsPage() {
                 router={router}
                 isPersonal={isPersonal}
                 isLeader={isLeader}
+                isActualLeader={isActualLeader}
                 members={members as Member[]}
                 assignedTasks={assignedTasks}
                 openEditTeam={openEditTeam}
@@ -287,6 +292,7 @@ export default function TeamDetailsPage() {
                                     tasksByMember={tasksByMember}
                                     totalTasksCount={(tasks as Task[])?.length || 0}
                                     isLeader={isLeader}
+                                    isActualLeader={isActualLeader}
                                     setSelectedMemberId={setSelectedMemberId}
                                     setCreateTaskModalOpen={setCreateTaskModalOpen}
                                     handleRemoveMember={handleRemoveMember}
@@ -344,6 +350,9 @@ export default function TeamDetailsPage() {
                 setEditingTeamName={setEditingTeamName}
                 editingTeamDesc={editingTeamDesc}
                 setEditingTeamDesc={setEditingTeamDesc}
+                editingTeamEnableAll={editingTeamEnableAll}
+                setEditingTeamEnableAll={setEditingTeamEnableAll}
+                isActualLeader={isActualLeader}
                 handleSaveTeam={handleSaveTeam}
                 isPending={updateTeamMutation.isPending}
             />
@@ -356,6 +365,7 @@ export default function TeamDetailsPage() {
                 isLeader={isLeader}
                 teamName={team?.name}
                 currentUserId={currentUserMemberId}
+                members={members as Member[]}
             />
 
             <ConfirmModal

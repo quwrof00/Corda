@@ -16,33 +16,61 @@ export async function POST(
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         // Fetch outside transaction
+        interface TeamType {
+            id: string;
+            name: string;
+            leaderId: string | null;
+            enableAll: boolean;
+        }
+
         const team = await prisma.team.findUnique({
             where: { id: teamId },
-            include: {
-                members: {
-                    select: { id: true, skills: true, workload: true }
-                }
-            }
-        });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            select: { id: true, name: true, leaderId: true, enableAll: true } as any
+        }) as unknown as TeamType;
 
         if (!team) {
             return NextResponse.json({ error: "Team not found" }, { status: 404 });
         }
 
-        if (team.leaderId !== user.id) {
+        // Fetch ALL members with their TEAM-SPECIFIC workload
+        const members = await prisma.user.findMany({
+            where: {
+                OR: [
+                    { teams: { some: { id: teamId } } },
+                    { leadingTeams: { some: { id: teamId } } }
+                ]
+            },
+            select: {
+                id: true,
+                skills: true,
+                assignedTasks: {
+                    where: {
+                        teamId: teamId,
+                        status: { in: ['pending', 'active', 'in-progress', 'blocked'] }
+                    },
+                    select: { id: true }
+                }
+            }
+        }).then(users => users.map(u => ({
+            id: u.id,
+            skills: u.skills,
+            workload: u.assignedTasks.length // Team-specific workload
+        })));
+
+        if (team.leaderId !== user.id && !team.enableAll) {
             return NextResponse.json({ error: "Only team leader can run allocation" }, { status: 403 });
         }
 
-        if (!team.members || team.members.length === 0) {
+        if (!members || members.length === 0) {
             return NextResponse.json({ error: "No members in team" }, { status: 400 });
         }
-
-        const members = team.members;
 
         const pendingTasks = await prisma.task.findMany({
             where: {
                 teamId,
-                status: "pending"
+                status: "pending",
+                assignedToId: null
             }
         });
 
@@ -52,6 +80,9 @@ export async function POST(
                 allocations: []
             });
         }
+        console.log(`[Allocator API] Team: ${teamId}, Members count: ${members.length}`);
+        console.log(`[Allocator API] Members: ${JSON.stringify(members.map((m: { id: string; workload: number; skills: string[] }) => ({ id: m.id, workload: m.workload, skills: m.skills })))}`);
+        console.log(`[Allocator API] Pending Tasks count: ${pendingTasks.length}`);
 
         // Defensive defaults
         for (const m of members) {
@@ -60,6 +91,7 @@ export async function POST(
 
         // PURE decision phase
         const decisions = computeAllocations(pendingTasks, members);
+        console.log(`[Allocator API] Decisions: ${JSON.stringify(decisions)}`);
 
         const allocations: { taskId: string; assignedTo: string }[] = [];
         const workloadIncrements = new Map<string, number>();

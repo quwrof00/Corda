@@ -18,11 +18,21 @@ export async function POST(
         const { email } = await req.json();
 
         if (!email) return NextResponse.json({ error: "Email is required" }, { status: 400 });
+        interface TeamType {
+            id: string;
+            name: string;
+            leaderId: string | null;
+            enableAll: boolean;
+        }
 
-        const team = await prisma.team.findUnique({ where: { id: teamId } });
+        const team = await prisma.team.findUnique({
+            where: { id: teamId },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            select: { id: true, name: true, leaderId: true, enableAll: true } as any
+        }) as unknown as TeamType;
         if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
-        if (team.leaderId !== user.id) {
+        if (team.leaderId !== user.id && !team.enableAll) {
             return NextResponse.json({ error: "Only team leader can invite members" }, { status: 403 });
         }
 

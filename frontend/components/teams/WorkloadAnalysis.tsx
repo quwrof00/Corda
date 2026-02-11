@@ -7,6 +7,7 @@ interface WorkloadAnalysisProps {
     tasksByMember: Record<string, Task[]>;
     totalTasksCount: number;
     isLeader: boolean;
+    isActualLeader: boolean;
     setSelectedMemberId: (id: string) => void;
     setCreateTaskModalOpen: (open: boolean) => void;
     handleRemoveMember: (id: string) => void;
@@ -19,6 +20,7 @@ export function WorkloadAnalysis({
     tasksByMember,
     totalTasksCount,
     isLeader,
+    isActualLeader,
     setSelectedMemberId,
     setCreateTaskModalOpen,
     handleRemoveMember,
@@ -81,14 +83,16 @@ export function WorkloadAnalysis({
                                     >
                                         <Plus className="w-3.5 h-3.5" />
                                     </button>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleRemoveMember(member.id); }}
-                                        disabled={removeMemberMutationPending}
-                                        className="p-1 text-zinc-500 hover:text-red-500 transition-colors rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-50"
-                                        title="Remove Member"
-                                    >
-                                        {removeMemberMutationPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserMinus className="w-3.5 h-3.5" />}
-                                    </button>
+                                    {isActualLeader && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleRemoveMember(member.id); }}
+                                            disabled={removeMemberMutationPending}
+                                            className="p-1 text-zinc-500 hover:text-red-500 transition-colors rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-50"
+                                            title="Remove Member"
+                                        >
+                                            {removeMemberMutationPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserMinus className="w-3.5 h-3.5" />}
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>

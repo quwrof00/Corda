@@ -46,6 +46,7 @@ model Team {
   // 🔹 One team has many tasks
   tasks    Task[]
   invites  Invite[]
+  enableAll Boolean @default(false)
 }
 
 model Invite {
@@ -71,17 +72,18 @@ model Task {
   priority      String
   status        String
 
+  recurrenceId  String?
+  recurrence    Recurrence? @relation(fields: [recurrenceId], references: [id])
+
   teamId  String
   team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
   assignedToId String?
   assignedTo   User?   @relation(fields: [assignedToId], references: [id])
   
-  // Subtasks
   parentId String?
   parent   Task?   @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
   children Task[]  @relation("SubTasks")
 
-  // Fields for external integrations (Moodle)
   source      String   @default("manual") // "manual", "moodle"
   externalId  String?  // UID from ICS
 
@@ -90,6 +92,21 @@ model Task {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Recurrence {
+  id           String   @id @default(cuid())
+  frequency    String   // "daily", "weekly", "monthly"
+  interval     Int      // every X days/weeks/months
+  daysOfWeek   Int[]    // for weekly (0=Sunday, 1=Monday, etc.)
+  dayOfMonth   Int?     // for monthly (1-31)
+  endDate      DateTime?
+  nextRunAt    DateTime
+  
+  // Relation to tasks
+  tasks        Task[]
+  
+  createdAt    DateTime @default(now())
 }
 
 model Account {

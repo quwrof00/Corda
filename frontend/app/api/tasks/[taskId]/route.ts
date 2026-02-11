@@ -72,7 +72,9 @@ export async function PUT(
 
             if (!existingTask) throw new Error("Task not found");
 
-            const isLeader = existingTask.team.leaderId === user.id;
+            const isActualLeader = existingTask.team.leaderId === user.id;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const isLeader = isActualLeader || (existingTask.team as any).enableAll;
             const isAssignee = existingTask.assignedToId === user.id;
 
             if (!isLeader && !isAssignee) {
@@ -80,8 +82,9 @@ export async function PUT(
             }
 
             if (!isLeader) {
-                if (title || description || deadline || requiredSkill || priority || assignedToId || parentId) {
-                    throw new Error("Only team leader can edit task details. You can only update status.");
+                // If not a leader, but the assignee, they can edit most things except priority and re-assignment
+                if (priority || assignedToId || parentId) {
+                    throw new Error("Only team leader can edit priority, parent, or change assignment.");
                 }
             }
 
@@ -173,7 +176,8 @@ export async function DELETE(
 
             if (!existingTask) throw new Error("Task not found");
 
-            if (existingTask.team.leaderId !== user.id) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if (existingTask.team.leaderId !== user.id && !(existingTask.team as any).enableAll) {
                 throw new Error("Only team leader can delete tasks");
             }
 

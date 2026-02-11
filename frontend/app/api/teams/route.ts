@@ -21,6 +21,7 @@ export async function GET() {
                 id: true,
                 name: true,
                 desc: true,
+                enableAll: true,
                 leader: {
                     select: { id: true, name: true, email: true }
                 },
@@ -44,7 +45,8 @@ export async function GET() {
                         }
                     }
                 }
-            }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any
         });
 
         return NextResponse.json(teams);
@@ -62,7 +64,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { name, description, members = [] } = await req.json();
+        const { name, description, members = [], enableAll = false } = await req.json();
 
         if (!name || typeof name !== "string") {
             return NextResponse.json({ error: "Missing or invalid field: name" }, { status: 400 });
@@ -99,10 +101,12 @@ export async function POST(req: Request) {
                     name,
                     desc: description || null,
                     leaderId: user.id,
+                    enableAll: !!enableAll,
                     members: {
                         connect: finalMembers.map((id) => ({ id }))
                     }
-                },
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } as any,
                 select: {
                     id: true,
                     name: true,

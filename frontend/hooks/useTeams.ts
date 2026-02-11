@@ -20,6 +20,7 @@ export interface Team {
   updatedAt?: string;
   tasks?: { id: string }[];
   _count?: { tasks: number };
+  enableAll?: boolean;
   [key: string]: unknown;
 }
 

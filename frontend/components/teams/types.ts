@@ -20,6 +20,7 @@ export interface Task {
     parentId?: string | null;
     children?: Task[];
     source?: string;
+    recurrenceId?: string | null;
     team?: { id?: string; name?: string;[key: string]: unknown } | null;
     [key: string]: unknown;
 }
@@ -29,4 +30,5 @@ export interface Team {
     name: string;
     desc?: string;
     leader?: { email: string };
+    enableAll?: boolean;
 }

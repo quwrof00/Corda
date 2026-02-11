@@ -16,6 +16,7 @@ interface TeamHeaderProps {
     router: AppRouterInstance;
     isPersonal: boolean;
     isLeader: boolean;
+    isActualLeader: boolean;
     members: Member[] | undefined;
     assignedTasks: Task[];
     openEditTeam: () => void;
@@ -34,6 +35,7 @@ export function TeamHeader({
     router,
     isPersonal,
     isLeader,
+    isActualLeader,
     members,
     assignedTasks,
     openEditTeam,
@@ -59,7 +61,7 @@ export function TeamHeader({
                         <div>
                             <h1 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-3">
                                 {isPersonal ? "Personal Workspace" : team.name}
-                                {isLeader && !isPersonal && (
+                                {isActualLeader && !isPersonal && (
                                     <button onClick={openEditTeam} className="text-zinc-600 hover:text-zinc-400 transition-colors">
                                         <Settings className="w-4 h-4" />
                                     </button>
@@ -77,7 +79,8 @@ export function TeamHeader({
                         {isLeader && !isPersonal && (
                             <button
                                 onClick={() => setInviteModalOpen(true)}
-                                className="px-4 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 bg-background hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-white transition-colors rounded-lg"
+                                disabled={allocating}
+                                className="px-4 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 bg-background hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-white transition-colors rounded-lg disabled:opacity-50"
                             >
                                 Invite Member
                             </button>
@@ -91,7 +94,8 @@ export function TeamHeader({
                                         }
                                         setCreateTaskModalOpen(true);
                                     }}
-                                    className="px-4 py-2 text-xs font-bold text-white dark:text-black bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white transition-colors flex items-center gap-2 rounded-lg"
+                                    disabled={allocating}
+                                    className="px-4 py-2 text-xs font-bold text-white dark:text-black bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white transition-colors flex items-center gap-2 rounded-lg disabled:opacity-50"
                                 >
                                     <Plus className="w-3 h-3" /> New Task
                                 </button>
@@ -105,10 +109,11 @@ export function TeamHeader({
                                         Auto-Allocate
                                     </button>
                                 )}
-                                {!isPersonal && (
+                                {isActualLeader && !isPersonal && (
                                     <button
                                         onClick={handleDeleteTeam}
-                                        className="px-4 py-2 text-xs font-bold text-red-500 border border-red-900/30 bg-red-950/10 hover:bg-red-950/30 transition-colors flex items-center gap-2 rounded-lg"
+                                        disabled={allocating}
+                                        className="px-4 py-2 text-xs font-bold text-red-500 border border-red-900/30 bg-red-950/10 hover:bg-red-950/30 transition-colors flex items-center gap-2 rounded-lg disabled:opacity-50"
                                     >
                                         <Trash2 className="w-3 h-3" />
                                     </button>
