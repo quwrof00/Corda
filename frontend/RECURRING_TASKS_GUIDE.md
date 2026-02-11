@@ -16,7 +16,7 @@ The system automatically generates new tasks based on `Recurrence` rules defined
 - **Singleton Pattern**: Ensures only one cron job instance runs, even during Next.js hot reloads in development.
 - **Scheduling**:
   - **Development**: Runs every minute (`* * * * *`) for easy testing.
-  - **Production**: Runs hourly (`0 * * * *`) to save resources.
+  - **Production**: Defaulted to **Daily** (`0 0 * * *`) to comply with Vercel Hobby plan limitations.
 - **Logic**:
   1. Finds `Recurrence` records where `nextRunAt <= Now`.
   2. Gets the latest task associated with that recurrence.
@@ -40,18 +40,20 @@ The system automatically generates new tasks based on `Recurrence` rules defined
 For production deployment on Vercel:
 
 1. **Delete/Identify `instrumentation.ts`**: The `node-cron` usage in `instrumentation.ts` is for long-running servers. On Vercel, it won't run continuously. You can keep it (it won't hurt, but won't work reliably) or switch to relying solely on the HTTP endpoint.
-2. **Vercel Cron**: The project includes a `vercel.json` file configured for **Hourly** execution:
+3. **Vercel Cron**: The project includes a `vercel.json` file configured for **Daily** execution to comply with the **Hobby Plan**'s limit (1 job per day):
    ```json
    {
      "crons": [
        {
          "path": "/api/cron",
-         "schedule": "0 * * * *"
+         "schedule": "0 0 * * *"
        }
      ]
    }
    ```
-   *Note: Every minute (`* * * * *`) is often too frequent for production and may hit usage limits.*
+   *Note: If you have a Pro plan, you can increase this frequency (e.g., hourly `0 * * * *`).*
+
+4. **Catch-Up Logic**: If your tasks are configured for a frequency faster than your cron schedule (e.g., a "Daily" task but the cron didn't run for 2 days), the system will create the **next** due task and then advance the recurrence schedule until it's in the future. It will NOT flood the database with multiple intermediate missed tasks.
 3. **Environment Variables**:
    - Set `CRON_SECRET` in Vercel settings to a strong random string.
    - Vercel Cron automatically signs requests so you don't strictly need the secret check *if* you rely on Vercel's protections, but our API route checks for `Bearer <CRON_SECRET>` for security if manual triggering is needed or for cross-platform compatibility.
