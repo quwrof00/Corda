@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "build:render": "next build && tsc server.ts --esModuleInterop --skipLibCheck",
+    "build:render": "npx next build && npx tsc server.ts --esModuleInterop --skipLibCheck",
     "start:render": "NODE_ENV=production node server.js"
   },
   "dependencies": {
