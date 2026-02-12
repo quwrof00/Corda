@@ -9,9 +9,19 @@ import TaskDetailDrawer from "@/components/TaskDetailDrawer";
 import { toast } from "sonner";
 
 import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
-import { useTeams } from "@/hooks/useTeams";
+import { useTeams, Team } from "@/hooks/useTeams";
 import { buildTaskTree } from "@/lib/taskTreeUtils";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
+
+interface AllocationUpdateData {
+    type: 'autoalloc_started' | 'allocation_completed' | 'task_reallocated' | 'allocation_error' | 'task_created' | 'task_updated' | 'task_deleted';
+    teamId?: string;
+    count?: number;
+    newAssignee?: string;
+    message?: string;
+    title?: string;
+    byUser?: string;
+}
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return inputs.filter(Boolean).join(' ');
@@ -287,7 +297,7 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
     const { data: teamsData } = useTeams();
 
     // Socket ref to prevent re-creation
-    const socketRef = useRef<any>(null);
+    const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
         // Initialize socket connection only once
@@ -303,12 +313,12 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                 console.log("Socket connected", socket.id);
                 // Re-join teams if we have them (e.g. on reconnect)
                 if (teamsData) {
-                    teamsData.forEach((t: any) => socket.emit("join-team", t.id));
+                    teamsData.forEach((t: Team) => socket.emit("join-team", t.id));
                 }
             });
 
             // Listen for allocation updates
-            socket.on("allocation-update", (data: any) => {
+            socket.on("allocation-update", (data: AllocationUpdateData) => {
                 console.log("Received allocation update:", data);
                 const runner = data.byUser ? `User ${data.byUser}` : "A member";
 
@@ -344,9 +354,11 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
         // Handle joining teams when data becomes available or changes
         const socket = socketRef.current;
         if (socket && teamsData) {
-            teamsData.forEach((t: any) => {
-                socket.emit("join-team", t.id);
-            });
+            if (socket && teamsData) {
+                teamsData.forEach((t: Team) => {
+                    socket.emit("join-team", t.id);
+                });
+            }
         }
 
     }, [teamsData, refetch]);

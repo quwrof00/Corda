@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import { AxiosError } from "axios";
 import { useSession } from "next-auth/react";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -23,6 +23,16 @@ import { TeamTaskBoard } from "@/components/teams/TeamTaskBoard";
 import { InviteModal, EditTeamModal } from "@/components/teams/TeamModals";
 import { Member } from "@/components/teams/types";
 import { cn } from "@/components/teams/utils";
+
+interface AllocationUpdateData {
+    type: 'autoalloc_started' | 'allocation_completed' | 'task_reallocated' | 'allocation_error' | 'task_created' | 'task_updated' | 'task_deleted';
+    teamId?: string;
+    count?: number;
+    newAssignee?: string;
+    message?: string;
+    title?: string;
+    byUser?: string;
+}
 
 export default function TeamDetailsPage() {
     const params = useParams();
@@ -78,7 +88,7 @@ export default function TeamDetailsPage() {
     }, []);
 
     // Socket.IO for real-time updates
-    const socketRef = useRef<any>(null);
+    const socketRef = useRef<Socket | null>(null);
     useEffect(() => {
         if (!teamId) return;
 
@@ -94,7 +104,7 @@ export default function TeamDetailsPage() {
             socket.emit("join-team", teamId);
         });
 
-        socket.on("allocation-update", (data: any) => {
+        socket.on("allocation-update", (data: AllocationUpdateData) => {
             console.log("TeamPage received update:", data.type);
 
             if (data.type === 'autoalloc_started') {

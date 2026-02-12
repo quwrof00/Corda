@@ -12,7 +12,7 @@ export async function POST(req: Request, props: { params: Promise<{ teamId: stri
     let body;
     try {
         body = await req.json();
-    } catch (e) {
+    } catch {
         body = {};
     }
     const { taskId, userId } = body;
