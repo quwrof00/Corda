@@ -7,7 +7,8 @@ import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 import { api } from "@/lib/api";
 import { AxiosError } from "axios";
 import { useSession } from "next-auth/react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { io } from "socket.io-client";
 import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -75,6 +76,52 @@ export default function TeamDetailsPage() {
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
+
+    // Socket.IO for real-time updates
+    const socketRef = useRef<any>(null);
+    useEffect(() => {
+        if (!teamId) return;
+
+        // Initialize socket
+        const socket = io({
+            addTrailingSlash: false,
+        });
+        socketRef.current = socket;
+
+        socket.on("connect", () => {
+            console.log("TeamPage Socket connected:", socket.id);
+            socket.emit("join-team", teamId);
+        });
+
+        socket.on("allocation-update", (data: any) => {
+            console.log("TeamPage received update:", data.type);
+
+            if (data.type === 'autoalloc_started') {
+                const runner = data.byUser ? `User ${data.byUser}` : "A member";
+                toast.info(`${runner} started allocation...`, { id: "alloc-start-toast" }); // dedupe ID
+            } else if (data.type === 'allocation_completed') {
+                toast.success(`Allocation complete! Assigned ${data.count} tasks.`);
+                queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
+                queryClient.invalidateQueries({ queryKey: ["teamMembers", teamId] });
+            } else if (data.type === 'task_reallocated') {
+                toast.success(`Task reallocated`);
+                queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
+            } else if (data.type === 'task_created') {
+                toast.success(`New task: ${data.title}`);
+                queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
+            } else if (data.type === 'task_deleted') {
+                toast.success(`Task deleted`);
+                queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
+            } else if (data.type === 'task_updated') {
+                toast.success(`Task updated`);
+                queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
+            }
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [teamId, queryClient]);
 
     const unassignedTasks = useMemo(() => (tasks as Task[])?.filter((t) => !t.assignedTo) || [], [tasks]);
     const assignedTasks = useMemo(() => (tasks as Task[])?.filter((t) => t.assignedTo) || [], [tasks]);
@@ -168,7 +215,7 @@ export default function TeamDetailsPage() {
                 setAllocating(true);
                 setConfirmModal(prev => ({ ...prev, isOpen: false }));
                 try {
-                    await api.post(`/allocator/${teamId}`);
+                    await api.post(`/teams/${teamId}/allocate`, { userId: currentUserMemberId });
                     queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
                     queryClient.invalidateQueries({ queryKey: ["teamMembers", teamId] });
                     toast.success("Allocation process completed");

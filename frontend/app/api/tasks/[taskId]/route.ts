@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getCurrentUser } from "@/lib/session";
 import { getCanonicalSkill, formatSkill } from "@/lib/skills";
+import { redis } from "@/lib/redis";
 
 // GET /api/tasks/[taskId]
 export async function GET(
@@ -146,6 +147,16 @@ export async function PUT(
             timeout: 10000
         });
 
+        // Broadcast task update
+        await redis.publish(`team:${updatedTask.teamId}:updates`, JSON.stringify({
+            type: 'task_updated',
+            taskId: updatedTask.id,
+            title: updatedTask.title,
+            status: updatedTask.status,
+            assignedToId: updatedTask.assignedToId,
+            byUser: user.id
+        }));
+
         return NextResponse.json(updatedTask);
     } catch (error) {
         console.error("Error updating task:", error);
@@ -190,12 +201,22 @@ export async function DELETE(
 
             await tx.task.delete({ where: { id: taskId } });
 
-            return { message: "Task deleted successfully" };
+            return { message: "Task deleted successfully", teamId: existingTask.teamId, title: existingTask.title };
         }, {
             timeout: 10000
         });
 
-        return NextResponse.json(result);
+        // Broadcast task deletion
+        if (result.teamId) {
+            await redis.publish(`team:${result.teamId}:updates`, JSON.stringify({
+                type: 'task_deleted',
+                taskId,
+                title: result.title,
+                byUser: user.id
+            }));
+        }
+
+        return NextResponse.json({ message: result.message });
     } catch (error) {
         console.error("Error deleting task:", error);
         const errorMessage = error instanceof Error ? error.message : "Unknown error";

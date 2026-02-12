@@ -87,7 +87,7 @@ export async function processRecurringTasks() {
         const newDeadline = new Date(now.getTime() + originalDuration);
 
         try {
-            await prisma.task.create({
+            const newTask = await prisma.task.create({
                 data: {
                     title: templateTask.title,
                     desc: templateTask.desc,
@@ -102,6 +102,8 @@ export async function processRecurringTasks() {
                     source: 'manual', // or 'recurrence' if we add that enum
                 },
             });
+
+
 
             console.log(`Generated recurring task for recurrence ${recurrence.id}`);
 

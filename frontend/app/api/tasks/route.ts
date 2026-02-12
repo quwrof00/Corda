@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getCanonicalSkill, formatSkill } from "@/lib/skills";
+import { redis } from "@/lib/redis";
 
 // GET /api/tasks - Get all tasks assigned to current user
 export async function GET() {
@@ -146,6 +147,8 @@ export async function POST(req: Request) {
             recurrenceId = newRecurrence.id;
         }
 
+
+
         const newTask = await prisma.task.create({
             data: {
                 title,
@@ -161,6 +164,14 @@ export async function POST(req: Request) {
                 recurrenceId: recurrenceId,
             }
         });
+
+        // Broadcast task creation
+        await redis.publish(`team:${teamId}:updates`, JSON.stringify({
+            type: 'task_created',
+            taskId: newTask.id,
+            title: newTask.title,
+            creatorId: user.id
+        }));
 
         return NextResponse.json(newTask, { status: 201 });
     } catch (error) {
