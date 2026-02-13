@@ -1,7 +1,0 @@
-﻿app/api/tasks/[taskId]/route.ts(76,13): error TS2578: Unused '@ts-expect-error' directive.
-app/api/tasks/[taskId]/route.ts(179,13): error TS2578: Unused '@ts-expect-error' directive.
-app/api/teams/[teamId]/members/[userId]/route.ts(24,9): error TS2578: Unused '@ts-expect-error' directive.
-app/api/teams/route.ts(24,17): error TS2578: Unused '@ts-expect-error' directive.
-app/api/teams/route.ts(104,21): error TS2578: Unused '@ts-expect-error' directive.
-components/tasks/TaskItem.tsx(81,35): error TS2304: Cannot find name 'loading'.
-components/tasks/TaskItem.tsx(90,35): error TS2304: Cannot find name 'loading'.

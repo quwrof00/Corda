@@ -77,7 +77,7 @@ export const SocketProvider = ({
                 if (type === "ALLOCATION_UPDATE") {
                     toast.success("Tasks auto-allocated!");
                 } else {
-                    toast.info(`Team Update: ${formattedAction}`);
+                    toast.info(`Team Update: Task ${formattedAction}`);
                 }
             }
         });
