@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import { publishTeamEvent } from "@/lib/socket";
 import crypto from "crypto";
 
 export async function POST(req: Request) {
@@ -70,6 +71,13 @@ export async function POST(req: Request) {
                 data: { acceptedAt: new Date() }
             })
         ]);
+
+        // Real-time notification
+        await publishTeamEvent(invite.teamId, {
+            type: "MEMBER_ADDED",
+            payload: { userId: user.id, name: user.name },
+            meta: { triggeredBy: user.id }
+        });
 
         return NextResponse.json({ message: "Invite accepted", teamId: invite.teamId });
 

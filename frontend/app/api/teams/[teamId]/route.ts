@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import { publishTeamEvent } from "@/lib/socket";
 
 // GET /api/teams/[teamId] - Get single team
 export async function GET(
@@ -75,6 +76,13 @@ export async function PUT(
             }
         });
 
+        // Real-time notification
+        await publishTeamEvent(teamId, {
+            type: "TEAM_UPDATED",
+            payload: updatedTeam,
+            meta: { triggeredBy: user.id }
+        });
+
         return NextResponse.json(updatedTeam);
     } catch (error) {
         console.error("Error updating team:", error);
@@ -107,6 +115,13 @@ export async function DELETE(
         }
 
         await prisma.team.delete({ where: { id: teamId } });
+
+        // Real-time notification
+        await publishTeamEvent(teamId, {
+            type: "TEAM_DELETED",
+            payload: { id: teamId },
+            meta: { triggeredBy: user.id }
+        });
 
         return NextResponse.json({ message: "Team deleted successfully" });
     } catch (error) {

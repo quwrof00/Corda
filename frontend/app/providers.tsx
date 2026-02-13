@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
+import { SocketProvider } from "@/components/providers/SocketProvider";
 
 import { Session } from "next-auth";
 
@@ -23,7 +24,9 @@ export default function Providers({ children, session }: { children: ReactNode, 
         <SessionProvider session={session}>
             <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
                 <QueryClientProvider client={client}>
-                    {children}
+                    <SocketProvider>
+                        {children}
+                    </SocketProvider>
                     <Toaster theme="system" position="bottom-right" />
                 </QueryClientProvider>
             </ThemeProvider>

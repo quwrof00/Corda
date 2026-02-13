@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getCurrentUser } from "@/lib/session";
+import { publishTeamEvent } from "@/lib/socket";
 
 export async function DELETE(
     req: Request,
@@ -48,6 +49,13 @@ export async function DELETE(
                     assignedToId: memberIdToRemove
                 }
             });
+        });
+
+        // Real-time notification
+        await publishTeamEvent(teamId, {
+            type: "MEMBER_REMOVED",
+            payload: { userId: memberIdToRemove },
+            meta: { triggeredBy: currentUser.id }
         });
 
         return NextResponse.json({ message: "Member removed successfully" });

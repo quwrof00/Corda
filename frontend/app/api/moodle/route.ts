@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { publishTeamEvent } from "@/lib/socket";
 import axios from "axios";
 
 import crypto from "crypto";
@@ -54,7 +55,6 @@ export async function POST(req: Request) {
 
             const response = await axios.get(integration.icsUrl, { httpsAgent: agent });
             const rawICSString = response.data;
-            console.log("Raw string: ", rawICSString);
 
             // 2. Hash
             const hash = crypto
@@ -118,6 +118,15 @@ export async function POST(req: Request) {
                             count++;
                         }
                     }
+                }
+
+                // Real-time notification
+                if (count > 0) {
+                    await publishTeamEvent(teamId, {
+                        type: "TASK_CREATED",
+                        payload: { message: `Synced ${count} tasks from Moodle` },
+                        meta: { triggeredBy: user.id }
+                    });
                 }
             }
 

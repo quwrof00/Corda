@@ -11,17 +11,6 @@ import { toast } from "sonner";
 import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 import { useTeams, Team } from "@/hooks/useTeams";
 import { buildTaskTree } from "@/lib/taskTreeUtils";
-import { io, Socket } from "socket.io-client";
-
-interface AllocationUpdateData {
-    type: 'autoalloc_started' | 'allocation_completed' | 'task_reallocated' | 'allocation_error' | 'task_created' | 'task_updated' | 'task_deleted';
-    teamId?: string;
-    count?: number;
-    newAssignee?: string;
-    message?: string;
-    title?: string;
-    byUser?: string;
-}
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return inputs.filter(Boolean).join(' ');
@@ -296,82 +285,8 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
     const { data: tasksData, isLoading, refetch } = useTasks(undefined, { initialData: initialTasks });
     const { data: teamsData } = useTeams();
 
-    // Socket ref to prevent re-creation
-    const socketRef = useRef<Socket | null>(null);
+    // Redundant socket logic removed in favor of global SocketProvider
 
-    useEffect(() => {
-        // Initialize socket connection only once
-        if (!socketRef.current) {
-            const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || undefined;
-            const socket = io(socketUrl, {
-                // path: "/api/socket/io", 
-                addTrailingSlash: false,
-            });
-            socketRef.current = socket;
-
-            socket.on("connect", () => {
-                console.log("Socket connected", socket.id);
-                // Re-join teams if we have them (e.g. on reconnect)
-                if (teamsData) {
-                    teamsData.forEach((t: Team) => socket.emit("join-team", t.id));
-                }
-            });
-
-            // Listen for allocation updates
-            socket.on("allocation-update", (data: AllocationUpdateData) => {
-                console.log("Received allocation update:", data);
-                const runner = data.byUser ? `User ${data.byUser}` : "A member";
-
-                if (data.type === 'autoalloc_started') {
-                    toast.info(`${runner} started auto-allocation...`, {
-                        id: `alloc-start-${data.teamId || 'unknown'}`,
-                        duration: 3000
-                    });
-                } else if (data.type === 'allocation_completed') {
-                    toast.success(`Allocation complete! Assigned ${data.count} tasks.`);
-                } else if (data.type === 'task_reallocated') {
-                    toast.success(`Task reallocated to user ${data.newAssignee}`);
-                } else if (data.type === 'allocation_error') {
-                    toast.error(data.message || "Allocation failed.");
-                } else if (data.type === 'task_created') {
-                    toast.success(`New task created: ${data.title}`);
-                } else if (data.type === 'task_updated') {
-                    toast.info(`Task updated: ${data.title}`);
-                } else if (data.type === 'task_deleted') {
-                    toast.info(`Task deleted: ${data.title || ''}`);
-                }
-
-                if (['allocation_completed', 'task_reallocated', 'task_created', 'task_updated', 'task_deleted'].includes(data.type)) {
-                    refetch();
-                }
-            });
-
-            socket.on("allocation-error", () => {
-                toast.error("Allocation failed.");
-            });
-        }
-
-        // Handle joining teams when data becomes available or changes
-        const socket = socketRef.current;
-        if (socket && teamsData) {
-            if (socket && teamsData) {
-                teamsData.forEach((t: Team) => {
-                    socket.emit("join-team", t.id);
-                });
-            }
-        }
-
-    }, [teamsData, refetch]);
-
-    // Separate cleanup effect
-    useEffect(() => {
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.disconnect();
-                socketRef.current = null;
-            }
-        };
-    }, []);
 
 
     // Filters & Sort State

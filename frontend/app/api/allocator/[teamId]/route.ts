@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getCurrentUser } from "@/lib/session";
 import { computeAllocations } from "@/lib/allocator";
+import { publishTeamEvent } from "@/lib/socket";
 
 export async function POST(
     req: Request,
@@ -133,6 +134,13 @@ export async function POST(
                 });
             }
         }, { timeout: 10000 });
+
+        // Real-time notification
+        await publishTeamEvent(teamId, {
+            type: "ALLOCATION_UPDATE",
+            payload: { count: allocations.length, allocations },
+            meta: { triggeredBy: user.id }
+        });
 
         return NextResponse.json({
             message: `Allocated ${allocations.length} tasks`,

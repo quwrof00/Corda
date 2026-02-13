@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getCurrentUser } from "@/lib/session";
+import { publishTeamEvent } from "@/lib/socket";
 
 // GET /api/teams - List all teams for the current user
 export async function GET() {
@@ -113,6 +114,13 @@ export async function POST(req: Request) {
                     leaderId: true,
                 }
             });
+        });
+
+        // Real-time notification
+        await publishTeamEvent(team.id, {
+            type: "TEAM_CREATED",
+            payload: team,
+            meta: { triggeredBy: user.id }
         });
 
         return NextResponse.json(team, { status: 201 });

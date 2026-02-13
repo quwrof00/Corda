@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getCurrentUser } from "@/lib/session";
 import { getCanonicalSkill, formatSkill } from "@/lib/skills";
+import { publishTeamEvent } from "@/lib/socket";
 
 // GET /api/tasks/[taskId]
 export async function GET(
@@ -59,9 +60,6 @@ export async function PUT(
             if (parentId === taskId) {
                 return NextResponse.json({ error: "Task cannot be its own parent" }, { status: 400 });
             }
-            // Basic check: Ensure new parent is not a child of this task (prevent immediate cycle)
-            // For a robust check, we'd need a recursive query, but typically simple same-id check catches basic errors.
-            // Let's rely on frontend preventing selecting children as parents for now, or add a deeper check if needed.
         }
 
         const updatedTask = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -133,7 +131,7 @@ export async function PUT(
                 }
             }
 
-            return await tx.task.update({
+            const result = await tx.task.update({
                 where: { id: taskId },
                 data: updateData,
                 include: {
@@ -142,6 +140,15 @@ export async function PUT(
                     }
                 }
             });
+
+            // Real-time notification
+            await publishTeamEvent(existingTask.teamId, {
+                type: "TASK_UPDATED",
+                payload: result,
+                meta: { triggeredBy: user.id }
+            });
+
+            return result;
         }, {
             timeout: 10000
         });
@@ -189,6 +196,13 @@ export async function DELETE(
             }
 
             await tx.task.delete({ where: { id: taskId } });
+
+            // Real-time notification
+            await publishTeamEvent(existingTask.teamId, {
+                type: "TASK_DELETED",
+                payload: { id: taskId, title: existingTask.title },
+                meta: { triggeredBy: user.id }
+            });
 
             return { message: "Task deleted successfully" };
         }, {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getCanonicalSkill, formatSkill } from "@/lib/skills";
+import { publishTeamEvent } from "@/lib/socket";
 
 // GET /api/tasks - Get all tasks assigned to current user
 export async function GET() {
@@ -160,6 +161,13 @@ export async function POST(req: Request) {
                 parentId: parentId || null,
                 recurrenceId: recurrenceId,
             }
+        });
+
+        // Real-time notification
+        await publishTeamEvent(teamId, {
+            type: "TASK_CREATED",
+            payload: newTask,
+            meta: { triggeredBy: user.id }
         });
 
         return NextResponse.json(newTask, { status: 201 });
