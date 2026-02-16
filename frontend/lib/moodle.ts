@@ -96,6 +96,7 @@ export async function syncMoodleTasks(userId: string, force = false) {
                             title: event.summary,
                             desc: event.description,
                             deadline: event.end || event.start, // Fallback if no end
+                            teamId: teamId, // Ensure existing tasks move to Personal team
                         },
                         create: {
                             title: event.summary,

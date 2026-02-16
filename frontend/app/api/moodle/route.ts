@@ -74,14 +74,16 @@ export async function POST(req: Request) {
             const events = parseICS(rawICSString);
             let count = 0;
 
-            // Get a default team
-            const userTeams = await prisma.team.findMany({
-                where: { members: { some: { id: user.id } } },
-                take: 1
+            // Get the user's Personal team
+            const personalTeam = await prisma.team.findFirst({
+                where: {
+                    members: { some: { id: user.id } },
+                    name: "Personal"
+                }
             });
 
-            if (userTeams.length > 0) {
-                const teamId = userTeams[0].id;
+            if (personalTeam) {
+                const teamId = personalTeam.id;
 
                 for (const key in events) {
                     if (Object.prototype.hasOwnProperty.call(events, key)) {
@@ -100,6 +102,7 @@ export async function POST(req: Request) {
                                         ? `${event.categories} - ${event.description || ""}`
                                         : event.categories || "",
                                     deadline: event.end || event.start || new Date(),
+                                    teamId: teamId, // Ensure existing tasks move to Personal team
                                 },
                                 create: {
                                     title: event.summary || "Untitled Moodle Task",
