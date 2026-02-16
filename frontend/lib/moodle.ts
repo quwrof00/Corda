@@ -69,18 +69,21 @@ export async function syncMoodleTasks(userId: string, force = false) {
                     // QUICK FIX: Find the first team the user is a member of. 
                     // Real solution: Add `defaultTeamId` to MoodleIntegration.
 
-                    const userTeams = await prisma.team.findMany({
-                        where: { members: { some: { id: userId } } },
-                        take: 1
+                    // Find the user's "Personal" team
+                    const personalTeam = await prisma.team.findFirst({
+                        where: {
+                            members: { some: { id: userId } },
+                            name: "Personal"
+                        }
                     });
 
-                    if (userTeams.length === 0) {
-                        // No team found, cannot create task.
-                        console.warn(`User ${userId} has no teams. Skipping task creation.`);
+                    if (!personalTeam) {
+                        // No Personal team found, cannot create task.
+                        console.warn(`User ${userId} has no Personal team. Skipping task creation.`);
                         continue;
                     }
 
-                    const teamId = userTeams[0].id;
+                    const teamId = personalTeam.id;
 
                     await prisma.task.upsert({
                         where: {
