@@ -53,7 +53,7 @@ export const SocketProvider = ({
         });
 
         // --- GLOBAL EVENT LISTENER ---
-        socketInstance.on("team-event", (event: any) => {
+        socketInstance.on("team-event", (event: { type: string; meta?: { triggeredBy?: string; timestamp?: number } }) => {
             console.log("Global Team Event:", event);
 
             const { type, meta } = event;

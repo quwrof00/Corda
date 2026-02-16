@@ -92,22 +92,22 @@ export default function MoodleSyncButton({ variant = "button" }: MoodleSyncButto
                         setIsOpen(true);
                     }}
                     className={cn(
-                        "relative group p-3 sm:p-5 rounded-xl bg-card border border-zinc-200 dark:border-zinc-900 cursor-pointer transition-all hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50 h-full flex flex-col justify-between",
+                        "relative group p-3 sm:p-5 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 cursor-pointer transition-all hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50 h-32 flex flex-col justify-between overflow-hidden",
                         (syncMutation.isPending || isLoadingConfig) ? "opacity-70 pointer-events-none" : "hover:border-zinc-300 dark:hover:border-zinc-700"
                     )}
-                    whileHover={{ y: -2 }}
+                    whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                 >
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/30 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold shadow-sm group-hover:bg-orange-100 dark:group-hover:bg-orange-900/40 transition-colors">
-                                <FolderSync className="w-5 h-5" />
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/30 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold shadow-sm group-hover:bg-orange-100 dark:group-hover:bg-orange-900/40 transition-colors">
+                                <FolderSync className="w-4 h-4 sm:w-5 sm:h-5" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-zinc-800 dark:text-zinc-200 leading-tight group-hover:text-black dark:group-hover:text-white transition-colors">
+                                <h3 className="font-bold text-sm sm:text-base text-zinc-800 dark:text-zinc-200 leading-tight group-hover:text-black dark:group-hover:text-white transition-colors">
                                     LMS Sync
                                 </h3>
-                                <p className="text-xs text-zinc-500 dark:text-zinc-600 uppercase tracking-wider font-bold">
+                                <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-600 uppercase tracking-wider font-bold">
                                     Integration
                                 </p>
                             </div>
@@ -117,10 +117,10 @@ export default function MoodleSyncButton({ variant = "button" }: MoodleSyncButto
                         )}
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs font-mono mt-2">
+                    <div className="flex items-center gap-2 sm:gap-4 text-xs font-mono">
                         <div className="flex flex-col">
                             <span className="text-zinc-500 uppercase text-[10px] font-bold">Status</span>
-                            <span className={config?.isActive ? "text-emerald-500 font-medium" : "text-zinc-400 font-medium"}>
+                            <span className={config?.isActive ? "text-emerald-500 font-medium text-xs sm:text-sm" : "text-zinc-400 font-medium text-xs sm:text-sm"}>
                                 {config?.isActive ? "Active" : "Not Set"}
                             </span>
                         </div>

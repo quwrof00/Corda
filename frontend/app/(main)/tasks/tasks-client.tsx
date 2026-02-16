@@ -6,10 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import CreateTaskModal from "@/components/CreateTaskModal";
 import CreateTeamModal from "@/components/CreateTeamModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
-import { toast } from "sonner";
+
 
 import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
-import { useTeams, Team } from "@/hooks/useTeams";
+import { useTeams } from "@/hooks/useTeams";
 import { buildTaskTree } from "@/lib/taskTreeUtils";
 
 function cn(...inputs: (string | undefined | null | false)[]) {

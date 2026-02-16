@@ -5,6 +5,7 @@ import { cn, formatDaysLeft } from "./utils";
 import { CheckCircle2, Plus, ChevronRight, Repeat, Loader2 } from "lucide-react";
 import { buildTaskTree, flattenTree } from "@/lib/taskTreeUtils";
 import { useUpdateTask } from "@/hooks/useTasks";
+import MoodleSyncButton from "@/components/tasks/moodle-sync-button";
 
 interface PersonalWorkspaceProps {
     assignedTasks: Task[];
@@ -150,17 +151,7 @@ export function PersonalWorkspace({
                     </div>
                 </motion.div>
 
-                <motion.div
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    className="bg-zinc-50 dark:bg-zinc-900/50 p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between h-32 relative overflow-hidden group"
-                >
-                    <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Workspace</span>
-                    <div className="flex items-center gap-2 mt-2">
-                        <div className="text-xs bg-zinc-200 dark:bg-zinc-800 px-2 py-1 rounded text-zinc-600 dark:text-zinc-300">Private</div>
-                        <div className="text-xs bg-zinc-200 dark:bg-zinc-800 px-2 py-1 rounded text-zinc-600 dark:text-zinc-300">Secure</div>
-                    </div>
-                    <p className="text-[10px] text-zinc-600 mt-2">Only you can see these tasks</p>
-                </motion.div>
+                <MoodleSyncButton variant="card" />
             </motion.div>
 
             {/* Main Task List */}

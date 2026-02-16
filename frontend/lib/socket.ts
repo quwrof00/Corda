@@ -2,7 +2,7 @@ import { redis } from "./redis";
 
 export interface TeamEvent {
     type: "TASK_CREATED" | "TASK_UPDATED" | "TASK_DELETED" | "COMMENT_ADDED" | "STATUS_CHANGED" | "MEMBER_ADDED" | "MEMBER_REMOVED" | "ALLOCATION_UPDATE" | string;
-    payload: any;
+    payload: unknown;
     teamId?: string;
     meta?: {
         triggeredBy?: string;
