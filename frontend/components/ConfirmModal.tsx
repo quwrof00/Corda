@@ -13,6 +13,7 @@ interface ConfirmModalProps {
     confirmText?: string;
     cancelText?: string;
     variant?: "danger" | "warning" | "info";
+    children?: React.ReactNode;
 }
 
 export default function ConfirmModal({
@@ -25,6 +26,7 @@ export default function ConfirmModal({
     confirmText = "Confirm",
     cancelText = "Cancel",
     variant = "danger",
+    children,
 }: ConfirmModalProps) {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -69,6 +71,12 @@ export default function ConfirmModal({
                                 <p className="text-sm text-zinc-400 leading-relaxed">{description}</p>
                             </div>
                         </div>
+
+                        {children && (
+                            <div className="mb-6 px-2">
+                                {children}
+                            </div>
+                        )}
 
                         <div className="flex justify-end gap-3 pt-2">
                             <motion.button

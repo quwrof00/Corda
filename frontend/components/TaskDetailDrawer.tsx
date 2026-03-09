@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
-import { Pause, Play, X, Calendar, Users, Edit2, Save, Trash2, CheckCircle2, Clock, Plus, ChevronRight, Wrench, Loader2 } from "lucide-react"
+import { Pause, Play, X, Calendar, Users, Edit2, Save, Trash2, CheckCircle2, Clock, Plus, ChevronRight, Wrench, Loader2, Ban } from "lucide-react"
 import cn from "clsx"
 import { motion, AnimatePresence } from "framer-motion";
 import { Task, useDeleteTask } from "@/hooks/useTasks";
 import ConfirmModal from "./ConfirmModal";
 import { UseMutationResult } from "@tanstack/react-query";
 import { toast } from "sonner";
-
-
 
 interface Member {
     id: string;
@@ -96,7 +94,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                 id: selectedTask.id,
                 title: editForm.title,
                 description: editForm.description,
-                deadline: editForm.deadline || null,
+                deadline: editForm.deadline ? new Date(`${editForm.deadline}T23:59:59`).toISOString() : null,
                 priority: editForm.priority,
                 requiredSkill: editForm.requiredSkill || null,
                 assignedToId: editForm.assignedToId || null
@@ -109,9 +107,11 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
     };
 
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+    const [deleteRecurring, setDeleteRecurring] = useState(false);
 
     const handleDeleteTask = async () => {
         if (!selectedTask) return;
+        setDeleteRecurring(false);
         setConfirmDeleteOpen(true);
     };
 
@@ -122,11 +122,27 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
         toast.success("Task deleted successfully");
 
         try {
-            await deleteTaskMutation.mutateAsync(selectedTask.id);
+            await deleteTaskMutation.mutateAsync({ id: selectedTask.id, deleteRecurring });
             refreshTasks();
         } catch (e) {
             console.error("Failed to delete task", e);
             toast.error("Failed to delete task");
+        }
+    };
+
+    const handleEndRecurrence = async () => {
+        if (!selectedTask || !selectedTask.recurrenceId) return;
+        try {
+            await updateTaskMutation.mutateAsync({
+                id: selectedTask.id,
+                endRecurrence: true
+            });
+            toast.success("Recurrence ended successfully");
+            refreshTasks();
+            setSelectedTask({ ...selectedTask, recurrenceId: null });
+        } catch (e) {
+            console.error("Failed to end recurrence", e);
+            toast.error("Failed to end recurrence");
         }
     };
 
@@ -180,29 +196,44 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
 
                                 {/* Top Actions - Matches Image */}
                                 {!isEditing && (canEditDetails || canDelete) && (
-                                    <div className="flex gap-3 mb-6">
-                                        {canEditDetails && (
-                                            <motion.button
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                onClick={() => setIsEditing(true)}
-                                                className="flex-1 py-2.5 bg-white text-black font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-zinc-200 transition-colors"
-                                            >
-                                                <Edit2 className="w-4 h-4" />
-                                                Edit Task
-                                            </motion.button>
-                                        )}
+                                    <div className="mb-6 w-full">
+                                        <div className="flex flex-wrap gap-3 mb-3">
+                                            {canEditDetails && (
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => setIsEditing(true)}
+                                                    className="flex-1 py-2.5 bg-white text-black font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-zinc-200 transition-colors"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                    Edit Task
+                                                </motion.button>
+                                            )}
 
-                                        {canDelete && (
+                                            {canDelete && (
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={handleDeleteTask}
+                                                    disabled={deleteTaskMutation.isPending}
+                                                    className="px-4 py-2.5 bg-red-600 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-red-700 transition-colors disabled:opacity-50"
+                                                >
+                                                    {deleteTaskMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                                    Delete
+                                                </motion.button>
+                                            )}
+                                        </div>
+                                        {canEditDetails && selectedTask.recurrenceId && (
                                             <motion.button
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
-                                                onClick={handleDeleteTask}
-                                                disabled={deleteTaskMutation.isPending}
-                                                className="px-4 py-2.5 bg-red-600 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-red-700 transition-colors disabled:opacity-50"
+                                                onClick={handleEndRecurrence}
+                                                disabled={updateTaskMutation.isPending}
+                                                className="px-4 py-2.5 bg-zinc-800 text-amber-500 font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-zinc-700 transition-colors disabled:opacity-50 w-full"
+                                                title="Stop repeating this task"
                                             >
-                                                {deleteTaskMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                                                Delete
+                                                {updateTaskMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
+                                                End Recurrence
                                             </motion.button>
                                         )}
                                     </div>
@@ -512,11 +543,30 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                 onClose={() => setConfirmDeleteOpen(false)}
                 onConfirm={performDelete}
                 title="Delete Task"
-                description="Are you sure you want to delete this task? This action cannot be undone."
+                description={
+                    selectedTask?.recurrenceId && deleteRecurring
+                        ? "Are you sure you want to delete this task and ALL future tasks in this recurring series? This action cannot be undone."
+                        : "Are you sure you want to delete this task? This action cannot be undone."
+                }
                 variant="danger"
-                confirmText="Delete"
+                confirmText={selectedTask?.recurrenceId && deleteRecurring ? "Delete Series" : "Delete"}
                 loading={deleteTaskMutation.isPending}
-            />
+            >
+                {selectedTask?.recurrenceId && (
+                    <label className="flex items-start gap-3 cursor-pointer p-4 border border-red-500/20 bg-red-500/5 rounded-xl transition-colors hover:bg-red-500/10">
+                        <input
+                            type="checkbox"
+                            checked={deleteRecurring}
+                            onChange={(e) => setDeleteRecurring(e.target.checked)}
+                            className="w-4 h-4 mt-0.5 rounded border-red-500/50 bg-black/20 text-red-600 focus:ring-red-600 focus:ring-offset-zinc-950 accent-red-600 cursor-pointer"
+                        />
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-red-400">Delete all recurring instances</span>
+                            <span className="text-xs text-red-500/70 mt-0.5">This will delete this task and all future instances in this series.</span>
+                        </div>
+                    </label>
+                )}
+            </ConfirmModal>
             <style jsx>{`
                 .scrollbar-hide::-webkit-scrollbar {
                     display: none;

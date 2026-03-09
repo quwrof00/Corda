@@ -38,12 +38,14 @@ export default function MoodleSyncButton({ variant = "button" }: MoodleSyncButto
             icsUrl,
             syncNow,
             force,
+            timezoneOffset,
         }: {
             icsUrl?: string;
             syncNow?: boolean;
             force?: boolean;
+            timezoneOffset?: number;
         }) => {
-            const res = await axios.post("/api/moodle", { icsUrl, syncNow, force });
+            const res = await axios.post("/api/moodle", { icsUrl, syncNow, force, timezoneOffset });
             return res.data;
         },
         onSuccess: (data) => {
@@ -71,7 +73,12 @@ export default function MoodleSyncButton({ variant = "button" }: MoodleSyncButto
             toast.error("Please enter your Moodle ICS Calendar URL");
             return;
         }
-        syncMutation.mutate({ icsUrl: url || config?.icsUrl, syncNow: true, force: true });
+        syncMutation.mutate({
+            icsUrl: url || config?.icsUrl,
+            syncNow: true,
+            force: true,
+            timezoneOffset: new Date().getTimezoneOffset()
+        });
     };
 
     return (

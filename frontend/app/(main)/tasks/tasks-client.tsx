@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import CreateTaskModal from "@/components/CreateTaskModal";
 import CreateTeamModal from "@/components/CreateTeamModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
+import CalendarOverlay from "@/components/tasks/CalendarOverlay";
 
 
 import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
@@ -313,6 +314,7 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
     const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
     const updateTaskMutation = useUpdateTask();
 
@@ -400,6 +402,7 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
         let result = [...tasks];
 
         // 1. FILTERING
+
         // Status
         if (statusFilter !== "All") {
             result = result.filter(t => {
@@ -527,6 +530,14 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                             <p className="text-zinc-500 text-sm mt-1">Manage, filter, and track your team&apos;s workload.</p>
                         </div>
                         <div className="flex items-center gap-3">
+                            <motion.button
+                                onClick={() => setIsCalendarOpen(true)}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-lg font-bold text-sm hover:text-white hover:border-zinc-700 transition-all"
+                            >
+                                <Calendar className="w-4 h-4" /> Calendar View
+                            </motion.button>
                             <motion.button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-zinc-100 text-black rounded-lg font-bold text-sm hover:bg-white transition-colors">
                                 <Plus className="w-4 h-4" /> New Task
                             </motion.button>
@@ -615,19 +626,21 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                                 width="w-36"
                             />
 
-                            {/* TREE TOGGLE */}
-                            <div className="w-px h-6 bg-zinc-800 mx-2 hidden sm:block"></div>
+                            {/* RIGHT ALIGNED CONTROLS */}
+                            <div className="flex items-center gap-2 ml-auto xl:ml-0">
+                                <div className="w-px h-6 bg-zinc-800 mx-1 hidden sm:block"></div>
 
-                            <button
-                                onClick={() => setIsTreeView(!isTreeView)}
-                                className={cn(
-                                    "p-2 rounded-lg border transition-colors ml-auto xl:ml-0",
-                                    isTreeView ? "bg-zinc-800 border-zinc-700 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700"
-                                )}
-                                title={isTreeView ? "Tree View" : "List View"}
-                            >
-                                <ListFilter className="w-4 h-4" />
-                            </button>
+                                <button
+                                    onClick={() => setIsTreeView(!isTreeView)}
+                                    className={cn(
+                                        "p-2 rounded-lg border transition-colors",
+                                        isTreeView ? "bg-zinc-800 border-zinc-700 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700"
+                                    )}
+                                    title={isTreeView ? "Tree View" : "List View"}
+                                >
+                                    <ListFilter className="w-4 h-4" />
+                                </button>
+                            </div>
 
                         </div>
                     </div>
@@ -759,6 +772,15 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                     onCreateSubtask={(parentId) => handleCreateSubtask(parentId, selectedTask.teamId!)}
                 />
             )}
+
+            <CalendarOverlay
+                isOpen={isCalendarOpen}
+                onClose={() => setIsCalendarOpen(false)}
+                tasks={tasks}
+                onSelectTask={(task) => {
+                    setSelectedTask(task);
+                }}
+            />
         </motion.div>
     );
 }

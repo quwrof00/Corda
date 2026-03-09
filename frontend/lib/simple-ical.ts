@@ -9,7 +9,7 @@ export interface IcalEvent {
     type: "VEVENT";
 }
 
-export function parseICS(icsData: string): Record<string, IcalEvent> {
+export function parseICS(icsData: string, timezoneOffset?: number): Record<string, IcalEvent> {
     const events: Record<string, IcalEvent> = {};
 
     // Normalize line endings
@@ -36,8 +36,8 @@ export function parseICS(icsData: string): Record<string, IcalEvent> {
                 summary: summaryMatch ? unescapeIcal(summaryMatch[1].trim()) : "No Title",
                 description: descMatch ? unescapeIcal(descMatch[1].trim()) : "",
                 categories: categoriesMatch ? unescapeIcal(categoriesMatch[1].trim()) : undefined,
-                start: dtStartMatch ? parseIcalDate(dtStartMatch[1].trim()) : undefined,
-                end: dtEndMatch ? parseIcalDate(dtEndMatch[1].trim()) : undefined,
+                start: dtStartMatch ? parseIcalDate(dtStartMatch[1].trim(), timezoneOffset) : undefined,
+                end: dtEndMatch ? parseIcalDate(dtEndMatch[1].trim(), timezoneOffset) : undefined,
             };
 
             // Fallback if no end date, use start date
@@ -54,7 +54,7 @@ function unescapeIcal(str: string): string {
     return str.replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\n/g, "\n").replace(/\\\\/g, "\\");
 }
 
-function parseIcalDate(dateStr: string): Date | undefined {
+function parseIcalDate(dateStr: string, timezoneOffset?: number): Date | undefined {
     try {
         // Handle YYYYMMDDTHHMMSSZ or YYYYMMDD
         if (dateStr.length >= 8) {
@@ -75,13 +75,13 @@ function parseIcalDate(dateStr: string): Date | undefined {
                 }
             }
 
-            // Should treat as UTC if ends in Z, otherwise local? 
-            // For simplicity, we'll construct as UTC if Z is present.
-            if (dateStr.endsWith("Z")) {
-                return new Date(Date.UTC(year, month, day, hour, minute, second));
-            } else {
-                return new Date(year, month, day, hour, minute, second);
+            // Moodle exports can be floating local times or UTC times that ignore user local settings.
+            // By applying the user's timezone offset, we map it to exactly the wall-clock time they expect.
+            const utcDate = new Date(Date.UTC(year, month, day, hour, minute, second));
+            if (timezoneOffset !== undefined) {
+                utcDate.setMinutes(utcDate.getMinutes() + timezoneOffset);
             }
+            return utcDate;
         }
     } catch {
         return undefined;

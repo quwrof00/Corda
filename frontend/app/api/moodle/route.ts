@@ -16,7 +16,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { icsUrl, syncNow, force } = await req.json();
+        const { icsUrl, syncNow, force, timezoneOffset } = await req.json();
 
         if (icsUrl) {
             // Validate URL
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
             }
 
             // 3. Parse and Upsert
-            const events = parseICS(rawICSString);
+            const events = parseICS(rawICSString, timezoneOffset);
             let count = 0;
 
             // Get the user's Personal team

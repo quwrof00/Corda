@@ -161,18 +161,27 @@ export const useDeleteTask = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { data } = await api.delete(`/tasks/${id}`);
+    mutationFn: async (payload: string | { id: string; deleteRecurring?: boolean }) => {
+      const id = typeof payload === "string" ? payload : payload.id;
+      const deleteRecurring = typeof payload === "string" ? false : !!payload.deleteRecurring;
+
+      const url = deleteRecurring ? `/tasks/${id}?deleteRecurring=true` : `/tasks/${id}`;
+      const { data } = await api.delete(url);
       return data;
     },
-    onMutate: async (id) => {
+    onMutate: async (payload) => {
+      const id = typeof payload === "string" ? payload : payload.id;
+      const deleteRecurring = typeof payload === "string" ? false : !!payload.deleteRecurring;
+
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
       await queryClient.cancelQueries({ queryKey: ["task", id] });
 
       // Optimistically remove from all lists
       queryClient.setQueriesData({ queryKey: ["tasks"] }, (old: Task[]) => {
         if (!Array.isArray(old)) return old;
-        return old.filter((t) => t.id !== id);
+        // If we are deleting recurring tasks, we might optimistically remove all tasks with the same recurrenceId.
+        // But for simplicity, we just trigger refetch in onSettled, or we can just filter out the specific ID here.
+        return old.filter((t) => t.id !== id && (!deleteRecurring || !t.recurrenceId));
       });
 
       return { id };

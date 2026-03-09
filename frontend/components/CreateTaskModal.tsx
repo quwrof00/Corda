@@ -174,7 +174,7 @@ export default function CreateTaskModal({
                     interval: Number(interval),
                     daysOfWeek: frequency === 'weekly' ? selectedDays : [],
                     dayOfMonth: frequency === 'monthly' ? dayOfMonth : null,
-                    endDate: recurrenceEndDate ? new Date(recurrenceEndDate).toISOString() : null,
+                    endDate: recurrenceEndDate ? new Date(`${recurrenceEndDate}T23:59:59`).toISOString() : null,
                 };
 
                 // If weekly but no days selected, default to current day
@@ -187,7 +187,7 @@ export default function CreateTaskModal({
             await createTaskMutation.mutateAsync({
                 title,
                 description: desc,
-                deadline: deadline ? new Date(deadline).toISOString() : new Date().toISOString(), // Use ISO string for consistency. Fallback to today.
+                deadline: deadline ? new Date(`${deadline}T23:59:59`).toISOString() : (() => { const d = new Date(); d.setHours(23, 59, 59); return d.toISOString(); })(), // Use ISO string for consistency. Fallback to today end of day.
                 priority,
                 requiredSkill,
                 teamId,
