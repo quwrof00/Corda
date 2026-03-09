@@ -7,7 +7,8 @@ import {
     X,
     Calendar as CalendarIcon,
     MoreHorizontal,
-    CheckCircle2
+    CheckCircle2,
+    Plus
 } from "lucide-react";
 import { Task } from "@/hooks/useTasks";
 import cn from "clsx";
@@ -17,11 +18,12 @@ interface CalendarOverlayProps {
     onClose: () => void;
     tasks: Task[];
     onSelectTask: (task: Task) => void;
+    onAddTask?: (date: string) => void;
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask }: CalendarOverlayProps) {
+export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, onAddTask }: CalendarOverlayProps) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -201,7 +203,7 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask }
                                         <div
                                             key={i}
                                             className={cn(
-                                                "bg-[#09090b] p-2 flex flex-col gap-2 min-h-[140px] relative transition-colors",
+                                                "group bg-[#09090b] p-2 flex flex-col gap-2 min-h-[140px] relative transition-colors",
                                                 !d.isCurrentMonth && "opacity-20 bg-[#050505]",
                                                 d.isCurrentMonth && "hover:bg-zinc-900/40"
                                             )}
@@ -213,21 +215,37 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask }
                                                 )}>
                                                     {d.day}
                                                 </span>
-                                                {dayTasks.length > 0 && d.isCurrentMonth && (
-                                                    <div className="flex -space-x-1">
-                                                        {dayTasks.slice(0, 3).map((t, idx) => (
-                                                            <div
-                                                                key={idx}
-                                                                className={cn(
-                                                                    "w-1.5 h-1.5 rounded-full border border-[#09090b]",
-                                                                    t.priority === 'High' ? "bg-red-500" :
-                                                                        t.priority === 'Medium' ? "bg-amber-500" :
-                                                                            "bg-emerald-500"
-                                                                )}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                )}
+                                                <div className="flex gap-2 items-center">
+                                                    {dayTasks.length > 0 && d.isCurrentMonth && (
+                                                        <div className="flex -space-x-1">
+                                                            {dayTasks.slice(0, 3).map((t, idx) => (
+                                                                <div
+                                                                    key={idx}
+                                                                    className={cn(
+                                                                        "w-1.5 h-1.5 rounded-full border border-[#09090b]",
+                                                                        t.priority === 'High' ? "bg-red-500" :
+                                                                            t.priority === 'Medium' ? "bg-amber-500" :
+                                                                                "bg-emerald-500"
+                                                                    )}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    {d.isCurrentMonth && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (onAddTask) {
+                                                                    const dateStr = `${d.year}-${String(d.month + 1).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`;
+                                                                    onAddTask(dateStr);
+                                                                }
+                                                            }}
+                                                            className="p-0.5 hover:bg-zinc-800 rounded text-zinc-500 hover:text-white transition-all duration-200"
+                                                        >
+                                                            <Plus className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             <div className="flex-1 flex flex-col gap-1.5 overflow-hidden">

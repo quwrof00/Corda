@@ -15,6 +15,7 @@ interface CreateTaskModalProps {
     isPersonalWorkspace?: boolean;
     currentUserId?: string;
     initialParentId?: string;
+    initialDeadline?: string;
 }
 
 export default function CreateTaskModal({
@@ -25,7 +26,8 @@ export default function CreateTaskModal({
     initialAssignedToId,
     isPersonalWorkspace,
     currentUserId,
-    initialParentId
+    initialParentId,
+    initialDeadline
 }: CreateTaskModalProps) {
     const { data: teams } = useTeams();
     const createTaskMutation = useCreateTask();
@@ -53,10 +55,14 @@ export default function CreateTaskModal({
         if (isOpen) {
             setTitle("");
             setDesc("");
-            // Set default deadline to today's date
-            const today = new Date();
-            const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
-            setDeadline(formattedDate);
+            // Set deadline to initialDeadline if provided, else today's date
+            if (initialDeadline) {
+                setDeadline(initialDeadline);
+            } else {
+                const today = new Date();
+                const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+                setDeadline(formattedDate);
+            }
             setPriority("Medium");
             setRequiredSkill("");
 
@@ -76,7 +82,7 @@ export default function CreateTaskModal({
             const shouldAssignToMe = isPersonalWorkspace || (!!currentUserId && initialAssignedToId === currentUserId);
             setAssignToMe(shouldAssignToMe);
         }
-    }, [isOpen, initialTeamId, initialAssignedToId, isPersonalWorkspace, currentUserId, initialParentId]);
+    }, [isOpen, initialTeamId, initialAssignedToId, isPersonalWorkspace, currentUserId, initialParentId, initialDeadline]);
 
     // Auto-select "Personal" team if no team is pre-selected
     useEffect(() => {

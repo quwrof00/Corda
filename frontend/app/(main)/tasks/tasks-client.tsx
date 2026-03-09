@@ -357,6 +357,7 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
 
     const [createParentId, setCreateParentId] = useState<string | undefined>(undefined);
     const [createTeamId, setCreateTeamId] = useState<string | undefined>(undefined);
+    const [createDeadline, setCreateDeadline] = useState<string | undefined>(undefined);
 
     const handleCreateSubtask = (parentId: string, teamId: string, e?: React.MouseEvent) => {
         e?.stopPropagation();
@@ -732,6 +733,7 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => {
                                     setCreateParentId(undefined);
+                                    setCreateDeadline(undefined);
                                     setIsCreateModalOpen(true);
                                 }}
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors"
@@ -750,11 +752,13 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                     setIsCreateModalOpen(false);
                     setCreateParentId(undefined);
                     setCreateTeamId(undefined);
+                    setCreateDeadline(undefined);
                 }}
                 onTaskCreated={refetch}
                 currentUserId={userId}
                 initialParentId={createParentId}
                 initialTeamId={createTeamId}
+                initialDeadline={createDeadline}
             />
 
             <CreateTeamModal
@@ -779,6 +783,10 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                 tasks={tasks}
                 onSelectTask={(task) => {
                     setSelectedTask(task);
+                }}
+                onAddTask={(dateStr) => {
+                    setCreateDeadline(dateStr);
+                    setIsCreateModalOpen(true);
                 }}
             />
         </motion.div>
