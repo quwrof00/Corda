@@ -1,8 +1,9 @@
+import { LoadingBars } from "@/components/shared/LoadingBars";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTeams } from "@/hooks/useTeams";
 import { useCreateTask } from "@/hooks/useTasks";
-import { Loader2, ListTodo, X, Repeat, CalendarClock } from "lucide-react";
+import { ListTodo, X, Repeat, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -299,7 +300,7 @@ export default function CreateTaskModal({
                                                 placeholder={isPersonalWorkspace ? "Buy groceries" : "Implement Auth Flow"}
                                                 value={title}
                                                 onChange={(e) => setTitle(e.target.value)}
-                                                className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm placeholder:text-zinc-400"
+                                                className="w-full px-3 py-2.5 bg-[var(--header-time)] border border-[var(--border-time)] rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm placeholder:text-zinc-400"
                                                 required
                                                 autoComplete="off"
                                             />
@@ -315,7 +316,7 @@ export default function CreateTaskModal({
                                                 value={desc}
                                                 onChange={(e) => setDesc(e.target.value)}
                                                 rows={4}
-                                                className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm placeholder:text-zinc-400 resize-none"
+                                                className="w-full px-3 py-2.5 bg-[var(--header-time)] border border-[var(--border-time)] rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm placeholder:text-zinc-400 resize-none"
                                             />
                                         </div>
 
@@ -329,7 +330,7 @@ export default function CreateTaskModal({
                                                     <select
                                                         value={teamId}
                                                         onChange={(e) => setTeamId(e.target.value)}
-                                                        className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm appearance-none"
+                                                        className="w-full px-3 py-2.5 bg-[var(--header-time)] border border-[var(--border-time)] rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm appearance-none"
                                                         required
                                                     >
                                                         {!teamId && <option value="" disabled>Select a team</option>}
@@ -346,7 +347,7 @@ export default function CreateTaskModal({
                                                 <label className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                                                     Workspace
                                                 </label>
-                                                <div className="px-3 py-2.5 bg-zinc-100/50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-500 text-sm cursor-not-allowed">
+                                                <div className="px-3 py-2.5 bg-zinc-100/50 dark:bg-zinc-800/50 border border-[var(--border-time)] rounded-lg text-zinc-500 text-sm cursor-not-allowed">
                                                     Personal Workspace
                                                 </div>
                                             </div>
@@ -392,7 +393,7 @@ export default function CreateTaskModal({
                                                             "px-2 py-2.5 text-sm font-medium rounded-lg border transition-all",
                                                             priority === p
                                                                 ? "bg-zinc-900 dark:bg-white text-white dark:text-black border-zinc-900 dark:border-white shadow-sm"
-                                                                : "bg-zinc-50 dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                                                : "bg-[var(--header-time)]/50 text-zinc-600 dark:text-zinc-400 border-[var(--border-time)] hover:bg-zinc-100 dark:hover:bg-zinc-800"
                                                         )}
                                                     >
                                                         {p}
@@ -410,7 +411,7 @@ export default function CreateTaskModal({
                                                 type="date"
                                                 value={deadline}
                                                 onChange={(e) => setDeadline(e.target.value)}
-                                                className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm [color-scheme:light] dark:[color-scheme:dark]"
+                                                className="w-full px-3 py-2.5 bg-[var(--header-time)] border border-[var(--border-time)] rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm [color-scheme:light] dark:[color-scheme:dark]"
                                                 required
                                             />
                                         </div>
@@ -425,17 +426,17 @@ export default function CreateTaskModal({
                                                 placeholder="e.g. React"
                                                 value={requiredSkill}
                                                 onChange={(e) => setRequiredSkill(e.target.value)}
-                                                className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm placeholder:text-zinc-400"
+                                                className="w-full px-3 py-2.5 bg-[var(--header-time)] border border-[var(--border-time)] rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm placeholder:text-zinc-400"
                                             />
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Recurrence Section (Full Width) */}
-                                <div className="mt-8 pt-6 border-t border-dashed border-zinc-200 dark:border-zinc-800">
+                                <div className="mt-8 pt-6 border-t border-dashed border-[var(--border-time)]">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-2">
-                                            <div className={cn("p-1.5 rounded-md", isRecurring ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500")}>
+                                            <div className={cn("p-1.5 rounded-md", isRecurring ? "bg-[var(--accent-time)]/20 text-[var(--accent-time)] border border-[var(--accent-time)]/30" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500")}>
                                                 <Repeat className="w-4 h-4" />
                                             </div>
                                             <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -449,13 +450,13 @@ export default function CreateTaskModal({
                                             onClick={() => setIsRecurring(!isRecurring)}
                                             className={cn(
                                                 "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white focus:ring-offset-2",
-                                                isRecurring ? "bg-zinc-900 dark:bg-white" : "bg-zinc-200 dark:bg-zinc-700"
+                                                isRecurring ? "bg-[var(--accent-time)]" : "bg-zinc-200 dark:bg-zinc-800"
                                             )}
                                         >
                                             <span className="sr-only">Enable recurrence</span>
                                             <span
                                                 className={cn(
-                                                    "inline-block h-4 w-4 transform rounded-full bg-white dark:bg-zinc-900 transition-transform",
+                                                    "inline-block h-4 w-4 transform rounded-full bg-[var(--accent-time-text)] transition-transform",
                                                     isRecurring ? "translate-x-6" : "translate-x-1"
                                                 )}
                                             />
@@ -480,7 +481,7 @@ export default function CreateTaskModal({
                                                             <select
                                                                 value={frequency}
                                                                 onChange={(e) => setFrequency(e.target.value)}
-                                                                className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:ring-2 focus:ring-zinc-900/5 dark:focus:ring-white/10 outline-none"
+                                                                className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-[var(--border-time)] rounded-lg text-sm focus:ring-2 focus:ring-zinc-900/5 dark:focus:ring-white/10 outline-none"
                                                             >
                                                                 <option value="daily">Daily</option>
                                                                 <option value="weekly">Weekly</option>
@@ -499,7 +500,7 @@ export default function CreateTaskModal({
                                                                     min={1}
                                                                     value={interval}
                                                                     onChange={(e) => setInterval(Math.max(1, parseInt(e.target.value) || 1))}
-                                                                    className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:ring-2 focus:ring-zinc-900/5 dark:focus:ring-white/10 outline-none"
+                                                                    className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-[var(--border-time)] rounded-lg text-sm focus:ring-2 focus:ring-zinc-900/5 dark:focus:ring-white/10 outline-none"
                                                                 />
                                                                 <span className="text-xs text-zinc-500 font-medium truncate">
                                                                     {frequency === 'daily' ? 'day(s)' : frequency === 'weekly' ? 'week(s)' : 'month(s)'}
@@ -521,7 +522,7 @@ export default function CreateTaskModal({
                                                                         placeholder="1-31"
                                                                         value={dayOfMonth || ""}
                                                                         onChange={(e) => setDayOfMonth(parseInt(e.target.value) || null)}
-                                                                        className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:ring-2 focus:ring-zinc-900/5 dark:focus:ring-white/10 outline-none"
+                                                                        className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-[var(--border-time)] rounded-lg text-sm focus:ring-2 focus:ring-zinc-900/5 dark:focus:ring-white/10 outline-none"
                                                                     />
                                                                     <span className="text-xs text-zinc-500 font-medium truncate">
                                                                         of month
@@ -549,7 +550,7 @@ export default function CreateTaskModal({
                                                                                 "w-8 h-8 rounded-full text-xs font-bold transition-all flex items-center justify-center border",
                                                                                 isSelected
                                                                                     ? "bg-zinc-900 dark:bg-white text-white dark:text-black border-zinc-900 dark:border-white scale-105"
-                                                                                    : "bg-white dark:bg-zinc-900 text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-600"
+                                                                                    : "bg-white dark:bg-zinc-900 text-zinc-400 border-[var(--border-time)] hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-600"
                                                                             )}
                                                                         >
                                                                             {day.label}
@@ -573,7 +574,7 @@ export default function CreateTaskModal({
                                                                 type="date"
                                                                 value={recurrenceEndDate}
                                                                 onChange={(e) => setRecurrenceEndDate(e.target.value)}
-                                                                className="w-full pl-10 pr-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:ring-2 focus:ring-zinc-900/5 dark:focus:ring-white/10 outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                                                                className="w-full pl-10 pr-3 py-2 bg-white dark:bg-zinc-900 border border-[var(--border-time)] rounded-lg text-sm focus:ring-2 focus:ring-zinc-900/5 dark:focus:ring-white/10 outline-none [color-scheme:light] dark:[color-scheme:dark]"
                                                             />
                                                             <CalendarClock className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400 pointer-events-none" />
                                                         </div>
@@ -586,7 +587,7 @@ export default function CreateTaskModal({
                             </div>
 
                             {/* Footer Actions - Fixed to bottom */}
-                            <div className="flex-none flex items-center justify-between p-5 border-t border-zinc-200 dark:border-zinc-900 bg-zinc-50 dark:bg-zinc-900">
+                            <div className="flex-none flex items-center justify-between p-5 border-t border-zinc-200 dark:border-zinc-900 bg-[var(--header-time)]">
                                 <span className="text-xs text-zinc-400 font-medium">
                                     * Required fields
                                 </span>
@@ -609,7 +610,7 @@ export default function CreateTaskModal({
                                     >
                                         {createTaskMutation.isPending ? (
                                             <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                <LoadingBars className="w-4 h-4" />
                                                 <span>{isRecurring ? "Scheduling..." : "Creating..."}</span>
                                             </>
                                         ) : (

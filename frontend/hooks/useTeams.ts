@@ -1,4 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  InfiniteData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
 export interface Member {
@@ -24,17 +30,117 @@ export interface Team {
   [key: string]: unknown;
 }
 
-// Fetch all teams
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const useTeams = (options?: any) => {
-  const fetchTeams = async (): Promise<Team[]> => {
-    const { data } = await api.get("/teams");
-    return data;
-  };
-  return useQuery<Team[], Error>({ queryKey: ["teams"], queryFn: fetchTeams, initialData: options?.initialData, ...options });
+export interface PaginatedTeamResponse {
+  items: Team[];
+  page: number;
+  limit: number;
+  total: number;
+  hasMore: boolean;
+  nextPage: number | null;
+}
+
+type TeamCacheData = Team[] | InfiniteData<PaginatedTeamResponse> | undefined;
+
+const DEFAULT_LIMIT = 12;
+
+async function fetchTeamsPage(page: number = 1, limit: number = DEFAULT_LIMIT) {
+  const { data } = await api.get(`/teams?page=${page}&limit=${limit}`);
+  return data as PaginatedTeamResponse;
+}
+
+async function fetchAllTeams(): Promise<Team[]> {
+  const teams: Team[] = [];
+  let page = 1;
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await fetchTeamsPage(page, 100);
+    teams.push(...response.items);
+    hasMore = response.hasMore;
+    page = response.nextPage ?? page + 1;
+  }
+
+  return teams;
+}
+
+function updateTeamCache(
+  cache: TeamCacheData,
+  updater: (team: Team) => Team | null
+): TeamCacheData {
+  if (!cache) return cache;
+
+  if (Array.isArray(cache)) {
+    return cache
+      .map((team) => updater(team))
+      .filter((team): team is Team => team !== null);
+  }
+
+  if ("pages" in cache) {
+    return {
+      ...cache,
+      pages: cache.pages.map((page) => ({
+        ...page,
+        items: page.items
+          .map((team) => updater(team))
+          .filter((team): team is Team => team !== null),
+      })),
+    };
+  }
+
+  return cache;
+}
+
+function prependTeamCache(cache: TeamCacheData, team: Team): TeamCacheData {
+  if (!cache) return cache;
+
+  if (Array.isArray(cache)) {
+    return [team, ...cache];
+  }
+
+  if ("pages" in cache && cache.pages.length > 0) {
+    const [firstPage, ...restPages] = cache.pages;
+    return {
+      ...cache,
+      pages: [
+        {
+          ...firstPage,
+          items: [team, ...firstPage.items],
+          total: firstPage.total + 1,
+        },
+        ...restPages.map((page) => ({ ...page, total: page.total + 1 })),
+      ],
+    };
+  }
+
+  return cache;
+}
+
+export function flattenInfiniteTeams(
+  data?: InfiniteData<PaginatedTeamResponse>
+): Team[] {
+  return data?.pages.flatMap((page) => page.items) ?? [];
+}
+
+export const useInfiniteTeams = (
+  options?: { enabled?: boolean; limit?: number }
+) => {
+  return useInfiniteQuery({
+    queryKey: ["teams", "infinite", options?.limit ?? DEFAULT_LIMIT],
+    queryFn: ({ pageParam }) => fetchTeamsPage(pageParam, options?.limit ?? DEFAULT_LIMIT),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.nextPage ?? undefined,
+    enabled: options?.enabled,
+  });
 };
 
-// Fetch a single team by ID
+export const useTeams = (options?: { initialData?: Team[] }) => {
+  return useQuery<Team[], Error>({
+    queryKey: ["teams", "all"],
+    queryFn: fetchAllTeams,
+    initialData: options?.initialData,
+  });
+};
+
 export const useTeam = (id: string) => {
   return useQuery({
     queryKey: ["team", id],
@@ -46,7 +152,6 @@ export const useTeam = (id: string) => {
   });
 };
 
-// Fetch all members of a team
 export const useTeamMembers = (id: string) => {
   return useQuery({
     queryKey: ["teamMembers", id],
@@ -58,19 +163,27 @@ export const useTeamMembers = (id: string) => {
   });
 };
 
-// Fetch all tasks of a team
 export const useTeamTasks = (id: string) => {
   return useQuery({
     queryKey: ["teamTasks", id],
     queryFn: async () => {
-      const { data } = await api.get(`/teams/${id}/tasks`);
-      return data;
+      const items: unknown[] = [];
+      let page = 1;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data } = await api.get(`/teams/${id}/tasks?page=${page}&limit=100`);
+        items.push(...data.items);
+        hasMore = data.hasMore;
+        page = data.nextPage ?? page + 1;
+      }
+
+      return items;
     },
     enabled: !!id,
   });
 };
 
-// Create a new team
 export const useCreateTeam = () => {
   const queryClient = useQueryClient();
 
@@ -81,16 +194,26 @@ export const useCreateTeam = () => {
     },
     onMutate: async (newTeam) => {
       await queryClient.cancelQueries({ queryKey: ["teams"] });
-      const previousTeams = queryClient.getQueryData(["teams"]);
-      queryClient.setQueryData(["teams"], (old: Team[]) => {
-        return [...(old || []), { ...newTeam, id: "temp-id-" + Date.now(), members: [] }];
+      const snapshots = queryClient.getQueriesData<TeamCacheData>({
+        queryKey: ["teams"],
       });
-      return { previousTeams };
+
+      const optimisticTeam = {
+        ...newTeam,
+        id: `temp-id-${Date.now()}`,
+        members: [],
+      } as Team;
+
+      snapshots.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(queryKey, prependTeamCache(previousData, optimisticTeam));
+      });
+
+      return { snapshots };
     },
     onError: (err, newTeam, context) => {
-      if (context?.previousTeams) {
-        queryClient.setQueryData(["teams"], context.previousTeams);
-      }
+      context?.snapshots?.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(queryKey, previousData);
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["teams"] });
@@ -98,12 +221,11 @@ export const useCreateTeam = () => {
   });
 };
 
-// Update an existing team
 export const useUpdateTeam = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string;[key: string]: unknown }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; [key: string]: unknown }) => {
       const { data } = await api.put(`/teams/${id}`, updates);
       return data;
     },
@@ -112,23 +234,31 @@ export const useUpdateTeam = () => {
       await queryClient.cancelQueries({ queryKey: ["teams"] });
 
       const previousTeam = queryClient.getQueryData(["team", id]);
-      const previousTeams = queryClient.getQueryData(["teams"]);
+      const snapshots = queryClient.getQueriesData<TeamCacheData>({
+        queryKey: ["teams"],
+      });
 
-      // Update individual team
       queryClient.setQueryData(["team", id], (old: Team) => ({ ...old, ...updates }));
 
-      // Update in list
-      queryClient.setQueryData(["teams"], (old: Team[]) =>
-        old?.map((t) => (t.id === id ? { ...t, ...updates } : t))
-      );
+      snapshots.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(
+          queryKey,
+          updateTeamCache(previousData, (team) =>
+            team.id === id ? { ...team, ...updates } : team
+          )
+        );
+      });
 
-      return { previousTeam, previousTeams };
+      return { previousTeam, snapshots };
     },
     onError: (err, variables, context) => {
-      if (context) {
-        if (context.previousTeam) queryClient.setQueryData(["team", variables.id], context.previousTeam);
-        if (context.previousTeams) queryClient.setQueryData(["teams"], context.previousTeams);
+      if (context?.previousTeam) {
+        queryClient.setQueryData(["team", variables.id], context.previousTeam);
       }
+
+      context?.snapshots?.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(queryKey, previousData);
+      });
     },
     onSettled: (data, error, variables) => {
       queryClient.invalidateQueries({ queryKey: ["team", variables.id] });
@@ -137,7 +267,6 @@ export const useUpdateTeam = () => {
   });
 };
 
-// Delete a team
 export const useDeleteTeam = () => {
   const queryClient = useQueryClient();
 
@@ -148,14 +277,23 @@ export const useDeleteTeam = () => {
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["teams"] });
-      const previousTeams = queryClient.getQueryData(["teams"]);
+      const snapshots = queryClient.getQueriesData<TeamCacheData>({
+        queryKey: ["teams"],
+      });
 
-      queryClient.setQueryData(["teams"], (old: Team[]) => old?.filter((t) => t.id !== id));
+      snapshots.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(
+          queryKey,
+          updateTeamCache(previousData, (team) => (team.id === id ? null : team))
+        );
+      });
 
-      return { previousTeams };
+      return { snapshots };
     },
     onError: (err, id, context) => {
-      if (context?.previousTeams) queryClient.setQueryData(["teams"], context.previousTeams);
+      context?.snapshots?.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(queryKey, previousData);
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["teams"] });
@@ -163,7 +301,6 @@ export const useDeleteTeam = () => {
   });
 };
 
-// Invite a member to a team
 export const useInviteMember = () => {
   return useMutation({
     mutationFn: async ({ teamId, email }: { teamId: string; email: string }) => {
@@ -173,7 +310,6 @@ export const useInviteMember = () => {
   });
 };
 
-// Remove a member from a team
 export const useRemoveMember = () => {
   const queryClient = useQueryClient();
 
@@ -187,17 +323,18 @@ export const useRemoveMember = () => {
       const previousMembers = queryClient.getQueryData(["teamMembers", teamId]);
 
       queryClient.setQueryData(["teamMembers", teamId], (old: Member[]) =>
-        old?.filter((m) => m.id !== userId)
+        old?.filter((member) => member.id !== userId)
       );
 
       return { previousMembers };
     },
     onError: (err, variables, context) => {
-      if (context?.previousMembers) queryClient.setQueryData(["teamMembers", variables.teamId], context.previousMembers);
+      if (context?.previousMembers) {
+        queryClient.setQueryData(["teamMembers", variables.teamId], context.previousMembers);
+      }
     },
     onSettled: (data, error, variables) => {
       queryClient.invalidateQueries({ queryKey: ["teamMembers", variables.teamId] });
-      // Also potentially invalidate tasks as they might get unassigned?
       queryClient.invalidateQueries({ queryKey: ["tasks", variables.teamId] });
     },
   });

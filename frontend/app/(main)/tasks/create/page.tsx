@@ -1,14 +1,15 @@
 "use client";
-
+import { LoadingBars } from "@/components/shared/LoadingBars";
+import { SkeletonLoader } from "@/components/shared/SkeletonLoader";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useTeams } from "@/hooks/useTeams";
-import { ArrowLeft, Loader2, ListTodo } from "lucide-react";
+import { ArrowLeft, ListTodo } from "lucide-react";
 
 export default function CreateTaskPage() {
     const router = useRouter();
-    const { data: teams } = useTeams();
+    const { data: teams, isLoading: teamsLoading } = useTeams();
 
     const [title, setTitle] = useState("");
     const [desc, setDesc] = useState("");
@@ -105,24 +106,31 @@ export default function CreateTaskPage() {
                                 <label className="block text-sm font-semibold text-foreground/80 mb-2">
                                     Assign to Team
                                 </label>
-                                <div className="relative">
-                                    <select
-                                        value={teamId}
-                                        onChange={(e) => setTeamId(e.target.value)}
-                                        className="w-full px-4 py-3 bg-muted/30 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground appearance-none"
-                                        required
-                                    >
-                                        <option value="" disabled>Select a team</option>
-                                        {teams?.map((team: { id: string, name: string }) => (
-                                            <option key={team.id} value={team.id}>
-                                                {team.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-muted-foreground">
-                                        <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                                {teamsLoading ? (
+                                    <div className="space-y-3">
+                                        <SkeletonLoader rows={1} className="space-y-0" />
+                                        <p className="text-xs text-muted-foreground">Loading available teams...</p>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="relative">
+                                        <select
+                                            value={teamId}
+                                            onChange={(e) => setTeamId(e.target.value)}
+                                            className="w-full px-4 py-3 bg-muted/30 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground appearance-none"
+                                            required
+                                        >
+                                            <option value="" disabled>Select a team</option>
+                                            {teams?.map((team: { id: string; name: string }) => (
+                                                <option key={team.id} value={team.id}>
+                                                    {team.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-muted-foreground">
+                                            <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Required Skill */}
@@ -188,12 +196,12 @@ export default function CreateTaskPage() {
                             </button>
                             <button
                                 type="submit"
-                                disabled={loading}
+                                disabled={loading || teamsLoading}
                                 className="px-8 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed hover:-translate-y-[1px]"
                             >
                                 {loading ? (
                                     <>
-                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <LoadingBars className="w-5 h-5" />
                                         Creating...
                                     </>
                                 ) : "Create Task"}

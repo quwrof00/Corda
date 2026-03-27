@@ -1,8 +1,9 @@
 "use client";
-
+import { LoadingBars } from "@/components/shared/LoadingBars";
+import { StatusCardSkeleton } from "@/components/shared/SkeletonLoader";
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -55,10 +56,7 @@ function VerifyEmailInner() {
             </h1>
 
             {status === "loading" && (
-                <div className="flex flex-col items-center justify-center py-8">
-                    <Loader2 className="w-12 h-12 animate-spin text-zinc-500 mb-4" />
-                    <p className="text-zinc-400 font-mono">Verifying credentials...</p>
-                </div>
+                <StatusCardSkeleton />
             )}
 
             {status === "success" && (
@@ -88,7 +86,7 @@ function VerifyEmailInner() {
 export default function VerifyEmailPage() {
     return (
         <main className="min-h-screen flex items-center justify-center bg-black text-zinc-300 p-4 font-sans selection:bg-zinc-800">
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<div className="w-full max-w-md"><StatusCardSkeleton /></div>}>
                 <VerifyEmailInner />
             </Suspense>
         </main>

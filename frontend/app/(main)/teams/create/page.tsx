@@ -1,11 +1,13 @@
-
 "use client";
+import { LoadingBars } from "@/components/shared/LoadingBars";
+
+
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { api } from "@/lib/api";
-import { ArrowLeft, Loader2, Hexagon } from "lucide-react";
+import { ArrowLeft, Hexagon } from "lucide-react";
 import { toast } from "sonner"; // Added import for toast
 
 export default function CreateTeamPage() {
@@ -105,7 +107,7 @@ export default function CreateTeamPage() {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <LoadingBars className="w-3 h-3" />
                     Initializing...
                   </>
                 ) : "Create Unit"}

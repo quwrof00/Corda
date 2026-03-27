@@ -1,12 +1,19 @@
 import { Member, Task } from "./types";
 import { cn, formatDaysLeft } from "./utils";
 import { AlertOctagon, CheckCircle2, ChevronRight, Repeat } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useBatchedItems } from "@/hooks/useBatchedItems";
+import { useInfiniteScrollTrigger } from "@/hooks/useInfiniteScrollTrigger";
+import { useUpdateTask } from "@/hooks/useTasks";
+import { toast } from "sonner";
 
 interface TeamTaskBoardProps {
     mobileTab: "workload" | "unassigned" | "assigned";
     unassignedTasks: Task[];
     assignedTasks: Task[];
+    hasMoreTasks: boolean;
+    isFetchingMoreTasks: boolean;
+    onLoadMoreTasks: () => void;
     members: Member[] | undefined;
     tasksByMember: Record<string, Task[]>;
     isLeader: boolean;
@@ -18,10 +25,39 @@ export function TeamTaskBoard({
     unassignedTasks,
     members,
     tasksByMember,
+    hasMoreTasks,
+    isFetchingMoreTasks,
+    onLoadMoreTasks,
     isLeader,
     openEditTask
 }: TeamTaskBoardProps) {
     const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
+    const unassignedRootRef = useRef<HTMLDivElement | null>(null);
+    const assignedRootRef = useRef<HTMLDivElement | null>(null);
+    const updateTaskMutation = useUpdateTask();
+
+    const {
+        visibleItems: visibleUnassignedTasks,
+        hasMore: hasMoreUnassignedTasks,
+        sentinelRef: unassignedSentinelRef,
+    } = useBatchedItems(unassignedTasks, 12, unassignedRootRef);
+    const {
+        visibleItems: visibleMembers,
+        hasMore: hasMoreMembers,
+        sentinelRef: membersSentinelRef,
+    } = useBatchedItems((members as Member[]) || [], 8, assignedRootRef);
+    const unassignedTasksSentinelRef = useInfiniteScrollTrigger({
+        hasMore: hasMoreTasks,
+        isLoading: isFetchingMoreTasks,
+        onLoadMore: onLoadMoreTasks,
+        rootRef: unassignedRootRef,
+    });
+    const assignedTasksSentinelRef = useInfiniteScrollTrigger({
+        hasMore: hasMoreTasks,
+        isLoading: isFetchingMoreTasks,
+        onLoadMore: onLoadMoreTasks,
+        rootRef: assignedRootRef,
+    });
 
     const toggleExpand = (taskId: string) => {
         setExpandedTaskIds(prev => {
@@ -35,23 +71,66 @@ export function TeamTaskBoard({
         });
     };
 
+    const handleDragStart = (e: React.DragEvent, taskId: string) => {
+        if (!isLeader) return;
+        e.dataTransfer.setData("taskId", taskId);
+        e.dataTransfer.effectAllowed = "move";
+        const target = e.target as HTMLElement;
+        target.style.opacity = '0.5';
+    };
+
+    const handleDragEnd = (e: React.DragEvent) => {
+        const target = e.target as HTMLElement;
+        target.style.opacity = '1';
+    };
+
+    const handleDropOnMember = async (e: React.DragEvent, memberId: string | null) => {
+        if (!isLeader) return;
+        e.preventDefault();
+        const taskId = e.dataTransfer.getData("taskId");
+        if (!taskId) return;
+
+        try {
+            await updateTaskMutation.mutateAsync({
+                id: taskId,
+                assignedToId: memberId,
+            });
+            toast.success(memberId ? "Task reassigned" : "Task unassigned");
+        } catch (error) {
+            toast.error("Failed to reassign task");
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        if (!isLeader) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+    };
+
     return (
         <section className={cn("grid gap-6 h-[75vh] min-h-[500px] lg:h-[600px] grid-cols-1 lg:grid-cols-3")}>
             {/* Unassigned Tasks (Left Col) */}
-            <div className={cn("bg-card border border-zinc-200 dark:border-zinc-800 flex flex-col rounded-xl overflow-hidden", mobileTab !== "unassigned" && "hidden lg:flex")}>
+            <div 
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDropOnMember(e, null)}
+                className={cn("bg-card border border-zinc-200 dark:border-zinc-800 flex flex-col rounded-xl overflow-hidden", mobileTab !== "unassigned" && "hidden lg:flex")}
+            >
                 <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-100 dark:bg-zinc-900/20">
                     <h3 className="text-xs font-bold text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
                         <AlertOctagon className="w-3 h-3" /> Unassigned Tasks
                     </h3>
                     <span className="text-[10px] bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-2 py-0.5 rounded-full">{unassignedTasks.length}</span>
                 </div>
-                <div className="flex-1 overflow-y-auto space-y-2 p-3 scrollbar-custom">
-                    {unassignedTasks.map((task) => (
+                <div ref={unassignedRootRef} className="flex-1 overflow-y-auto space-y-2 p-3 scrollbar-custom">
+                    {visibleUnassignedTasks.map((task) => (
                         <div key={task.id}
+                            draggable={isLeader}
+                            onDragStart={(e) => handleDragStart(e, task.id)}
+                            onDragEnd={handleDragEnd}
                             onClick={() => isLeader && openEditTask(task)}
                             className={cn(
-                                "bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 transition-colors group rounded-lg",
-                                isLeader ? "cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600" : "cursor-default"
+                                "bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 transition-all group rounded-lg",
+                                isLeader ? "cursor-grab active:cursor-grabbing hover:border-zinc-400 dark:hover:border-zinc-600 shadow-sm" : "cursor-default"
                             )}
                             title={task.requiredSkill ? `Skill: ${task.requiredSkill}` : undefined}
                         >
@@ -76,6 +155,11 @@ export function TeamTaskBoard({
                             <h4 className="text-xs font-medium text-zinc-700 dark:text-zinc-300 line-clamp-2 group-hover:text-black dark:group-hover:text-white">{task.title}</h4>
                         </div>
                     ))}
+                    {hasMoreUnassignedTasks && <div ref={unassignedSentinelRef} className="h-4 w-full" />}
+                    {hasMoreTasks && <div ref={unassignedTasksSentinelRef} className="h-4 w-full" />}
+                    {isFetchingMoreTasks && (
+                        <div className="py-3 text-center text-xs text-zinc-500">Loading more tasks...</div>
+                    )}
                     {unassignedTasks.length === 0 && (
                         <div className="text-center py-10 text-zinc-700 text-xs">
                             No tasks unassigned
@@ -91,9 +175,13 @@ export function TeamTaskBoard({
                         <CheckCircle2 className="w-3 h-3" /> Member Tasks
                     </h3>
                 </div>
-                <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4 p-4 scrollbar-custom">
-                    {(members as Member[])?.map((member) => (
-                        <div key={member.id} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg">
+                <div ref={assignedRootRef} className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4 p-4 scrollbar-custom">
+                    {visibleMembers.map((member) => (
+                        <div key={member.id} 
+                            onDragOver={handleDragOver}
+                            onDrop={(e) => handleDropOnMember(e, member.id)}
+                            className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
+                        >
                             <div className="flex items-center gap-2 mb-3 pb-2 border-b border-zinc-200 dark:border-zinc-800">
                                 <div className="w-2 h-2 bg-emerald-500/50 rounded-full" />
                                 <span className="text-xs font-bold text-zinc-900 dark:text-zinc-300">{member.name}</span>
@@ -124,11 +212,14 @@ export function TeamTaskBoard({
                                             return (
                                                 <div key={task.id} className="flex flex-col">
                                                     <div
+                                                        draggable={isLeader}
+                                                        onDragStart={(e) => handleDragStart(e, task.id)}
+                                                        onDragEnd={handleDragEnd}
                                                         onClick={() => isLeader && openEditTask(task)}
                                                         title={task.requiredSkill ? `Skill: ${task.requiredSkill}` : undefined}
                                                         className={cn(
-                                                            "bg-card p-2 border border-zinc-200 dark:border-zinc-800 transition-colors text-xs text-zinc-600 dark:text-zinc-400 ml-3 border-l-2 rounded-r-md group relative flex items-center gap-2",
-                                                            isLeader ? "cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-700" : "cursor-default",
+                                                            "bg-card p-2 border border-zinc-200 dark:border-zinc-800 transition-all text-xs text-zinc-600 dark:text-zinc-400 ml-3 border-l-2 rounded-r-md group relative flex items-center gap-2",
+                                                            isLeader ? "cursor-grab active:cursor-grabbing hover:border-zinc-400 dark:hover:border-zinc-700 shadow-sm" : "cursor-default",
                                                             task.status === 'completed' ? "border-l-emerald-500 hover:border-l-emerald-400" :
                                                                 (task.status === 'active' || task.status === 'in-progress') ? "border-l-blue-500 hover:border-l-blue-400" :
                                                                     (task.status === 'pending' || task.status === 'to-do') ? "border-l-zinc-300 dark:border-l-zinc-700 hover:border-l-zinc-500" :
@@ -181,11 +272,7 @@ export function TeamTaskBoard({
                                         };
 
                                         if (roots.length === 0 && memberTasks.length > 0) {
-                                            // Fallback if something weird with hierarchy? Should not happen if logic is correct.
-                                            // Actually if cyclic or parents missing from list, they end up as roots?
-                                            // Logic: if parentId exists but not in map, it's a root. Correct.
-                                            // So this covers all.
-                                            return memberTasks.map(t => renderTaskNode(t)); // This would be wrong if tree built.
+                                            return memberTasks.map(t => renderTaskNode(t));
                                         }
 
                                         if (roots.length === 0 && memberTasks.length === 0) {
@@ -198,6 +285,8 @@ export function TeamTaskBoard({
                             </div>
                         </div>
                     ))}
+                    {hasMoreMembers && <div ref={membersSentinelRef} className="h-4 w-full md:col-span-2" />}
+                    {hasMoreTasks && <div ref={assignedTasksSentinelRef} className="h-4 w-full md:col-span-2" />}
                 </div>
             </div>
         </section>

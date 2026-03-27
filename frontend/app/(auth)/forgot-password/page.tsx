@@ -1,8 +1,10 @@
 "use client";
+import { LoadingBars } from "@/components/shared/LoadingBars";
+
 
 import { useState } from "react";
 import Link from "next/link";
-import { Loader2, Mail, ArrowRight, CheckCircle2, ChevronLeft } from "lucide-react";
+import { Mail, ArrowRight, CheckCircle2, ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 
@@ -78,7 +80,7 @@ export default function ForgotPasswordPage() {
                             >
                                 {loading ? (
                                     <>
-                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <LoadingBars className="w-5 h-5" />
                                         Sending Link...
                                     </>
                                 ) : (

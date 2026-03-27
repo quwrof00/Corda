@@ -15,7 +15,6 @@ interface TaskItemProps {
     showStatus?: boolean;
     showDeadline?: boolean;
     formatDaysLeft?: (dateString?: string) => string;
-    loading?: boolean;
 }
 
 export function TaskItem({
@@ -29,8 +28,7 @@ export function TaskItem({
     showTeamBadge = true,
     showStatus = true,
     showDeadline = true,
-    formatDaysLeft,
-    loading = false
+    formatDaysLeft
 }: TaskItemProps) {
     const hasChildren = task.children && task.children.length > 0;
     const level = task.level || 0;
@@ -52,10 +50,10 @@ export function TaskItem({
                 "group relative flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer",
                 task.source === 'moodle'
                     ? "bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/30 dark:to-transparent border-orange-200/80 dark:border-orange-800/50 hover:from-orange-100/50 dark:hover:from-orange-900/50"
-                    : "bg-card border-zinc-200 dark:border-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-900/30",
-                level > 0 && "border-l-4 border-l-zinc-300 dark:border-l-zinc-800",
+                    : "bg-card border-[var(--border-time)] hover:shadow-lg transition-all",
+                level > 0 && "border-l-4 border-l-[var(--border-time)]",
                 task.status === 'completed' && "opacity-60",
-                variant === "dashboard" && "hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50"
+                variant === "dashboard" && "hover:shadow-lg shadow-black/5 dark:shadow-white/5"
             )}
             style={{ marginLeft: level > 0 ? `${level * 1.5}rem` : 0 }}
             whileHover={{ y: variant === "dashboard" ? -2 : 0, transition: { duration: 0.2 } }}
@@ -69,7 +67,7 @@ export function TaskItem({
         >
             {/* Status Indicator Bar */}
             <div className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-colors",
-                task.status === 'completed' ? "bg-emerald-500" :
+                task.status === 'completed' ? "bg-[var(--success-time)]" :
                     task.priority === 'High' ? "bg-red-500" : "bg-zinc-700 group-hover:bg-zinc-500"
             )} />
 
@@ -77,18 +75,16 @@ export function TaskItem({
             {onQuickComplete && (
                 task.status === 'completed' ? (
                     <button
-                        className="ml-3 h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center z-10 hover:bg-emerald-600 transition-colors cursor-pointer disabled:opacity-50"
+                        className="ml-3 h-5 w-5 rounded-full bg-[var(--success-time)] flex items-center justify-center z-10 hover:opacity-80 transition-all cursor-pointer disabled:opacity-50"
                         onClick={(e) => onQuickComplete(e, task)}
-                        disabled={loading}
                         title="Mark as Incomplete"
                     >
                         <Check className="w-3 h-3 text-white" />
                     </button>
                 ) : (
                     <button
-                        className="ml-3 h-5 w-5 rounded-full border-2 border-zinc-700 flex items-center justify-center text-zinc-400 hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500 transition-all z-10 cursor-pointer disabled:opacity-50"
+                        className="ml-3 h-5 w-5 rounded-full border-2 border-zinc-700 flex items-center justify-center text-zinc-400 hover:border-[var(--success-time)] hover:bg-[var(--success-time)]/10 hover:text-[var(--success-time)] transition-all z-10 cursor-pointer disabled:opacity-50"
                         onClick={(e) => onQuickComplete(e, task)}
-                        disabled={loading}
                         title="Mark as Completed"
                     >
                     </button>

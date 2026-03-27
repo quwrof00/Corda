@@ -1,27 +1,22 @@
 "use client";
-
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import MoodleSyncButton from "@/components/tasks/moodle-sync-button";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
-import { useTeams } from "@/hooks/useTeams";
+import { flattenInfiniteTasks, useInfiniteTasks, useUpdateTask, Task } from "@/hooks/useTasks";
+import { flattenInfiniteTeams, useInfiniteTeams } from "@/hooks/useTeams";
 import { buildTaskTree, flattenTree } from "@/lib/taskTreeUtils";
-import {
-  CheckCircle2,
-  ArrowRight,
-  Users,
-  Plus,
-} from "lucide-react";
+import { CheckCircle2, ArrowRight, Users, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-import CreateTaskModal from "@/components/CreateTaskModal";
-import CreateTeamModal from "@/components/CreateTeamModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
+import { useModalStore } from "@/hooks/useModalStore";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { TaskListSkeleton, TeamGridSkeleton } from "@/components/shared/SkeletonLoader";
 import { TaskItem } from "@/components/tasks/TaskItem";
+import { useInfiniteScrollTrigger } from "@/hooks/useInfiniteScrollTrigger";
 
 function formatDaysLeft(dateString?: string) {
   if (!dateString) return "";
@@ -72,7 +67,7 @@ const PrimaryButton = ({ children, onClick, className, disabled }: { children: R
     onClick={onClick}
     disabled={disabled}
     className={cn(
-      "flex items-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-black text-xs font-bold uppercase tracking-wider rounded-md hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors shadow-lg shadow-black/5 dark:shadow-white/5 disabled:opacity-50 disabled:cursor-not-allowed",
+      "flex items-center gap-2 px-4 py-2 bg-[var(--accent-time)] text-[var(--accent-time-text)] text-xs font-bold uppercase tracking-wider rounded-md transition-all shadow-lg shadow-black/5 dark:shadow-white/5 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed",
       className
     )}
   >
@@ -80,38 +75,29 @@ const PrimaryButton = ({ children, onClick, className, disabled }: { children: R
   </motion.button>
 );
 
-export default function DashboardClient({ initialTasks, initialTeams }: { initialTasks: Task[], initialTeams: Team[] }) {
-
-  const { data: session } = useSession();
+export default function DashboardClient() {
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const { data: tasks, isLoading: tasksLoading, refetch: refreshTasks } = useTasks(undefined, { initialData: initialTasks });
-  const { data: teams, isLoading: teamsLoading } = useTeams({ initialData: initialTeams });
+  const todayTasksQuery = useInfiniteTasks({ dateFilter: "today", sortBy: "deadline", limit: 6 }, { enabled: !!session });
+  const weekTasksQuery = useInfiniteTasks({ dateFilter: "week", sortBy: "deadline", limit: 6 }, { enabled: !!session });
+  const overdueTasksQuery = useInfiniteTasks({ dateFilter: "overdue", sortBy: "deadline", limit: 6 }, { enabled: !!session });
+  const teamsQuery = useInfiniteTeams({ enabled: !!session, limit: 6 });
   const [activeFilter, setActiveFilter] = useState<"Today" | "This Week" | "Overdue">("Today");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
-  const [parentTaskId, setParentTaskId] = useState<string | undefined>(undefined);
-  const [parentTeamId, setParentTeamId] = useState<string | undefined>(undefined);
+  const { openTaskModal, openTeamModal } = useModalStore();
   const updateTaskMutation = useUpdateTask();
   const [greeting, setGreeting] = useState("Good morning");
+  const dashboardTasksRootRef = useRef<HTMLDivElement | null>(null);
+  const dashboardTeamsRootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const updateGreeting = () => {
-      // Get current hour in IST (Indian Standard Time)
-      // Using en-US with Asia/Kolkata timezone to get the hour in 0-23 format
       const istDate = new Date().toLocaleString("en-US", {
         timeZone: "Asia/Kolkata",
         hour: "numeric",
         hour12: false
       });
-
       const hour = parseInt(istDate, 10);
-
-      // 4 am - 12 pm - morning
-      // 12 pm - 5 pm - afternoon
-      // 5 pm - 9 pm - evening
-      // 9 pm - 4 am - night
-
       if (hour >= 4 && hour < 12) {
         setGreeting("Good morning");
       } else if (hour >= 12 && hour < 17) {
@@ -122,40 +108,14 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
         setGreeting("Good night");
       }
     };
-
     updateGreeting();
-    updateGreeting();
-    // Update every minute to keep it real-time
     const interval = setInterval(updateGreeting, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // HCI: Keyboard Shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // 'C' to create TASK
-      // 'N' to create TEAM
-      const isInput = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
-      if (isInput || e.ctrlKey || e.metaKey) return;
-
-      if (e.key.toLowerCase() === 'c') {
-        e.preventDefault();
-        setIsCreateModalOpen(true);
-      } else if (e.key.toLowerCase() === 'n') {
-        e.preventDefault();
-        setIsCreateTeamModalOpen(true);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-
 
   const handleQuickComplete = async (e: React.MouseEvent, task: Task) => {
     e.stopPropagation();
-    if (updateTaskMutation.isPending) return;
     const newStatus = task.status === 'completed' ? 'pending' : 'completed';
     try {
       await updateTaskMutation.mutateAsync({ id: task.id, status: newStatus });
@@ -176,130 +136,108 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
     });
   };
 
-  const groupedTasks = useMemo(() => {
-    if (!tasks) return { today: [], week: [], overdue: [] };
-    const safeTasks = tasks as Task[];
+  const todayTasks = useMemo(
+    () => flattenInfiniteTasks(todayTasksQuery.data).filter((task) => task.status !== "completed"),
+    [todayTasksQuery.data]
+  );
+  const weekTasks = useMemo(
+    () => flattenInfiniteTasks(weekTasksQuery.data).filter((task) => task.status !== "completed"),
+    [weekTasksQuery.data]
+  );
+  const overdueTasks = useMemo(
+    () => flattenInfiniteTasks(overdueTasksQuery.data).filter((task) => task.status !== "completed"),
+    [overdueTasksQuery.data]
+  );
+  const teams = useMemo(() => flattenInfiniteTeams(teamsQuery.data), [teamsQuery.data]);
 
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfToday = new Date(startOfToday);
-    endOfToday.setDate(endOfToday.getDate() + 1);
-    const endOfWeek = new Date(startOfToday);
-    endOfWeek.setDate(endOfWeek.getDate() + 7);
-
-    // Helpers for filtering
-    const isOverdue = (t: Task): boolean => !!(t.deadline && new Date(t.deadline) < startOfToday && t.status !== 'completed');
-    const isToday = (t: Task): boolean => !!(t.deadline && new Date(t.deadline) >= startOfToday && new Date(t.deadline) < endOfToday && t.status !== 'completed');
-    const isWeek = (t: Task): boolean => !!(t.deadline && new Date(t.deadline) >= endOfToday && new Date(t.deadline) < endOfWeek && t.status !== 'completed');
-
-    // Build full tree first
-    const fullTree = buildTaskTree(safeTasks);
-
-    // Filter tree while preserving ALL children of matching parents
-    const filterTree = (nodes: Task[], predicate: (t: Task) => boolean): Task[] => {
-      const result: Task[] = [];
-
-      for (const node of nodes) {
-        const nodeMatches = predicate(node);
-
-        // Recursively check if any descendant matches
-        const hasMatchingDescendant = (task: Task): boolean => {
-          if (predicate(task)) return true;
-          if (task.children && task.children.length > 0) {
-            return task.children.some(child => hasMatchingDescendant(child));
-          }
-          return false;
-        };
-
-        const descendantMatches = node.children && node.children.length > 0
-          ? node.children.some(child => hasMatchingDescendant(child))
-          : false;
-
-        // Include node if it matches OR if any descendant matches
-        if (nodeMatches || descendantMatches) {
-          // If this node matches, keep ALL its children (don't filter them)
-          // If only descendants match, recursively filter to find the matching branch
-          const childrenToInclude = nodeMatches
-            ? (node.children || [])  // Keep all children if parent matches
-            : filterTree(node.children || [], predicate);  // Filter children if only descendants match
-
-          result.push({
-            ...node,
-            children: childrenToInclude
-          });
-        }
-      }
-
-      return result;
-    };
-
-    // Filter trees for each category
-    const overdueTree = filterTree(fullTree, isOverdue);
-    const todayTree = filterTree(fullTree, isToday);
-    const weekTree = filterTree(fullTree, isWeek);
-
-    // Flatten trees respecting expanded state using shared utility
-    return {
-      overdue: flattenTree(overdueTree, expandedIds),
-      today: flattenTree(todayTree, expandedIds),
-      week: flattenTree(weekTree, expandedIds)
-    };
-  }, [tasks, expandedIds]);
-
-  const scrollToSection = (section: "Today" | "This Week" | "Overdue") => {
-    setActiveFilter(section);
-    const element = document.getElementById(`section-${section.toLowerCase().replace(" ", "-")}`);
-    if (element) {
-      const offset = 100; // Offset for sticky headers or breathing room
-      const bodyRect = document.body.getBoundingClientRect().top;
-      const elementRect = element.getBoundingClientRect().top;
-      const elementPosition = elementRect - bodyRect;
-      const offsetPosition = elementPosition - offset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth"
-      });
-    }
-  };
+  const groupedTasks = useMemo(() => ({
+    today: flattenTree(buildTaskTree(todayTasks), expandedIds),
+    week: flattenTree(buildTaskTree(weekTasks), expandedIds),
+    overdue: flattenTree(buildTaskTree(overdueTasks), expandedIds),
+  }), [todayTasks, weekTasks, overdueTasks, expandedIds]);
 
   const [stats, setStats] = useState({ deadlinesToday: 0 });
 
   useEffect(() => {
-    if (!tasks) return;
+    if (!todayTasks.length && !todayTasksQuery.data?.pages?.[0]) return;
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfToday = new Date(startOfToday);
     endOfToday.setDate(endOfToday.getDate() + 1);
 
-    const count = (tasks as Task[]).filter((t) => {
+    const count = todayTasks.filter((t) => {
       if (t.status === "completed" || !t.deadline) return false;
       const d = new Date(t.deadline);
       return d >= startOfToday && d < endOfToday;
     }).length;
 
     setStats({ deadlinesToday: count });
-  }, [tasks]);
+  }, [todayTasks, todayTasksQuery.data]);
 
-  if (tasksLoading || teamsLoading) {
+  const shouldShowTasksSkeleton =
+    status === "loading" ||
+    (activeFilter === "Today" ? todayTasksQuery.isPending :
+     activeFilter === "This Week" ? weekTasksQuery.isPending :
+     overdueTasksQuery.isPending);
+
+  const shouldShowTeamsSkeleton = status === "loading" || teamsQuery.isPending;
+
+  const todaySentinelRef = useInfiniteScrollTrigger({
+    hasMore: !!todayTasksQuery.hasNextPage,
+    isLoading: todayTasksQuery.isFetchingNextPage,
+    onLoadMore: () => void todayTasksQuery.fetchNextPage(),
+    rootRef: dashboardTasksRootRef,
+  });
+  const weekSentinelRef = useInfiniteScrollTrigger({
+    hasMore: !!weekTasksQuery.hasNextPage,
+    isLoading: weekTasksQuery.isFetchingNextPage,
+    onLoadMore: () => void weekTasksQuery.fetchNextPage(),
+    rootRef: dashboardTasksRootRef,
+  });
+  const overdueSentinelRef = useInfiniteScrollTrigger({
+    hasMore: !!overdueTasksQuery.hasNextPage,
+    isLoading: overdueTasksQuery.isFetchingNextPage,
+    onLoadMore: () => void overdueTasksQuery.fetchNextPage(),
+    rootRef: dashboardTasksRootRef,
+  });
+  const teamsSentinelRef = useInfiniteScrollTrigger({
+    hasMore: !!teamsQuery.hasNextPage,
+    isLoading: teamsQuery.isFetchingNextPage,
+    onLoadMore: () => void teamsQuery.fetchNextPage(),
+    rootRef: dashboardTeamsRootRef,
+  });
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
+
+  if (!session && status !== "loading") {
     return (
-      <div className="flex h-full items-center justify-center min-h-screen bg-background">
-        <div className="flex flex-col items-center gap-4 text-zinc-500 text-sm">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-500 border-t-transparent" />
-          <span>Loading Dashboard...</span>
+      <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 dark:border-white"></div>
+          <p className="text-sm text-zinc-500 animate-pulse">Session expired. Redirecting...</p>
         </div>
       </div>
     );
   }
 
-  if (!session) return null;
-
-  const renderTaskList = (taskList: (Task & { level: number })[], title: string, id: string, emptyMsg: string) => (
+  const renderTaskList = (
+    taskList: (Task & { level: number })[],
+    title: string,
+    id: string,
+    emptyMsg: string,
+    totalCount?: number,
+    hasMore?: boolean,
+    sentinelRef?: React.RefObject<HTMLDivElement | null>
+  ) => (
     <motion.div id={id} className="scroll-mt-24 space-y-4" variants={itemVariants}>
-      <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest pl-1">{title} <span className="text-zinc-600 ml-2 text-xs">({taskList.length})</span></h3>
+      <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest pl-1">{title} <span className="text-zinc-600 ml-2 text-xs">({totalCount ?? taskList.length})</span></h3>
       <AnimatePresence mode="popLayout">
         {taskList.length > 0 ? (
-          <div className="space-y-3">
+          <motion.div key={`list-${id}`} className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {taskList.map((task) => (
               <TaskItem
                 key={task.id}
@@ -309,9 +247,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
                 onToggleExpand={handleToggleExpand}
                 onAddSubtask={(taskId, teamId, e) => {
                   e.stopPropagation();
-                  setParentTaskId(taskId);
-                  setParentTeamId(teamId);
-                  setIsCreateModalOpen(true);
+                  openTaskModal({ parentId: taskId, teamId: teamId });
                 }}
                 isExpanded={expandedIds.has(task.id)}
                 variant="dashboard"
@@ -319,19 +255,21 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
                 showStatus={true}
                 showDeadline={true}
                 formatDaysLeft={formatDaysLeft}
-                loading={updateTaskMutation.isPending}
               />
             ))}
-          </div>
+            {hasMore && sentinelRef ? <div ref={sentinelRef} className="h-4 w-full" /> : null}
+          </motion.div>
         ) : (
-          <EmptyState
-            icon={CheckCircle2}
-            title=""
-            description={emptyMsg}
-            actionLabel="Create Task"
-            onAction={() => setIsCreateModalOpen(true)}
-            variant="minimal"
-          />
+          <motion.div key={`empty-${id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <EmptyState
+              icon={CheckCircle2}
+              title=""
+              description={emptyMsg}
+              actionLabel="Create Task"
+              onAction={() => openTaskModal()}
+              variant="minimal"
+            />
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
@@ -347,13 +285,13 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
       <div className="max-w-7xl mx-auto space-y-12">
 
         {/* Top Section: Greeting & Status */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-zinc-200 dark:border-zinc-900">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-[var(--border-time)]">
           <div className="flex-1">
             <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white mb-2">
-              {greeting}, {session.user?.name?.split(" ")[0]}
+              {greeting}, {session?.user?.name?.split(" ")[0] || "there"}
             </h1>
             <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-500 text-sm">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+              <span className="flex h-2 w-2 rounded-full bg-[var(--success-time)] shadow-[0_0_8px_var(--success-glow)] transition-all"></span>
               <p>You have <span className="text-zinc-900 dark:text-zinc-300 font-bold">{stats.deadlinesToday === 1 ? `1 deadline` : `${stats.deadlinesToday} deadlines`}</span> approaching.</p>
             </div>
           </div>
@@ -361,7 +299,7 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
             <MoodleSyncButton variant="button" />
             {/* Main Action - HCI: Fitts's Law / Visibility */}
-            <PrimaryButton onClick={() => setIsCreateModalOpen(true)}>
+            <PrimaryButton onClick={() => openTaskModal()}>
               <div className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
                 <span>New Task</span>
@@ -371,15 +309,13 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
               </div>
             </PrimaryButton>
 
-            {/* Vertical Divider */}
-            <div className="hidden sm:block w-px h-8 bg-zinc-200 dark:bg-zinc-800"></div>
+            <div className="hidden sm:block w-px h-8 bg-[var(--border-time)]"></div>
 
-            {/* Quick Filters */}
-            <div className="flex items-center p-1 bg-zinc-100 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-900/50">
+            <div className="flex items-center p-1 bg-zinc-100 dark:bg-zinc-900/50 rounded-lg border border-[var(--border-time)]">
               {(["Today", "This Week", "Overdue"] as const).map((filter) => (
                 <button
                   key={filter}
-                  onClick={() => scrollToSection(filter)}
+                  onClick={() => setActiveFilter(filter)}
                   className={cn(
                     "relative flex-1 px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all z-0",
                     activeFilter === filter
@@ -416,10 +352,34 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
               </Link>
             </div>
 
-            <div className="h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-              {renderTaskList(groupedTasks.today, "Today", "section-today", "No tasks due today.")}
-              {renderTaskList(groupedTasks.week, "This Week", "section-this-week", "No upcoming tasks for this week.")}
-              {renderTaskList(groupedTasks.overdue, "Overdue", "section-overdue", "No overdue tasks. Great job!")}
+            <div ref={dashboardTasksRootRef} className="h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+              {shouldShowTasksSkeleton ? (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest pl-1">{activeFilter}</h3>
+                  <TaskListSkeleton rows={3} />
+                </div>
+              ) : (
+                <AnimatePresence mode="wait">
+                  {activeFilter === "Today" && (
+                    <motion.div key="today" initial="hidden" animate="visible" exit="hidden" variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 }, exit: { opacity: 0, x: 10 } }}>
+                      {renderTaskList(todayTasks.length > 0 ? groupedTasks.today : [], "Today", "section-today", "No tasks due today.", todayTasksQuery.data?.pages[0]?.total, todayTasksQuery.hasNextPage, todaySentinelRef)}
+                      {todayTasksQuery.isFetchingNextPage && <TaskListSkeleton rows={2} />}
+                    </motion.div>
+                  )}
+                  {activeFilter === "This Week" && (
+                    <motion.div key="week" initial="hidden" animate="visible" exit="hidden" variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 }, exit: { opacity: 0, x: 10 } }}>
+                      {renderTaskList(weekTasks.length > 0 ? groupedTasks.week : [], "This Week", "section-this-week", "No upcoming tasks for this week.", weekTasksQuery.data?.pages[0]?.total, weekTasksQuery.hasNextPage, weekSentinelRef)}
+                      {weekTasksQuery.isFetchingNextPage && <TaskListSkeleton rows={2} />}
+                    </motion.div>
+                  )}
+                  {activeFilter === "Overdue" && (
+                    <motion.div key="overdue" initial="hidden" animate="visible" exit="hidden" variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 }, exit: { opacity: 0, x: 10 } }}>
+                      {renderTaskList(overdueTasks.length > 0 ? groupedTasks.overdue : [], "Overdue", "section-overdue", "No overdue tasks. Great job!", overdueTasksQuery.data?.pages[0]?.total, overdueTasksQuery.hasNextPage, overdueSentinelRef)}
+                      {overdueTasksQuery.isFetchingNextPage && <TaskListSkeleton rows={2} />}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              )}
             </div>
           </div>
 
@@ -435,19 +395,22 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
               </Link>
             </div>
 
-            <div className="grid gap-4 h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent content-start">
-              {teams && teams.length > 0 ? (
-                (teams as Team[]).map((team) => (
+            <div ref={dashboardTeamsRootRef} className="grid gap-4 h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent content-start">
+              {shouldShowTeamsSkeleton ? (
+                <TeamGridSkeleton count={3} compact />
+              ) : teams && teams.length > 0 ? (
+                <>
+                {teams.map((team) => (
                   <motion.div
                     key={team.id}
                     onClick={() => router.push(`/teams/${team.id}`)}
-                    className="relative group p-5 rounded-xl bg-card border border-zinc-200 dark:border-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer transition-all hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50"
+                    className="relative group p-5 rounded-xl bg-card border border-[var(--border-time)] hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer transition-all hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50"
                     whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold shadow-sm group-hover:bg-zinc-200 dark:group-hover:bg-zinc-800 transition-colors">
+                        <div className="h-10 w-10 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-[var(--border-time)] flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold shadow-sm group-hover:bg-zinc-200 dark:group-hover:bg-zinc-800 transition-colors">
                           {team.name.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
@@ -476,7 +439,10 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
 
 
                   </motion.div>
-                ))
+                ))}
+                {teamsQuery.hasNextPage && <div ref={teamsSentinelRef} className="h-4 w-full" />}
+                {teamsQuery.isFetchingNextPage && <TeamGridSkeleton count={2} compact />}
+                </>
               ) : (
                 <div className="p-6 text-center border border-zinc-200 dark:border-zinc-900 rounded-xl bg-card/50">
                   <p className="text-sm text-zinc-500 dark:text-zinc-600">You are not in any teams.</p>
@@ -491,18 +457,22 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
 
       {/* Task Detail Drawer */}
       {
-        selectedTask && (
+        selectedTask && !shouldShowTasksSkeleton && (
           <TaskDetailDrawer
             selectedTask={selectedTask}
             setSelectedTask={setSelectedTask}
             updateTaskMutation={updateTaskMutation}
-            refreshTasks={refreshTasks}
+            refreshTasks={() => {
+              void todayTasksQuery.refetch();
+              void weekTasksQuery.refetch();
+              void overdueTasksQuery.refetch();
+            }}
             isLeader={
               // User can delete if:
               // 1. Task is from Personal workspace (team name is "Personal")
               // 2. User is the leader of the task's team
               selectedTask.team?.name === 'Personal' ||
-              (teams as Team[] || []).some(team =>
+              (teams || []).some(team =>
                 team.id === selectedTask.teamId &&
                 (team as Team).leader?.email === session?.user?.email
               )
@@ -512,24 +482,6 @@ export default function DashboardClient({ initialTasks, initialTeams }: { initia
         )
       }
 
-      <CreateTaskModal
-        isOpen={isCreateModalOpen}
-        onClose={() => {
-          setIsCreateModalOpen(false);
-          setParentTaskId(undefined);
-          setParentTeamId(undefined);
-        }}
-        onTaskCreated={refreshTasks}
-        currentUserId={session.user?.id}
-        initialParentId={parentTaskId}
-        initialTeamId={parentTeamId}
-      />
-
-      <CreateTeamModal
-        isOpen={isCreateTeamModalOpen}
-        onClose={() => setIsCreateTeamModalOpen(false)}
-      />
     </motion.div>
   );
 }
-

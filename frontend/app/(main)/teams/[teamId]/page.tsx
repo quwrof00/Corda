@@ -1,15 +1,16 @@
 "use client";
-
+import { TeamWorkspaceSkeleton } from "@/components/shared/SkeletonLoader";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useTeam, useTeamMembers, useDeleteTeam, useRemoveMember, useUpdateTeam } from "@/hooks/useTeams";
-import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
+import { flattenInfiniteTasks, useInfiniteTasks, useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 import { api } from "@/lib/api";
 import { AxiosError } from "axios";
 import { useSession } from "next-auth/react";
 import { useState, useMemo, useEffect, useRef } from "react";
+import { usePersonalWorkspace } from "@/hooks/usePersonalWorkspace";
 import { io, Socket } from "socket.io-client";
-import { Loader2 } from "lucide-react";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import CreateTaskModal from "@/components/CreateTaskModal";
@@ -39,11 +40,16 @@ export default function TeamDetailsPage() {
     const teamId = params?.teamId as string;
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
+    const { data: personalTeamId } = usePersonalWorkspace();
 
     const { data: team, isLoading: teamLoading } = useTeam(teamId);
     const { data: members, isLoading: membersLoading } = useTeamMembers(teamId);
-    const { data: tasks, isLoading: tasksLoading } = useTasks(teamId);
+    const isPersonal = team?.name === "Personal";
+    const tasksQuery = useInfiniteTasks({ teamId, limit: 30 }, { enabled: !!teamId && !!session && !isPersonal });
+    const { data: personalTasksData, isLoading: personalTasksLoading } = useTasks(teamId, {
+        enabled: !!teamId && !!session && isPersonal,
+    });
 
     const deleteTeamMutation = useDeleteTeam();
     const removeMemberMutation = useRemoveMember();
@@ -112,20 +118,20 @@ export default function TeamDetailsPage() {
                 toast.info(`${runner} started allocation...`, { id: "alloc-start-toast" }); // dedupe ID
             } else if (data.type === 'allocation_completed') {
                 toast.success(`Allocation complete! Assigned ${data.count} tasks.`);
-                queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
+                queryClient.invalidateQueries({ queryKey: ["tasks"] });
                 queryClient.invalidateQueries({ queryKey: ["teamMembers", teamId] });
             } else if (data.type === 'task_reallocated') {
                 toast.success(`Task reallocated`);
-                queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
+                queryClient.invalidateQueries({ queryKey: ["tasks"] });
             } else if (data.type === 'task_created') {
                 toast.success(`New task: ${data.title}`);
-                queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
+                queryClient.invalidateQueries({ queryKey: ["tasks"] });
             } else if (data.type === 'task_deleted') {
                 toast.success(`Task deleted`);
-                queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
+                queryClient.invalidateQueries({ queryKey: ["tasks"] });
             } else if (data.type === 'task_updated') {
                 toast.success(`Task updated`);
-                queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
+                queryClient.invalidateQueries({ queryKey: ["tasks"] });
             }
         });
 
@@ -134,8 +140,12 @@ export default function TeamDetailsPage() {
         };
     }, [teamId, queryClient]);
 
-    const unassignedTasks = useMemo(() => (tasks as Task[])?.filter((t) => !t.assignedTo) || [], [tasks]);
-    const assignedTasks = useMemo(() => (tasks as Task[])?.filter((t) => t.assignedTo) || [], [tasks]);
+    const tasks = useMemo(
+        () => (isPersonal ? ((personalTasksData as Task[]) || []) : flattenInfiniteTasks(tasksQuery.data)),
+        [isPersonal, personalTasksData, tasksQuery.data]
+    );
+    const unassignedTasks = useMemo(() => tasks.filter((t) => !t.assignedTo), [tasks]);
+    const assignedTasks = useMemo(() => tasks.filter((t) => t.assignedTo), [tasks]);
 
     const tasksByMember = useMemo(() => {
         const map: Record<string, Task[]> = {};
@@ -227,7 +237,7 @@ export default function TeamDetailsPage() {
                 setConfirmModal(prev => ({ ...prev, isOpen: false }));
                 try {
                     await api.post(`/allocator/${teamId}`);
-                    queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
+                    queryClient.invalidateQueries({ queryKey: ["tasks"] });
                     queryClient.invalidateQueries({ queryKey: ["teamMembers", teamId] });
                     toast.success("Allocation process completed");
                 } catch (error) {
@@ -285,21 +295,17 @@ export default function TeamDetailsPage() {
         }
     }, [team, teamLoading]);
 
-    if (teamLoading || membersLoading || tasksLoading) {
-        return (
-            <div className="flex justify-center items-center h-screen bg-background text-zinc-500 font-sans">
-                <div className="flex items-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" /> Loading Team...
-                </div>
-            </div>
-        );
-    }
+    const shouldShowSkeleton =
+        status === "loading" ||
+        teamLoading ||
+        membersLoading ||
+        (!isPersonal && tasksQuery.isPending) ||
+        (isPersonal && personalTasksLoading);
+    if (!session && status !== "loading") return null;
+    if (!team && !shouldShowSkeleton) return <div className="p-10 text-center bg-background text-zinc-500 font-sans">Team Not Found</div>;
 
-    if (!team) return <div className="p-10 text-center bg-background text-zinc-500 font-sans">Team Not Found</div>;
-
-    const isActualLeader = session?.user?.email === team.leader?.email;
-    const isLeader = isActualLeader || team.enableAll;
-    const isPersonal = team.name === "Personal";
+    const isActualLeader = session?.user?.email === team?.leader?.email;
+    const isLeader = Boolean(team && (isActualLeader || team.enableAll));
     const currentUserMemberId = (members as Member[])?.find((m: Member) => m.email === session?.user?.email)?.id;
 
     return (
@@ -309,69 +315,93 @@ export default function TeamDetailsPage() {
             transition={{ duration: 0.3 }}
             className="min-h-screen bg-background text-zinc-900 dark:text-zinc-300 font-sans pb-20 selection:bg-zinc-200 dark:selection:bg-zinc-800"
         >
-            <TeamHeader
-                team={team}
-                isScrolled={isScrolled}
-                router={router}
-                isPersonal={isPersonal}
-                isLeader={isLeader}
-                isActualLeader={isActualLeader}
-                members={members as Member[]}
-                assignedTasks={assignedTasks}
-                openEditTeam={openEditTeam}
-                setInviteModalOpen={setInviteModalOpen}
-                setSelectedMemberId={setSelectedMemberId}
-                currentUserMemberId={currentUserMemberId}
-                setCreateTaskModalOpen={setCreateTaskModalOpen}
-                handleAllocate={handleAllocate}
-                allocating={allocating}
-                handleDeleteTeam={handleDeleteTeam}
-            />
-
-            <MobileNavTabs isPersonal={isPersonal} mobileTab={mobileTab} setMobileTab={setMobileTab} />
-
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8 mt-8">
-                {isPersonal ? (
-                    <PersonalWorkspace
+            {shouldShowSkeleton ? (
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8">
+                    <div className="mb-8 space-y-3">
+                        <p className="text-xs font-mono uppercase tracking-[0.3em] text-zinc-500">Workspace</p>
+                        <h1 className="text-3xl font-bold text-zinc-100">
+                            {team?.name || (teamId === personalTeamId ? "Personal Workspace" : "Team Workspace")}
+                        </h1>
+                        <p className="text-sm text-zinc-500 font-sans">
+                            {teamId === personalTeamId 
+                                ? "Loading your personal tasks and workspace." 
+                                : "Loading team members, assignments, and workload analysis."}
+                        </p>
+                    </div>
+                    <TeamWorkspaceSkeleton personal={teamId === personalTeamId || team?.name === "Personal"} />
+                </div>
+            ) : (
+                <>
+                    <TeamHeader
+                        team={team}
+                        isScrolled={isScrolled}
+                        router={router}
+                        isPersonal={isPersonal}
+                        isLeader={isLeader}
+                        isActualLeader={isActualLeader}
+                        members={members as Member[]}
                         assignedTasks={assignedTasks}
-                        currentUserMemberId={currentUserMemberId}
+                        openEditTeam={openEditTeam}
+                        setInviteModalOpen={setInviteModalOpen}
                         setSelectedMemberId={setSelectedMemberId}
+                        currentUserMemberId={currentUserMemberId}
                         setCreateTaskModalOpen={setCreateTaskModalOpen}
-                        setParentTaskId={setParentTaskId}
-                        setParentTeamId={setParentTeamId}
-                        openEditTask={openEditTask}
+                        handleAllocate={handleAllocate}
+                        allocating={allocating}
+                        handleDeleteTeam={handleDeleteTeam}
                     />
-                ) : (
-                    <>
-                        {!isPersonal && (
-                            <div className={cn(mobileTab !== "workload" && "hidden lg:block")}>
-                                <WorkloadAnalysis
+
+                    <MobileNavTabs isPersonal={isPersonal} mobileTab={mobileTab} setMobileTab={setMobileTab} />
+
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8 mt-8">
+                        {isPersonal ? (
+                            <PersonalWorkspace
+                                assignedTasks={assignedTasks}
+                                currentUserMemberId={currentUserMemberId}
+                                setSelectedMemberId={setSelectedMemberId}
+                                setCreateTaskModalOpen={setCreateTaskModalOpen}
+                                setParentTaskId={setParentTaskId}
+                                setParentTeamId={setParentTeamId}
+                                openEditTask={openEditTask}
+                            />
+                        ) : (
+                            <>
+                                {!isPersonal && (
+                                    <div className={cn(mobileTab !== "workload" && "hidden lg:block")}>
+                                        <WorkloadAnalysis
+                                            members={members as Member[]}
+                                            allTasks={tasks}
+                                            tasksByMember={tasksByMember}
+                                            isLeader={isLeader}
+                                            isActualLeader={isActualLeader}
+                                            setSelectedMemberId={setSelectedMemberId}
+                                            setCreateTaskModalOpen={setCreateTaskModalOpen}
+                                            handleRemoveMember={handleRemoveMember}
+                                            removeMemberMutationPending={removeMemberMutation.isPending}
+                                            isVisible={true}
+                                        />
+                                    </div>
+                                )}
+
+                                <TeamTaskBoard
+                                    mobileTab={mobileTab}
+                                    unassignedTasks={unassignedTasks}
+                                    assignedTasks={assignedTasks}
+                                    hasMoreTasks={!!tasksQuery.hasNextPage}
+                                    isFetchingMoreTasks={tasksQuery.isFetchingNextPage}
+                                    onLoadMoreTasks={() => {
+                                        void tasksQuery.fetchNextPage();
+                                    }}
                                     members={members as Member[]}
                                     tasksByMember={tasksByMember}
-                                    totalTasksCount={(tasks as Task[])?.length || 0}
                                     isLeader={isLeader}
-                                    isActualLeader={isActualLeader}
-                                    setSelectedMemberId={setSelectedMemberId}
-                                    setCreateTaskModalOpen={setCreateTaskModalOpen}
-                                    handleRemoveMember={handleRemoveMember}
-                                    removeMemberMutationPending={removeMemberMutation.isPending}
-                                    isVisible={true}
+                                    openEditTask={openEditTask}
                                 />
-                            </div>
+                            </>
                         )}
-
-                        <TeamTaskBoard
-                            mobileTab={mobileTab}
-                            unassignedTasks={unassignedTasks}
-                            assignedTasks={assignedTasks}
-                            members={members as Member[]}
-                            tasksByMember={tasksByMember}
-                            isLeader={isLeader}
-                            openEditTask={openEditTask}
-                        />
-                    </>
-                )}
-            </div>
+                    </div>
+                </>
+            )}
 
             <InviteModal
                 isOpen={inviteModalOpen}
@@ -397,7 +427,7 @@ export default function TeamDetailsPage() {
                 isPersonalWorkspace={isPersonal}
                 currentUserId={currentUserMemberId}
                 onTaskCreated={() => {
-                    queryClient.invalidateQueries({ queryKey: ["tasks", teamId] });
+                    queryClient.invalidateQueries({ queryKey: ["tasks"] });
                 }}
             />
 
@@ -415,16 +445,20 @@ export default function TeamDetailsPage() {
                 isPending={updateTeamMutation.isPending}
             />
 
-            <TaskDetailDrawer
-                selectedTask={selectedTask}
-                setSelectedTask={setSelectedTask}
-                updateTaskMutation={updateTaskMutation}
-                refreshTasks={() => queryClient.invalidateQueries({ queryKey: ["tasks", teamId] })}
-                isLeader={isLeader}
-                teamName={team?.name}
-                currentUserId={currentUserMemberId}
-                members={members as Member[]}
-            />
+            {!shouldShowSkeleton && (
+                <TaskDetailDrawer
+                    selectedTask={selectedTask}
+                    setSelectedTask={setSelectedTask}
+                    updateTaskMutation={updateTaskMutation}
+                    refreshTasks={() => {
+                        queryClient.invalidateQueries({ queryKey: ["tasks"] });
+                    }}
+                    isLeader={isLeader}
+                    teamName={team?.name}
+                    currentUserId={currentUserMemberId}
+                    members={members as Member[]}
+                />
+            )}
 
             <ConfirmModal
                 isOpen={confirmModal.isOpen}

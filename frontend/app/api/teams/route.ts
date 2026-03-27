@@ -5,12 +5,16 @@ import { getCurrentUser } from "@/lib/session";
 import { publishTeamEvent } from "@/lib/socket";
 
 // GET /api/teams - List all teams for the current user
-export async function GET() {
+export async function GET(req: Request) {
     try {
         const user = await getCurrentUser();
         if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+
+        const { searchParams } = new URL(req.url);
+        const page = Math.max(1, Number(searchParams.get("page") || "1"));
+        const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit") || "12")));
 
         const teams = await prisma.team.findMany({
             where: {
@@ -47,10 +51,30 @@ export async function GET() {
                     }
                 }
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any
+            } as any,
+            orderBy: {
+                id: "asc"
+            },
+            skip: (page - 1) * limit,
+            take: limit,
         });
 
-        return NextResponse.json(teams);
+        const total = await prisma.team.count({
+            where: {
+                members: {
+                    some: { id: user.id }
+                }
+            }
+        });
+
+        return NextResponse.json({
+            items: teams,
+            page,
+            limit,
+            total,
+            hasMore: page * limit < total,
+            nextPage: page * limit < total ? page + 1 : null,
+        });
     } catch (error) {
         console.error("Error getting teams:", error);
         return NextResponse.json({ error: "Server error" }, { status: 500 });

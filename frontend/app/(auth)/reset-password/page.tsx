@@ -1,9 +1,10 @@
 "use client";
-
+import { LoadingBars } from "@/components/shared/LoadingBars";
+import { StatusCardSkeleton } from "@/components/shared/SkeletonLoader";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Lock, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
+import { Lock, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 
@@ -129,7 +130,7 @@ function ResetPasswordForm() {
                 >
                     {loading ? (
                         <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <LoadingBars className="w-5 h-5" />
                             Resetting...
                         </>
                     ) : (
@@ -152,7 +153,7 @@ export default function ResetPasswordPage() {
             <div className="absolute bottom-0 -right-4 w-72 h-72 bg-primary/10 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
 
             <div className="w-full max-w-md bg-card backdrop-blur-xl rounded-3xl shadow-sm border border-border p-8 relative z-10">
-                <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>}>
+                <Suspense fallback={<StatusCardSkeleton />}>
                     <ResetPasswordForm />
                 </Suspense>
             </div>

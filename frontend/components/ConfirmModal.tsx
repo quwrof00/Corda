@@ -1,7 +1,8 @@
+import { LoadingBars } from "@/components/shared/LoadingBars";
 
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 interface ConfirmModalProps {
     isOpen: boolean;
@@ -59,7 +60,7 @@ export default function ConfirmModal({
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
                         transition={{ type: "spring", duration: 0.3 }}
-                        className="w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl rounded-2xl"
+                        className="w-full max-w-md bg-background border border-[var(--border-time)] p-6 shadow-2xl rounded-2xl"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-start gap-4 mb-6">
@@ -98,7 +99,7 @@ export default function ConfirmModal({
                                     : "bg-amber-600 hover:bg-amber-500 shadow-[0_0_15px_rgba(217,119,6,0.3)]"
                                     }`}
                             >
-                                {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                {loading && <LoadingBars className="w-3.5 h-3.5" />}
                                 {confirmText}
                             </motion.button>
                         </div>

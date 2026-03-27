@@ -1,6 +1,7 @@
 import MainProviders from "./providers";
 import Sidebar from "@/components/Sidebar";
 import MobileNav from "@/components/MobileNav";
+import GlobalModals from "@/components/GlobalModals";
 import { ReactNode } from "react";
 
 export default function MainLayout({ children }: { children: ReactNode }) {
@@ -11,6 +12,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                 <MobileNav />
                 <main className="flex-1 min-w-0 transition-all duration-300 md:ml-[var(--sidebar-width,16rem)]">
                     {children}
+                    <GlobalModals />
                 </main>
             </div>
         </MainProviders>

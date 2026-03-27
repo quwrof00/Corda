@@ -1,5 +1,7 @@
-
 "use client";
+import { LoadingBars } from "@/components/shared/LoadingBars";
+
+
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -9,6 +11,7 @@ import { useUser } from "@/hooks/useUser";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
 import ConfirmModal from "./ConfirmModal";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 import { clsx } from "clsx";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -98,13 +101,13 @@ export default function Sidebar() {
                                     "group flex items-center gap-3 px-3 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all relative",
                                     isCollapsed ? "justify-center" : "",
                                     isActive
-                                        ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white"
+                                        ? "bg-[var(--accent-time)]/10 text-[var(--accent-time)]"
                                         : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
                                 )}
                                 prefetch={false}
                                 title={isCollapsed ? item.name : undefined}
                             >
-                                <item.icon className={clsx("h-5 w-5 min-w-[1.25rem]", isActive ? "text-zinc-900 dark:text-white" : "text-zinc-600 group-hover:text-zinc-400")} />
+                                <item.icon className={clsx("h-5 w-5 min-w-[1.25rem]", isActive ? "text-[var(--accent-time)]" : "text-zinc-600 group-hover:text-zinc-400")} />
                                 <AnimatePresence>
                                     {!isCollapsed && (
                                         <motion.span
@@ -120,7 +123,7 @@ export default function Sidebar() {
                                 {isActive && !isCollapsed && (
                                     <motion.div
                                         layoutId="activeNavIndicator"
-                                        className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-black dark:bg-white rounded-l-full"
+                                        className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[var(--accent-time)] rounded-l-full"
                                     />
                                 )}
                             </Link>
@@ -171,7 +174,7 @@ export default function Sidebar() {
                         </Link>
                     ) : (
                         <div className="px-3 py-3 flex items-center justify-center md:justify-start gap-2 text-zinc-700 text-xs">
-                            <div className="w-4 h-4 min-w-[1rem] rounded-full border-2 border-zinc-800 border-t-zinc-600 animate-spin" />
+                            <LoadingBars className="w-4 h-4 min-w-[1rem] rounded-full" />
                             <AnimatePresence>
                                 {!isCollapsed && (
                                     <motion.span
@@ -222,10 +225,15 @@ export default function Sidebar() {
                         </div>
                     )}
 
+                    {/* Theme Switcher */}
+                    <div className="border-t border-[var(--border-time)] py-4 mt-2">
+                        <ThemeSwitcher isCollapsed={isCollapsed} />
+                    </div>
+
                     {/* User Profile */}
-                    <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 bg-white dark:bg-zinc-950">
+                    <div className="border-t border-[var(--border-time)] pt-4 bg-white dark:bg-zinc-950">
                         <Link href="/profile" className={clsx("flex items-center gap-3 mb-4 cursor-pointer group hover:opacity-80 px-2", isCollapsed && "justify-center")}>
-                            <div className="h-9 w-9 min-w-[2.25rem] bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center relative rounded-full overflow-hidden">
+                            <div className="h-9 w-9 min-w-[2.25rem] bg-zinc-100 dark:bg-zinc-900 border border-[var(--border-time)] flex items-center justify-center relative rounded-full overflow-hidden">
                                 {session.user?.image ? (
                                     <Image
                                         src={session.user.image}
@@ -270,7 +278,7 @@ export default function Sidebar() {
                                         exit={{ opacity: 0, width: 0 }}
                                         className="whitespace-nowrap overflow-hidden"
                                     >
-                                        Disconnect
+                                        Sign Out
                                     </motion.span>
                                 )}
                             </AnimatePresence>

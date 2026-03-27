@@ -1,5 +1,6 @@
+import { LoadingBars } from "@/components/shared/LoadingBars";
 import { useState, useEffect } from "react";
-import { Pause, Play, X, Calendar, Users, Edit2, Save, Trash2, CheckCircle2, Clock, Plus, ChevronRight, Wrench, Loader2, Ban } from "lucide-react"
+import { Pause, Play, X, Calendar, Users, Edit2, Save, Trash2, CheckCircle2, Clock, Plus, ChevronRight, Wrench, Ban } from "lucide-react";
 import cn from "clsx"
 import { motion, AnimatePresence } from "framer-motion";
 import { Task, useDeleteTask } from "@/hooks/useTasks";
@@ -26,21 +27,28 @@ interface TaskDetailDrawerProps {
 
 export default function TaskDetailDrawer({ selectedTask, setSelectedTask, updateTaskMutation, refreshTasks, isLeader = false, teamName, currentUserId, onCreateSubtask, members }: TaskDetailDrawerProps) {
     const deleteTaskMutation = useDeleteTask();
+    const [actionPending, setActionPending] = useState<"status" | "save" | "delete" | "recurrence" | null>(null);
 
     const handleStatusUpdate = async (status: string) => {
         if (!selectedTask) return;
+        const taskToUpdate = selectedTask;
+
+        // Optimistic UI: Close immediately
+        setSelectedTask(null);
+
         try {
+            setActionPending("status");
             await updateTaskMutation.mutateAsync({
-                id: selectedTask.id,
+                id: taskToUpdate.id,
                 status: status
             });
-            if (status === 'completed') {
-                setSelectedTask(null);
-            }
             refreshTasks();
         } catch (e) {
             console.error("Failed to update task", e);
             toast.error("Failed to update status");
+            setSelectedTask(taskToUpdate);
+        } finally {
+            setActionPending(null);
         }
     };
 
@@ -85,11 +93,13 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
 
     const handleSaveChanges = async () => {
         if (!selectedTask) return;
+        const taskToRestore = selectedTask;
 
+        // Optimistic UI: Close immediately
         setSelectedTask(null);
-        toast.success("Task updated successfully");
 
         try {
+            setActionPending("save");
             await updateTaskMutation.mutateAsync({
                 id: selectedTask.id,
                 title: editForm.title,
@@ -99,10 +109,14 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                 requiredSkill: editForm.requiredSkill || null,
                 assignedToId: editForm.assignedToId || null
             });
+            toast.success("Task updated successfully");
             refreshTasks();
         } catch (e) {
             console.error("Failed to update task details", e);
             toast.error("Failed to update task");
+            setSelectedTask(taskToRestore);
+        } finally {
+            setActionPending(null);
         }
     };
 
@@ -117,32 +131,46 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
 
     const performDelete = async () => {
         if (!selectedTask) return;
+        const taskToDelete = selectedTask;
         setConfirmDeleteOpen(false);
+        // Optimistic UI: Close immediately
         setSelectedTask(null);
-        toast.success("Task deleted successfully");
 
         try {
-            await deleteTaskMutation.mutateAsync({ id: selectedTask.id, deleteRecurring });
+            setActionPending("delete");
+            await deleteTaskMutation.mutateAsync({ id: taskToDelete.id, deleteRecurring });
+            toast.success("Task deleted successfully");
             refreshTasks();
         } catch (e) {
             console.error("Failed to delete task", e);
             toast.error("Failed to delete task");
+            setSelectedTask(taskToDelete);
+        } finally {
+            setActionPending(null);
         }
     };
 
     const handleEndRecurrence = async () => {
         if (!selectedTask || !selectedTask.recurrenceId) return;
+        const taskToRestore = selectedTask;
+        
+        // Optimistic UI: Close immediately
+        setSelectedTask(null);
+
         try {
+            setActionPending("recurrence");
             await updateTaskMutation.mutateAsync({
                 id: selectedTask.id,
                 endRecurrence: true
             });
             toast.success("Recurrence ended successfully");
             refreshTasks();
-            setSelectedTask({ ...selectedTask, recurrenceId: null });
         } catch (e) {
             console.error("Failed to end recurrence", e);
             toast.error("Failed to end recurrence");
+            setSelectedTask(taskToRestore);
+        } finally {
+            setActionPending(null);
         }
     };
 
@@ -179,7 +207,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                             animate={{ x: 0 }}
                             exit={{ x: "100%" }}
                             transition={{ type: "spring", damping: 30, stiffness: 350 }}
-                            className="w-full max-w-md bg-[#09090b] h-full shadow-2xl flex flex-col border-l border-white/5" // Use dark bg as per image
+                            className="w-full max-w-md bg-background h-full shadow-2xl flex flex-col border-l border-[var(--border-time)]" // Use dark bg as per image
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
@@ -203,7 +231,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                                     whileHover={{ scale: 1.02 }}
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={() => setIsEditing(true)}
-                                                    className="flex-1 py-2.5 bg-white text-black font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-zinc-200 transition-colors"
+                                                    className="flex-1 py-2.5 bg-[var(--accent-time)] text-[var(--accent-time-text)] font-bold rounded-lg flex items-center justify-center gap-2 transition-colors"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                     Edit Task
@@ -215,10 +243,10 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                                     whileHover={{ scale: 1.02 }}
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={handleDeleteTask}
-                                                    disabled={deleteTaskMutation.isPending}
+                                                    disabled={actionPending !== null}
                                                     className="px-4 py-2.5 bg-red-600 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-red-700 transition-colors disabled:opacity-50"
                                                 >
-                                                    {deleteTaskMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                                    {actionPending === "delete" ? <LoadingBars className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
                                                     Delete
                                                 </motion.button>
                                             )}
@@ -228,11 +256,11 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={handleEndRecurrence}
-                                                disabled={updateTaskMutation.isPending}
+                                                disabled={actionPending !== null}
                                                 className="px-4 py-2.5 bg-zinc-800 text-amber-500 font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-zinc-700 transition-colors disabled:opacity-50 w-full"
                                                 title="Stop repeating this task"
                                             >
-                                                {updateTaskMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
+                                                {actionPending === "recurrence" ? <LoadingBars className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                                                 End Recurrence
                                             </motion.button>
                                         )}
@@ -246,10 +274,10 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}
                                             onClick={handleSaveChanges}
-                                            disabled={updateTaskMutation.isPending}
+                                            disabled={actionPending !== null}
                                             className="flex-1 py-2.5 bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-emerald-600 transition-colors"
                                         >
-                                            <Save className="w-4 h-4" />
+                                            {actionPending === "save" ? <LoadingBars className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                                             Save
                                         </motion.button>
                                         <motion.button
@@ -358,7 +386,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                         </h1>
 
                                         {/* Info Card - Matches Image Style */}
-                                        <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-4 mb-8 space-y-4">
+                                        <div className="bg-[var(--header-time)] border border-[var(--border-time)] rounded-2xl p-4 mb-8 space-y-4">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3 text-zinc-400">
                                                     <Users className="w-4 h-4" />
@@ -408,7 +436,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                         {/* Description Section - Matches Image */}
                                         <div className="mb-8">
                                             <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Description</h3>
-                                            <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-5 min-h-[100px]">
+                                            <div className="bg-[var(--header-time)] border border-[var(--border-time)] rounded-2xl p-5 min-h-[100px]">
                                                 <p className="text-sm text-zinc-400 leading-relaxed whitespace-pre-wrap">
                                                     {taskDescription}
                                                 </p>
@@ -432,7 +460,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                             {subtasks.length > 0 ? (
                                                 <div className="space-y-2">
                                                     {subtasks.map(subtask => (
-                                                        <div key={subtask.id} className="flex items-center gap-3 p-3 bg-zinc-900/50 border border-white/5 rounded-xl hover:bg-zinc-900 cursor-pointer" onClick={() => setSelectedTask(subtask)}>
+                                                        <div key={subtask.id} className="flex items-center gap-3 p-3 bg-[var(--header-time)] border border-[var(--border-time)] rounded-xl hover:bg-zinc-900 cursor-pointer" onClick={() => setSelectedTask(subtask)}>
                                                             <div className={cn(
                                                                 "w-1 h-8 rounded-full flex-shrink-0",
                                                                 subtask.status === 'completed' ? "bg-emerald-500" :
@@ -464,17 +492,17 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
 
                             {/* Bottom Actions - Matches Image */}
                             {!isEditing && (
-                                <div className="p-6 pt-0 mt-auto bg-gradient-to-t from-[#09090b] to-transparent">
+                                <div className="p-6 pt-0 mt-auto bg-gradient-to-t from-background to-transparent">
                                     {isPersonal ? (
                                         selectedTask.status === 'completed' ? (
                                             <motion.button
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={() => handleStatusUpdate('pending')}
-                                                disabled={updateTaskMutation.isPending}
+                                                disabled={actionPending !== null}
                                                 className="w-full py-3.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
                                             >
-                                                {updateTaskMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
+                                                {actionPending === "status" ? <LoadingBars className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                                                 Mark as To Do
                                             </motion.button>
                                         ) : (
@@ -482,10 +510,10 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={() => handleStatusUpdate('completed')}
-                                                disabled={updateTaskMutation.isPending}
-                                                className="w-full py-3.5 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                                                disabled={actionPending !== null}
+                                                className="w-full py-3.5 bg-[var(--accent-time)] text-[var(--accent-time-text)] font-bold rounded-xl hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
                                             >
-                                                {updateTaskMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                                                {actionPending === "status" ? <LoadingBars className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
                                                 Complete Task
                                             </motion.button>
                                         )
@@ -496,10 +524,10 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={() => handleStatusUpdate('active')}
-                                                disabled={updateTaskMutation.isPending}
+                                                disabled={actionPending !== null}
                                                 className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 disabled:opacity-50"
                                             >
-                                                {updateTaskMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
+                                                {actionPending === "status" ? <LoadingBars className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                                                 Start Task
                                             </motion.button>
                                         ) : (selectedTask.status === 'active' || selectedTask.status === 'in-progress') ? (
@@ -508,20 +536,20 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                                     whileHover={{ scale: 1.02 }}
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={() => handleStatusUpdate('pending')}
-                                                    disabled={updateTaskMutation.isPending}
+                                                    disabled={actionPending !== null}
                                                     className="flex-1 py-3.5 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                                 >
-                                                    {updateTaskMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Pause className="w-5 h-5" />}
+                                                    {actionPending === "status" ? <LoadingBars className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
                                                     Pause
                                                 </motion.button>
                                                 <motion.button
                                                     whileHover={{ scale: 1.02 }}
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={() => handleStatusUpdate('completed')}
-                                                    disabled={updateTaskMutation.isPending}
-                                                    className="flex-[1.5] py-3.5 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                                                    disabled={actionPending !== null}
+                                                    className="flex-[1.5] py-3.5 bg-[var(--accent-time)] text-[var(--accent-time-text)] font-bold rounded-xl hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
                                                 >
-                                                    {updateTaskMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                                                    {actionPending === "status" ? <LoadingBars className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
                                                     Done
                                                 </motion.button>
                                             </div>
@@ -550,7 +578,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                 }
                 variant="danger"
                 confirmText={selectedTask?.recurrenceId && deleteRecurring ? "Delete Series" : "Delete"}
-                loading={deleteTaskMutation.isPending}
+                loading={actionPending === "delete"}
             >
                 {selectedTask?.recurrenceId && (
                     <label className="flex items-start gap-3 cursor-pointer p-4 border border-red-500/20 bg-red-500/5 rounded-xl transition-colors hover:bg-red-500/10">

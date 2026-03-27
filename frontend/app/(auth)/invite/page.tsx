@@ -1,9 +1,10 @@
 "use client";
-
+import { LoadingBars } from "@/components/shared/LoadingBars";
+import { StatusCardSkeleton } from "@/components/shared/SkeletonLoader";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { api } from "@/lib/api";
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 
@@ -51,14 +52,12 @@ function InviteContent() {
 
     return (
         <div className="w-full max-w-md bg-card dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl shadow-2xl border border-border p-8 text-center relative z-10">
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-foreground">Team Invitation</h1>
+                <p className="text-sm text-muted-foreground mt-2">We&apos;re validating your invite and workspace access.</p>
+            </div>
             {loading || status === "loading" ? (
-                <div className="flex flex-col items-center gap-4 py-8">
-                    <Loader2 className="w-12 h-12 text-primary animate-spin" />
-                    <div>
-                        <h2 className="text-xl font-bold text-foreground">Verifying Invite...</h2>
-                        <p className="text-muted-foreground mt-1">Please wait while we process your invitation.</p>
-                    </div>
-                </div>
+                <StatusCardSkeleton />
             ) : result?.success ? (
                 <div className="flex flex-col items-center gap-4 py-4">
                     <div className="w-20 h-20 bg-success/20 rounded-full flex items-center justify-center text-success animate-in zoom-in duration-300">
@@ -103,7 +102,7 @@ export default function InvitePage() {
             <div className="absolute top-0 -left-4 w-72 h-72 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
             <div className="absolute -bottom-8 right-20 w-72 h-72 bg-violet-500/20 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
-            <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
+            <Suspense fallback={<div className="w-full max-w-md"><StatusCardSkeleton /></div>}>
                 <InviteContent />
             </Suspense>
         </div>

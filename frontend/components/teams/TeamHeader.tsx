@@ -1,4 +1,5 @@
-import { ArrowLeft, Lock, Settings, Users, CheckCircle2, Plus, BrainCircuit, Trash2, Loader2 } from "lucide-react";
+import { LoadingBars } from "@/components/shared/LoadingBars";
+import { ArrowLeft, Lock, Settings, Users, CheckCircle2, Plus, BrainCircuit, Trash2 } from "lucide-react";
 import { cn } from "./utils";
 import { Member, Task, Team } from "./types";
 interface AppRouterInstance {
@@ -105,7 +106,7 @@ export function TeamHeader({
                                         disabled={allocating}
                                         className="px-4 py-2 text-xs font-bold text-emerald-400 border border-emerald-900/30 bg-emerald-950/10 hover:bg-emerald-950/30 transition-colors flex items-center gap-2 disabled:opacity-50 rounded-lg"
                                     >
-                                        {allocating ? <Loader2 className="w-3 h-3 animate-spin" /> : <BrainCircuit className="w-3 h-3" />}
+                                        {allocating ? <LoadingBars className="w-3 h-3" /> : <BrainCircuit className="w-3 h-3" />}
                                         Auto-Allocate
                                     </button>
                                 )}

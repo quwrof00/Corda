@@ -1,9 +1,10 @@
+import { LoadingBars } from "@/components/shared/LoadingBars";
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
-import { Loader2, Users, X } from "lucide-react";
+import { Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface CreateTeamModalProps {
@@ -83,11 +84,11 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 20 }}
                         transition={{ type: "spring", duration: 0.4, bounce: 0.3 }}
-                        className="w-full max-w-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                        className="w-full max-w-lg bg-background border border-[var(--border-time)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header - Fixed to top */}
-                        <div className="flex-none flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-900 bg-zinc-50 dark:bg-zinc-900">
+                        <div className="flex-none flex items-center justify-between p-5 border-b border-[var(--border-time)] bg-[var(--header-time)]">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-lg bg-zinc-900 dark:bg-white flex items-center justify-center shadow-sm">
                                     <Users className="w-5 h-5 text-white dark:text-black" />
@@ -123,7 +124,7 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
                                         placeholder="Engineering Team"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm placeholder:text-zinc-400"
+                                        className="w-full px-3 py-2.5 bg-[var(--header-time)] border border-[var(--border-time)] rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm placeholder:text-zinc-400"
                                         required
                                         autoComplete="off"
                                     />
@@ -138,7 +139,7 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
                                         rows={3}
-                                        className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm placeholder:text-zinc-400 resize-none"
+                                        className="w-full px-3 py-2.5 bg-[var(--header-time)] border border-[var(--border-time)] rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm placeholder:text-zinc-400 resize-none"
                                     />
                                 </div>
 
@@ -180,11 +181,11 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
                                         whileTap={{ scale: 0.98 }}
                                         type="submit"
                                         disabled={loading}
-                                        className="px-6 py-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-black font-semibold shadow-lg shadow-zinc-500/10 transition-all disabled:opacity-70 disabled:cursor-not-allowed text-sm flex items-center gap-2"
+                                        className="px-6 py-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black transition-all disabled:opacity-70 disabled:cursor-not-allowed text-sm flex items-center gap-2 font-semibold shadow-lg shadow-zinc-500/10"
                                     >
                                         {loading ? (
                                             <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                <LoadingBars className="w-4 h-4" />
                                                 <span>Creating...</span>
                                             </>
                                         ) : (

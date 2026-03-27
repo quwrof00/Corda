@@ -1,5 +1,5 @@
 "use client";
-import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, RefreshCw, ChevronRight, ArrowUpDown, Filter, ChevronDown, ListFilter, Repeat } from "lucide-react";
+import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, ChevronRight, ArrowUpDown, Filter, ChevronDown, ListFilter, Repeat } from "lucide-react";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,7 +8,7 @@ import CreateTeamModal from "@/components/CreateTeamModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
 import CalendarOverlay from "@/components/tasks/CalendarOverlay";
 
-
+import { TaskListSkeleton } from "@/components/shared/SkeletonLoader";
 import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 import { useTeams } from "@/hooks/useTeams";
 import { buildTaskTree } from "@/lib/taskTreeUtils";
@@ -278,12 +278,9 @@ const FilterDropdown = ({
     );
 };
 
-export default function TasksClient({ initialTasks, userId }: { initialTasks: Task[], userId: string }) {
-    const { data: session } = useSession();
-
-
-    // Data Hooks
-    const { data: tasksData, isLoading, refetch } = useTasks(undefined, { initialData: initialTasks });
+export default function TasksClient() {
+    const { data: session, status } = useSession();
+    const { data: tasksData, isLoading, refetch } = useTasks(undefined, { enabled: !!session });
     const { data: teamsData } = useTeams();
 
     // Redundant socket logic removed in favor of global SocketProvider
@@ -305,7 +302,6 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
     const [isTreeView, setIsTreeView] = useState(true); // Default to Tree View per requirement
 
     // Data Hooks
-
 
     const tasks = useMemo(() => (tasksData as Task[]) || [], [tasksData]);
     const teams = useMemo(() => teamsData || [], [teamsData]);
@@ -402,9 +398,6 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
     const flatTasks = useMemo(() => {
         let result = [...tasks];
 
-        // 1. FILTERING
-
-        // Status
         if (statusFilter !== "All") {
             result = result.filter(t => {
                 const s = (t.status || "pending").toLowerCase();
@@ -416,27 +409,25 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
             });
         }
 
-        // Team
         if (teamFilter !== "all") {
             result = result.filter(t => t.teamId === teamFilter);
         }
 
-        // Priority
         if (priorityFilter !== "all") {
             result = result.filter(t => t.priority === priorityFilter);
         }
 
-        // Date
         if (dateFilter !== "all") {
             const now = new Date();
             const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const endOfToday = new Date(startOfToday); endOfToday.setDate(endOfToday.getDate() + 1);
-            const endOfWeek = new Date(startOfToday); endOfWeek.setDate(endOfWeek.getDate() + 7);
+            const endOfToday = new Date(startOfToday);
+            endOfToday.setDate(endOfToday.getDate() + 1);
+            const endOfWeek = new Date(startOfToday);
+            endOfWeek.setDate(endOfWeek.getDate() + 7);
 
             result = result.filter(t => {
                 if (!t.deadline) return false;
                 const d = new Date(t.deadline);
-                // Reset time for comparisons
                 const dDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
                 if (dateFilter === "today") return dDate.getTime() === startOfToday.getTime();
@@ -444,7 +435,6 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                 if (dateFilter === "overdue") return dDate < startOfToday && t.status !== 'completed';
                 if (dateFilter === "custom") {
                     if (!customStartDate || !customEndDate) return true;
-                    // Simple string comparison or proper date object creation
                     const startRaw = new Date(customStartDate);
                     const endRaw = new Date(customEndDate);
                     return dDate >= startRaw && dDate <= endRaw;
@@ -453,17 +443,13 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
             });
         }
 
-
-        // 2. SORTING
         result.sort((a, b) => {
             if (sortBy === 'deadline') {
-                // Ascending
                 if (!a.deadline) return 1;
                 if (!b.deadline) return -1;
                 return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
             }
             if (sortBy === 'priority') {
-                // Descending
                 return (priorityScore[b.priority] || 0) - (priorityScore[a.priority] || 0);
             }
             if (sortBy === 'newest') {
@@ -472,8 +458,6 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
             return 0;
         });
 
-
-        // 3. TREE vs FLAT
         if (isTreeView) {
             // Build tree
             const tree = buildTaskTree(result);
@@ -511,9 +495,9 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
         }
     };
 
-    if (!session) {
-        return <div className="min-h-screen bg-background text-zinc-400 flex items-center justify-center font-sans text-sm">Loading...</div>;
-    }
+    const shouldShowSkeleton = status === "loading" || isLoading;
+    if (!session && status !== "loading") return null;
+    const userId = session?.user?.id;
 
     return (
         <motion.div
@@ -696,10 +680,8 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                     animate="visible"
                     className="space-y-1"
                 >
-                    {isLoading && tasks.length === 0 ? (
-                        <div className="text-zinc-500 text-sm py-10 flex items-center justify-center gap-2">
-                            <RefreshCw className="w-4 h-4 animate-spin" /> Loading tasks...
-                        </div>
+                    {shouldShowSkeleton ? (
+                        <TaskListSkeleton rows={7} />
                     ) : flatTasks.length > 0 ? (
                         <AnimatePresence mode="popLayout">
                             {flatTasks.map((task) => (
@@ -766,7 +748,7 @@ export default function TasksClient({ initialTasks, userId }: { initialTasks: Ta
                 onClose={() => setIsCreateTeamModalOpen(false)}
             />
 
-            {selectedTask && (
+            {selectedTask && !shouldShowSkeleton && (
                 <TaskDetailDrawer
                     selectedTask={selectedTask}
                     setSelectedTask={setSelectedTask}

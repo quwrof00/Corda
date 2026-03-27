@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonLoader } from "@/components/shared/SkeletonLoader";
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useTeam, useTeamMembers, useTeamTasks } from "@/hooks/useTeams";
@@ -49,15 +50,9 @@ export default function TeamDetailPage() {
     }
   };
 
-  if (teamLoading || membersLoading || tasksLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen text-gray-700">
-        Loading team details...
-      </div>
-    );
-  }
+  const shouldShowSkeleton = teamLoading || membersLoading || tasksLoading;
 
-  if (!team) {
+  if (!team && !shouldShowSkeleton) {
     return (
       <div className="flex justify-center items-center h-screen text-gray-600">
         Team not found.
@@ -68,22 +63,28 @@ export default function TeamDetailPage() {
   return (
     <main className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6">
-        <h1 className="text-3xl font-semibold mb-4">{team.name}</h1>
-        <p className="text-gray-600 mb-6">{team.desc}</p>
+        <h1 className="text-3xl font-semibold mb-4">{team?.name || "Team Workspace"}</h1>
+        <p className="text-gray-600 mb-6">{team?.desc || "Loading team details and member roster."}</p>
 
         {/* Leader */}
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-2">Team Leader</h2>
-          <div className="border p-3 rounded-md bg-gray-50">
-            <p className="font-medium">{team.leader?.name || "Unknown"}</p>
-            <p className="text-sm text-gray-500">{team.leader?.email}</p>
-          </div>
+          {shouldShowSkeleton ? (
+            <SkeletonLoader rows={1} className="space-y-0" />
+          ) : (
+            <div className="border p-3 rounded-md bg-gray-50">
+              <p className="font-medium">{team.leader?.name || "Unknown"}</p>
+              <p className="text-sm text-gray-500">{team.leader?.email}</p>
+            </div>
+          )}
         </section>
 
         {/* Members */}
         <section className="mb-10">
           <h2 className="text-xl font-semibold mb-3">Members</h2>
-          {members?.length ? (
+          {shouldShowSkeleton ? (
+            <SkeletonLoader rows={3} />
+          ) : members?.length ? (
             <ul className="space-y-2">
               {(members as TeamMember[]).map((m) => (
                 <li
@@ -135,7 +136,9 @@ export default function TeamDetailPage() {
         {/* Tasks */}
         <section>
           <h2 className="text-xl font-semibold mb-3">Team Tasks</h2>
-          {tasks?.length ? (
+          {shouldShowSkeleton ? (
+            <SkeletonLoader rows={4} />
+          ) : tasks?.length ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {(tasks as TeamTask[]).map((task) => (
                 <div

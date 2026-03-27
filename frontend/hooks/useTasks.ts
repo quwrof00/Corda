@@ -1,4 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  InfiniteData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
 export interface Task {
@@ -15,31 +21,169 @@ export interface Task {
   parentId?: string | null;
   children?: Task[];
   assignedTo?: { id: string; name: string } | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  team?: { id?: string; name?: string;[key: string]: any } | null;
+  team?: { id?: string; name?: string; [key: string]: unknown } | null;
   requiredSkill?: string | null;
   source?: string;
   recurrenceId?: string | null;
   [key: string]: unknown;
 }
 
-// Fetch all tasks or a single task list for a team if provided
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const useTasks = (teamId?: string, options?: any) => {
-  const fetchTasks = async () => {
-    const { data } = await api.get(teamId ? `/teams/${teamId}/tasks` : "/tasks");
-    return data;
-  };
+export interface PaginatedResponse<T> {
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+  hasMore: boolean;
+  nextPage: number | null;
+}
 
-  return useQuery<Task[]>({
-    queryKey: ["tasks", teamId],
-    queryFn: fetchTasks,
-    initialData: options?.initialData,
-    ...options
+export interface TaskListParams {
+  teamId?: string;
+  limit?: number;
+  sortBy?: "deadline" | "priority" | "newest";
+  status?: "All" | "Todo" | "In Progress" | "Blocked" | "Done";
+  priority?: "all" | "High" | "Medium" | "Low";
+  dateFilter?: "all" | "today" | "week" | "overdue" | "custom";
+  startDate?: string;
+  endDate?: string;
+}
+
+type TaskCacheData = Task[] | InfiniteData<PaginatedResponse<Task>> | undefined;
+
+const DEFAULT_LIMIT = 20;
+
+function buildTaskSearchParams(params?: TaskListParams, page?: number) {
+  const searchParams = new URLSearchParams();
+
+  if (page) searchParams.set("page", String(page));
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  if (params?.sortBy) searchParams.set("sortBy", params.sortBy);
+  if (params?.status) searchParams.set("status", params.status);
+  if (params?.priority) searchParams.set("priority", params.priority);
+  if (params?.dateFilter) searchParams.set("dateFilter", params.dateFilter);
+  if (params?.startDate) searchParams.set("startDate", params.startDate);
+  if (params?.endDate) searchParams.set("endDate", params.endDate);
+  if (params?.teamId) searchParams.set("teamId", params.teamId);
+
+  return searchParams.toString();
+}
+
+async function fetchTaskPage(
+  params?: TaskListParams,
+  page: number = 1
+): Promise<PaginatedResponse<Task>> {
+  const query = buildTaskSearchParams(
+    { ...params, limit: params?.limit ?? DEFAULT_LIMIT },
+    page
+  );
+
+  const basePath = params?.teamId ? `/teams/${params.teamId}/tasks` : "/tasks";
+  const path = query ? `${basePath}?${query}` : basePath;
+  const { data } = await api.get(path);
+  return data;
+}
+
+async function fetchAllTaskPages(params?: TaskListParams): Promise<Task[]> {
+  const items: Task[] = [];
+  let page = 1;
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await fetchTaskPage(
+      { ...params, limit: params?.limit ?? 100 },
+      page
+    );
+    items.push(...response.items);
+    hasMore = response.hasMore;
+    page = response.nextPage ?? page + 1;
+  }
+
+  return items;
+}
+
+function updateTaskCache(
+  cache: TaskCacheData,
+  updater: (task: Task) => Task | null
+): TaskCacheData {
+  if (!cache) return cache;
+
+  if (Array.isArray(cache)) {
+    return cache
+      .map((task) => updater(task))
+      .filter((task): task is Task => task !== null);
+  }
+
+  if ("pages" in cache) {
+    return {
+      ...cache,
+      pages: cache.pages.map((page) => ({
+        ...page,
+        items: page.items
+          .map((task) => updater(task))
+          .filter((task): task is Task => task !== null),
+      })),
+    };
+  }
+
+  return cache;
+}
+
+function prependTaskCache(cache: TaskCacheData, task: Task): TaskCacheData {
+  if (!cache) return cache;
+
+  if (Array.isArray(cache)) {
+    return [task, ...cache];
+  }
+
+  if ("pages" in cache && cache.pages.length > 0) {
+    const [firstPage, ...restPages] = cache.pages;
+    return {
+      ...cache,
+      pages: [
+        {
+          ...firstPage,
+          items: [task, ...firstPage.items],
+          total: firstPage.total + 1,
+        },
+        ...restPages.map((page) => ({ ...page, total: page.total + 1 })),
+      ],
+    };
+  }
+
+  return cache;
+}
+
+export function flattenInfiniteTasks(
+  data?: InfiniteData<PaginatedResponse<Task>>
+): Task[] {
+  return data?.pages.flatMap((page) => page.items) ?? [];
+}
+
+export const useInfiniteTasks = (
+  params?: TaskListParams,
+  options?: { enabled?: boolean }
+) => {
+  return useInfiniteQuery({
+    queryKey: ["tasks", "infinite", params],
+    queryFn: ({ pageParam }) => fetchTaskPage(params, pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.nextPage ?? undefined,
+    enabled: options?.enabled,
   });
 };
 
-// Fetch a specific task by ID
+export const useTasks = (
+  teamId?: string,
+  options?: { initialData?: Task[]; enabled?: boolean }
+) => {
+  return useQuery<Task[]>({
+    queryKey: ["tasks", teamId, "all"],
+    queryFn: () => fetchAllTaskPages({ teamId }),
+    initialData: options?.initialData,
+    enabled: options?.enabled,
+  });
+};
+
 export const useTask = (id: string) => {
   return useQuery({
     queryKey: ["task", id],
@@ -51,7 +195,6 @@ export const useTask = (id: string) => {
   });
 };
 
-// Create a new task
 export const useCreateTask = () => {
   const queryClient = useQueryClient();
 
@@ -61,93 +204,107 @@ export const useCreateTask = () => {
       return data;
     },
     onMutate: async (newTask) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
 
-      // Snapshot previous values for both team-specific and global lists
-      const teamQueryKey = ["tasks", newTask.teamId];
-      const globalQueryKey = ["tasks", undefined];
-
-      const previousTeamTasks = queryClient.getQueryData(teamQueryKey);
-      const previousGlobalTasks = queryClient.getQueryData(globalQueryKey);
-
-      // Create optimistic task
       const tempTask: Task = {
         ...newTask,
-        id: "temp-task-" + Date.now(),
+        id: `temp-task-${Date.now()}`,
         createdAt: new Date().toISOString(),
         status: newTask.status || "pending",
         priority: newTask.priority || "Medium",
         title: newTask.title || "",
-        assignedTo: newTask.assignedToId ? { id: newTask.assignedToId, name: "Assigned..." } : null,
+        assignedTo: newTask.assignedToId
+          ? { id: newTask.assignedToId, name: "Assigned..." }
+          : null,
         children: [],
       } as Task;
 
-      // Update team-specific list if teamId exists
-      if (newTask.teamId) {
-        queryClient.setQueryData(teamQueryKey, (old: Task[] | undefined) => {
-          return [...(old || []), tempTask];
-        });
-      }
-
-      // Always update global list for dashboard and other views
-      queryClient.setQueryData(globalQueryKey, (old: Task[] | undefined) => {
-        return [...(old || []), tempTask];
+      const snapshots = queryClient.getQueriesData<TaskCacheData>({
+        queryKey: ["tasks"],
       });
 
-      return { previousTeamTasks, previousGlobalTasks, teamQueryKey, globalQueryKey };
+      snapshots.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(queryKey, prependTaskCache(previousData, tempTask));
+      });
+
+      return { snapshots };
     },
     onError: (err, newTask, context) => {
-      // Rollback on error
-      if (context?.teamQueryKey && context.previousTeamTasks !== undefined) {
-        queryClient.setQueryData(context.teamQueryKey, context.previousTeamTasks);
-      }
-      if (context?.globalQueryKey && context.previousGlobalTasks !== undefined) {
-        queryClient.setQueryData(context.globalQueryKey, context.previousGlobalTasks);
-      }
+      context?.snapshots?.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(queryKey, previousData);
+      });
     },
     onSettled: () => {
-      // Invalidate all task queries to get fresh data from server
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 };
 
-// Update an existing task
 export const useUpdateTask = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string;[key: string]: unknown }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; [key: string]: unknown }) => {
       const { data } = await api.put(`/tasks/${id}`, updates);
       return data;
     },
     onMutate: async ({ id, ...updates }) => {
-      // 1. Cancel any outgoing refetches (so they don't overwrite our optimistic update)
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
       await queryClient.cancelQueries({ queryKey: ["task", id] });
 
-      // 2. Snapshot the previous value
-      const previousTask = queryClient.getQueryData(["task", id]);
-
-      // Optimistically update the detail view
-      queryClient.setQueryData(["task", id], (old: Task) => (old ? { ...old, ...updates } : old));
-
-      // Optimistically update ANY list containing this task
-      queryClient.setQueriesData({ queryKey: ["tasks"] }, (old: Task[]) => {
-        if (!Array.isArray(old)) return old;
-        return old.map((task) => (task.id === id ? { ...task, ...updates } : task)); // Shallow merge
+      const previousTask = queryClient.getQueryData<Task>(["task", id]);
+      const snapshots = queryClient.getQueriesData<TaskCacheData>({
+        queryKey: ["tasks"],
       });
 
-      // Pass context
-      return { previousTask };
+      // Prepare optimistic update object
+      const optimisticUpdate = { ...updates };
+
+      // If we are updating assignedToId, optimistically update the assignedTo object
+      // so that UI components filtering/grouping by assignee (like TeamTaskBoard)
+      // update their views immediately.
+      if ("assignedToId" in updates) {
+        if (updates.assignedToId === null) {
+          optimisticUpdate.assignedTo = null;
+        } else {
+          // If we have previousTask, we might keep its name if IDs match (unlikely for reassign)
+          // Otherwise, we just set the ID so filters/grouping logic (which uses task.assignedTo.id) works.
+          const targetName = previousTask?.assignedTo?.id === updates.assignedToId 
+            ? previousTask?.assignedTo?.name 
+            : "Assigning...";
+            
+          optimisticUpdate.assignedTo = {
+            id: updates.assignedToId as string,
+            name: targetName ?? "Assigning..."
+          };
+        }
+      }
+
+      // Update single task cache
+      queryClient.setQueryData(["task", id], (old: Task | undefined) =>
+        old ? { ...old, ...optimisticUpdate } : old
+      );
+
+      // Update all task lists caches
+      snapshots.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(
+          queryKey,
+          updateTaskCache(previousData, (task) =>
+            task.id === id ? { ...task, ...optimisticUpdate } : task
+          )
+        );
+      });
+
+      return { previousTask, snapshots };
     },
     onError: (err, variables, context) => {
-      // Rollback detail
       if (context?.previousTask) {
         queryClient.setQueryData(["task", variables.id], context.previousTask);
       }
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+
+      context?.snapshots?.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(queryKey, previousData);
+      });
     },
     onSettled: (data, error, variables) => {
       queryClient.invalidateQueries({ queryKey: ["task", variables.id] });
@@ -156,7 +313,6 @@ export const useUpdateTask = () => {
   });
 };
 
-// Delete a task
 export const useDeleteTask = () => {
   const queryClient = useQueryClient();
 
@@ -176,23 +332,30 @@ export const useDeleteTask = () => {
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
       await queryClient.cancelQueries({ queryKey: ["task", id] });
 
-      // Optimistically remove from all lists
-      queryClient.setQueriesData({ queryKey: ["tasks"] }, (old: Task[]) => {
-        if (!Array.isArray(old)) return old;
-        // If we are deleting recurring tasks, we might optimistically remove all tasks with the same recurrenceId.
-        // But for simplicity, we just trigger refetch in onSettled, or we can just filter out the specific ID here.
-        return old.filter((t) => t.id !== id && (!deleteRecurring || !t.recurrenceId));
+      const snapshots = queryClient.getQueriesData<TaskCacheData>({
+        queryKey: ["tasks"],
       });
 
-      return { id };
+      snapshots.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(
+          queryKey,
+          updateTaskCache(previousData, (task) => {
+            if (task.id === id) return null;
+            if (deleteRecurring && task.recurrenceId) return null;
+            return task;
+          })
+        );
+      });
+
+      return { id, snapshots };
     },
-    onError: () => {
-      // Invalidate to restore
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    onError: (err, payload, context) => {
+      context?.snapshots?.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(queryKey, previousData);
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 };
-

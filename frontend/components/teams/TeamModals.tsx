@@ -1,6 +1,7 @@
+import { LoadingBars } from "@/components/shared/LoadingBars";
 import { useEffect } from "react";
 import { Task, Member } from "./types";
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { cn } from "./utils";
 
 interface InviteModalProps {
@@ -55,7 +56,7 @@ export function InviteModal({
                                 disabled={inviteLoading}
                                 className="px-4 py-2 bg-white text-black text-xs font-bold hover:bg-zinc-200 rounded-lg flex items-center gap-2"
                             >
-                                {inviteLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                                {inviteLoading && <LoadingBars className="w-3 h-3" />}
                                 {inviteLoading ? "Sending..." : "Send Invite"}
                             </button>
                         </div>
@@ -171,7 +172,7 @@ export function EditTeamModal({
                             disabled={isPending}
                             className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-black px-6 py-2.5 text-xs font-bold rounded-xl flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
                         >
-                            {isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                            {isPending && <LoadingBars className="w-3 h-3" />}
                             Save Changes
                         </button>
                     </div>
@@ -250,7 +251,7 @@ export function EditTaskModal({
                             className="text-red-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-950/20 transition-colors"
                             title="Delete Task"
                         >
-                            {deleteTaskPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            {deleteTaskPending ? <LoadingBars className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
                         </button>
                         <div className="flex gap-3">
                             <button type="button" onClick={onClose} className="text-zinc-500 hover:text-zinc-300 text-xs">Cancel</button>
@@ -259,7 +260,7 @@ export function EditTaskModal({
                                 disabled={updateTaskPending}
                                 className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-black px-4 py-2 text-xs font-bold rounded-lg flex items-center gap-2"
                             >
-                                {updateTaskPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                                {updateTaskPending && <LoadingBars className="w-3 h-3" />}
                                 Save
                             </button>
                         </div>

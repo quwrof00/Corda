@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Task } from "./types";
 import { cn, formatDaysLeft } from "./utils";
-import { CheckCircle2, Plus, ChevronRight, Repeat, Loader2 } from "lucide-react";
+import { CheckCircle2, Plus, ChevronRight, Repeat } from "lucide-react";
 import { buildTaskTree, flattenTree } from "@/lib/taskTreeUtils";
 import { useUpdateTask } from "@/hooks/useTasks";
 import MoodleSyncButton from "@/components/tasks/moodle-sync-button";
@@ -46,7 +46,6 @@ export function PersonalWorkspace({
 
     const handleStatusToggle = async (e: React.MouseEvent, task: Task) => {
         e.stopPropagation();
-        if (updateTaskMutation.isPending) return;
         const newStatus = task.status === 'completed' ? 'pending' : 'completed';
 
         try {
@@ -202,7 +201,6 @@ export function PersonalWorkspace({
                                                 {/* Checkbox */}
                                                 <button
                                                     onClick={(e) => handleStatusToggle(e, task)}
-                                                    disabled={updateTaskMutation.isPending}
                                                     className={cn("mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50",
                                                         task.status === "completed"
                                                             ? "bg-emerald-500 border-emerald-500 hover:bg-emerald-600"
@@ -211,9 +209,8 @@ export function PersonalWorkspace({
                                                     title={task.status === "completed" ? "Mark as Incomplete" : "Mark as Completed"}
                                                 >
                                                     {task.status === "completed" && (
-                                                        updateTaskMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin text-white" /> : <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                                                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
                                                     )}
-                                                    {task.status !== "completed" && updateTaskMutation.isPending && <Loader2 className="w-3 h-3 animate-spin text-zinc-500" />}
                                                 </button>
 
                                                 {/* Chevron between checkbox and title */}

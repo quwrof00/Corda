@@ -17,14 +17,6 @@ export default function LandingPage() {
     }
   }, [session, router]);
 
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-500 border-t-transparent" />
-      </div>
-    );
-  }
-
   if (session) return null;
 
   return (
@@ -45,20 +37,29 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-6">
-            <Link
-              href="/login"
-              className="hidden md:inline-flex text-xs font-bold uppercase tracking-wider text-zinc-500 hover:text-white transition-colors"
-            >
-              Login
-            </Link>
-            <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                href="/register"
-                className="inline-flex h-10 items-center justify-center bg-white text-black px-6 text-xs font-bold uppercase tracking-wider hover:bg-zinc-200 transition-all font-mono shadow-sm hover:shadow-md"
-              >
-                Create Account
-              </Link>
-            </motion.div>
+            {status === "loading" ? (
+              <div className="flex items-center gap-3 animate-pulse">
+                <div className="hidden md:block h-3 w-12 rounded bg-zinc-800" />
+                <div className="h-10 w-32 rounded bg-zinc-800" />
+              </div>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="hidden md:inline-flex text-xs font-bold uppercase tracking-wider text-zinc-500 hover:text-white transition-colors"
+                >
+                  Login
+                </Link>
+                <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.95 }}>
+                  <Link
+                    href="/register"
+                    className="inline-flex h-10 items-center justify-center bg-white text-black px-6 text-xs font-bold uppercase tracking-wider hover:bg-zinc-200 transition-all font-mono shadow-sm hover:shadow-md"
+                  >
+                    Create Account
+                  </Link>
+                </motion.div>
+              </>
+            )}
           </div>
         </div>
       </motion.nav>

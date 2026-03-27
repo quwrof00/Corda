@@ -1,8 +1,10 @@
 "use client";
+import { LoadingBars } from "@/components/shared/LoadingBars";
+
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { FolderSync, X, Loader2 } from "lucide-react";
+import { FolderSync, X } from "lucide-react";
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -208,7 +210,7 @@ export default function MoodleSyncButton({ variant = "button" }: MoodleSyncButto
                                     >
                                         {syncMutation.isPending ? (
                                             <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                <LoadingBars className="w-4 h-4" />
                                                 Syncing...
                                             </>
                                         ) : (

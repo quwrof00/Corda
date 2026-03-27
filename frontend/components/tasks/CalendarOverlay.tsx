@@ -10,8 +10,9 @@ import {
     CheckCircle2,
     Plus
 } from "lucide-react";
-import { Task } from "@/hooks/useTasks";
+import { Task, useUpdateTask } from "@/hooks/useTasks";
 import cn from "clsx";
+import { toast } from "sonner";
 
 interface CalendarOverlayProps {
     isOpen: boolean;
@@ -26,6 +27,43 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, onAddTask }: CalendarOverlayProps) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const updateTaskMutation = useUpdateTask();
+
+    const handleDragStart = (e: React.DragEvent, taskId: string) => {
+        e.dataTransfer.setData("taskId", taskId);
+        e.dataTransfer.effectAllowed = "move";
+        const target = e.target as HTMLElement;
+        target.style.opacity = '0.5';
+    };
+
+    const handleDragEnd = (e: React.DragEvent) => {
+        const target = e.target as HTMLElement;
+        target.style.opacity = '1';
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+    };
+
+    const handleDrop = async (e: React.DragEvent, year: number, month: number, day: number) => {
+        e.preventDefault();
+        const taskId = e.dataTransfer.getData("taskId");
+        if (!taskId) return;
+
+        // Set deadline to noon of that day to avoid TZ issues
+        const newDeadline = new Date(year, month, day, 12, 0, 0).toISOString();
+
+        try {
+            await updateTaskMutation.mutateAsync({
+                id: taskId,
+                deadline: newDeadline,
+            });
+            toast.success("Deadline updated");
+        } catch (error) {
+            toast.error("Failed to update deadline");
+        }
+    };
 
     // Prevent body scroll when overlay is open
     useEffect(() => {
@@ -110,10 +148,10 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
 
     const getPriorityColor = (priority?: string) => {
         switch (priority) {
-            case 'High': return 'bg-red-500/10 text-red-500 border-red-500/20';
-            case 'Medium': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
-            case 'Low': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-            default: return 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20';
+            case 'High': return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20 backdrop-blur-sm';
+            case 'Medium': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 backdrop-blur-sm';
+            case 'Low': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 backdrop-blur-sm';
+            default: return 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20 backdrop-blur-sm';
         }
     };
 
@@ -129,16 +167,19 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[45] bg-[#09090b]/95 backdrop-blur-xl flex flex-col"
+                    className="fixed inset-0 z-[45] bg-background/80 backdrop-blur-3xl flex flex-col overflow-hidden"
                 >
+                    {/* Ambient Glows */}
+                    <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[var(--accent-time)] opacity-[0.08] rounded-full blur-[120px] pointer-events-none" />
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--accent-time)] opacity-[0.08] rounded-full blur-[120px] pointer-events-none" />
                     {/* Header */}
-                    <div className="p-6 flex items-center justify-between border-b border-white/5">
+                    <div className="p-6 flex items-center justify-between border-b border-[var(--border-time)] bg-gradient-to-r from-[var(--header-time)] to-background shadow-sm">
                         <div className="flex items-center gap-4">
-                            <div className="p-2 bg-zinc-900 rounded-lg">
-                                <CalendarIcon className="w-5 h-5 text-white" />
+                            <div className="p-2 bg-[var(--accent-time)] rounded-lg shadow-sm">
+                                <CalendarIcon className="w-5 h-5 text-[var(--accent-time-text)]" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-white leading-none">{monthName} {year}</h2>
+                                <h2 className="text-2xl font-black text-foreground leading-none tracking-tight">{monthName} <span className="text-[var(--accent-time)] opacity-70 font-mono">{year}</span></h2>
                                 <p className="text-zinc-400 text-xs mt-1 uppercase tracking-widest font-bold">
                                     {tasks.filter(t => {
                                         if (!t.deadline) return false;
@@ -150,7 +191,7 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-lg border border-white/5">
+                            <div className="flex items-center gap-1 bg-[var(--header-time)] p-1 rounded-lg border border-[var(--border-time)]">
                                 <button
                                     onClick={handlePrevMonth}
                                     className="p-1.5 hover:bg-zinc-800 rounded-md text-zinc-400 hover:text-white transition-colors"
@@ -192,8 +233,8 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                                 ))}
                             </div>
 
-                            {/* Calendar Grid */}
-                            <div className="grid grid-cols-7 gap-px bg-white/10 border border-white/10 rounded-2xl overflow-hidden shadow-2xl mb-8">
+                            {/* Calendar Grid - Modern Floating Cards Look */}
+                            <div className="grid grid-cols-7 gap-3 mb-8">
                                 {calendarDays.map((d, i) => {
                                     const dateKey = `${d.year}-${d.month}-${d.day}`;
                                     const dayTasks = tasksByDate[dateKey] || [];
@@ -202,16 +243,20 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                                     return (
                                         <div
                                             key={i}
+                                            onDragOver={handleDragOver}
+                                            onDrop={(e) => handleDrop(e, d.year, d.month, d.day)}
                                             className={cn(
-                                                "group bg-[#09090b] p-2 flex flex-col gap-2 min-h-[140px] relative transition-colors",
-                                                !d.isCurrentMonth && "opacity-20 bg-[#050505]",
-                                                d.isCurrentMonth && "hover:bg-zinc-900/40"
+                                                "group p-4 flex flex-col gap-3 min-h-[160px] relative transition-all rounded-2xl border-2",
+                                                todaysDate 
+                                                    ? "bg-[var(--accent-time)]/[0.03] border-[var(--accent-time)] shadow-[0_15px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_15px_30px_rgba(0,0,0,0.3)] z-10" 
+                                                    : "bg-card/50 backdrop-blur-md border-[var(--border-time)] hover:border-[var(--accent-time)]/30 hover:shadow-xl hover:-translate-y-1",
+                                                !d.isCurrentMonth && "opacity-20 grayscale-[0.8] scale-[0.98] pointer-events-none"
                                             )}
                                         >
                                             <div className="flex items-center justify-between">
                                                 <span className={cn(
-                                                    "text-xs font-bold tabular-nums",
-                                                    todaysDate ? "w-7 h-7 flex items-center justify-center bg-white text-black rounded-full shadow-[0_0_20px_rgba(255,255,255,0.15)]" : "text-zinc-600"
+                                                    "text-sm font-black tabular-nums transition-all",
+                                                    todaysDate ? "text-[var(--accent-time)]" : "text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-200"
                                                 )}>
                                                     {d.day}
                                                 </span>
@@ -222,7 +267,7 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                                                                 <div
                                                                     key={idx}
                                                                     className={cn(
-                                                                        "w-1.5 h-1.5 rounded-full border border-[#09090b]",
+                                                                        "w-1.5 h-1.5 rounded-full border border-background",
                                                                         t.priority === 'High' ? "bg-red-500" :
                                                                             t.priority === 'Medium' ? "bg-amber-500" :
                                                                                 "bg-emerald-500"
@@ -254,16 +299,19 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                                                     return (
                                                         <button
                                                             key={task.id}
+                                                            draggable
+                                                            onDragStart={(e) => handleDragStart(e, task.id)}
+                                                            onDragEnd={handleDragEnd}
                                                             onClick={() => onSelectTask(task)}
                                                             className={cn(
-                                                                "w-full text-left px-2 py-1.5 rounded-lg border text-[10px] font-bold truncate transition-all hover:brightness-125 flex items-center justify-between gap-1",
+                                                                "w-full text-left px-2.5 py-2 rounded-lg border text-[10px] font-bold truncate transition-all hover:scale-[1.02] flex items-center justify-between gap-2 shadow-sm",
                                                                 isCompleted
-                                                                    ? "bg-zinc-900/50 text-zinc-600 border-zinc-800/50 line-through font-medium"
+                                                                    ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-400 border-zinc-200 dark:border-zinc-800 line-through opacity-60"
                                                                     : getPriorityColor(task.priority)
                                                             )}
                                                         >
                                                             <span className="truncate">{task.title}</span>
-                                                            {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-500/50 shrink-0" />}
+                                                            {isCompleted && <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />}
                                                         </button>
                                                     );
                                                 })}
@@ -303,11 +351,11 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                                     animate={{ scale: 1, opacity: 1 }}
                                     exit={{ scale: 0.9, opacity: 0 }}
                                     onClick={e => e.stopPropagation()}
-                                    className="w-full max-w-md bg-[#09090b] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+                                    className="w-full max-w-md bg-background border border-[var(--border-time)] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
                                 >
-                                    <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                                    <div className="p-6 border-b border-[var(--border-time)] bg-[var(--header-time)] flex items-center justify-between">
                                         <div>
-                                            <h3 className="text-lg font-bold text-white">
+                                            <h3 className="text-lg font-bold text-foreground">
                                                 {new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(selectedDate)}
                                             </h3>
                                             <p className="text-zinc-500 text-xs mt-0.5 uppercase tracking-wider font-bold">Daily Schedule</p>
@@ -323,11 +371,14 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                                         {(tasksByDate[`${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`] || []).map(task => (
                                             <div
                                                 key={task.id}
+                                                draggable
+                                                onDragStart={(e) => handleDragStart(e, task.id)}
+                                                onDragEnd={handleDragEnd}
                                                 onClick={() => {
                                                     onSelectTask(task);
                                                     setSelectedDate(null);
                                                 }}
-                                                className="group flex items-center gap-4 p-4 bg-zinc-900/50 border border-white/5 rounded-2xl hover:bg-zinc-800 cursor-pointer transition-all hover:scale-[1.01]"
+                                                className="group flex items-center gap-4 p-4 bg-[var(--header-time)] border border-[var(--border-time)] rounded-2xl hover:brightness-105 cursor-pointer transition-all hover:scale-[1.01]"
                                             >
                                                 <div className={cn(
                                                     "w-1 h-8 rounded-full",
@@ -338,7 +389,7 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className={cn(
                                                         "text-sm font-bold truncate",
-                                                        task.status === 'completed' ? "text-zinc-600 line-through" : "text-zinc-200"
+                                                        task.status === 'completed' ? "text-zinc-600 line-through" : "text-foreground"
                                                     )}>
                                                         {task.title}
                                                     </h4>
