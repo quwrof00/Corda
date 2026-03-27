@@ -163,6 +163,7 @@ export default function CreateTaskModal({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        onClose(); // Close immediately for optimistic UI
 
         try {
             // Determine final assignedToId.
@@ -206,7 +207,6 @@ export default function CreateTaskModal({
             if (onTaskCreated) {
                 onTaskCreated();
             }
-            onClose();
             toast.success(isRecurring ? "Recurring task created!" : "Task created successfully!");
 
             // Reset form

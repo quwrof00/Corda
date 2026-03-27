@@ -42,6 +42,7 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
             return;
         }
 
+        onClose(); // Close immediately for optimistic UI
         setLoading(true);
 
         try {
@@ -56,7 +57,6 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
             if (onTeamCreated) {
                 onTeamCreated();
             }
-            onClose();
             setName("");
             setDescription("");
             setEnableAll(false);

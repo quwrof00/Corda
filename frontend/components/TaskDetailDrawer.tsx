@@ -449,7 +449,10 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                                 <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Subtasks</h3>
                                                 {onCreateSubtask && (
                                                     <button
-                                                        onClick={() => onCreateSubtask(selectedTask.id, selectedTask.teamId || "")}
+                                                        onClick={() => {
+                                                            setSelectedTask(null);
+                                                            onCreateSubtask(selectedTask.id, selectedTask.teamId || "");
+                                                        }}
                                                         className="text-[10px] font-bold text-blue-400 hover:text-blue-300 uppercase tracking-wider flex items-center gap-1 transition-colors"
                                                     >
                                                         <Plus className="w-3 h-3" />

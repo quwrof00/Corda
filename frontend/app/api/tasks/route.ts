@@ -47,7 +47,21 @@ export async function GET(req: Request) {
             }
         }
 
-        if (dateFilter && dateFilter !== "all") {
+        // Handle Date Filtering
+        if (startDate || endDate) {
+            // If explicit bounds are provided, use them directly
+            // This is the preferred way for timezone-aware client filtering
+            const deadlineFilter: Record<string, unknown> = {};
+            if (startDate) deadlineFilter.gte = new Date(startDate);
+            if (endDate) deadlineFilter.lte = new Date(endDate);
+            where.deadline = deadlineFilter;
+
+            // Handle Overdue status logic if needed (usually combined with status filter)
+            if (dateFilter === "overdue") {
+                where.status = { not: "completed" };
+            }
+        } else if (dateFilter && dateFilter !== "all") {
+            // Legacy/Fallback shortcuts (Uses Server UTC - problematic for different timezones)
             const now = new Date();
             const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const endOfToday = new Date(startOfToday);
@@ -71,14 +85,6 @@ export async function GET(req: Request) {
                 };
                 where.status = {
                     not: "completed",
-                };
-            } else if (dateFilter === "custom" && startDate && endDate) {
-                const customStart = new Date(startDate);
-                const customEnd = new Date(endDate);
-                customEnd.setHours(23, 59, 59, 999);
-                where.deadline = {
-                    gte: customStart,
-                    lte: customEnd,
                 };
             }
         }

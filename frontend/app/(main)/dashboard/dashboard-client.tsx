@@ -78,9 +78,51 @@ const PrimaryButton = ({ children, onClick, className, disabled }: { children: R
 export default function DashboardClient() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const todayTasksQuery = useInfiniteTasks({ dateFilter: "today", sortBy: "deadline", limit: 6 }, { enabled: !!session });
-  const weekTasksQuery = useInfiniteTasks({ dateFilter: "week", sortBy: "deadline", limit: 6 }, { enabled: !!session });
-  const overdueTasksQuery = useInfiniteTasks({ dateFilter: "overdue", sortBy: "deadline", limit: 6 }, { enabled: !!session });
+  // Calculate localized date ranges for accurate filtering
+  const { todayRange, weekRange, currentNow } = useMemo(() => {
+    const now = new Date();
+    // Start of local today
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // End of local today (Start of tomorrow)
+    const endOfToday = new Date(startOfToday);
+    endOfToday.setDate(endOfToday.getDate() + 1);
+
+    // This week (Sunday to Sunday or just 7 days from now?)
+    // Usually standard in task apps: Sunday to next Sunday
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+    return {
+       todayRange: { start: startOfToday.toISOString(), end: endOfToday.toISOString() },
+       weekRange: { start: startOfToday.toISOString(), end: endOfWeek.toISOString() },
+       currentNow: now.toISOString(),
+    };
+  }, []);
+
+  const todayTasksQuery = useInfiniteTasks({ 
+    startDate: todayRange.start, 
+    endDate: todayRange.end, 
+    sortBy: "deadline", 
+    limit: 6 
+  }, { enabled: !!session });
+
+  const weekTasksQuery = useInfiniteTasks({ 
+    startDate: weekRange.start, 
+    endDate: weekRange.end, 
+    sortBy: "deadline", 
+    limit: 6 
+  }, { enabled: !!session });
+
+  const overdueTasksQuery = useInfiniteTasks({ 
+    endDate: currentNow, // Due before now
+    dateFilter: "overdue", // Triggers the "not completed" logic on server
+    sortBy: "deadline", 
+    limit: 6 
+  }, { enabled: !!session });
+
   const teamsQuery = useInfiniteTeams({ enabled: !!session, limit: 6 });
   const [activeFilter, setActiveFilter] = useState<"Today" | "This Week" | "Overdue">("Today");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -92,12 +134,7 @@ export default function DashboardClient() {
 
   useEffect(() => {
     const updateGreeting = () => {
-      const istDate = new Date().toLocaleString("en-US", {
-        timeZone: "Asia/Kolkata",
-        hour: "numeric",
-        hour12: false
-      });
-      const hour = parseInt(istDate, 10);
+      const hour = new Date().getHours();
       if (hour >= 4 && hour < 12) {
         setGreeting("Good morning");
       } else if (hour >= 12 && hour < 17) {
@@ -156,23 +193,9 @@ export default function DashboardClient() {
     overdue: flattenTree(buildTaskTree(overdueTasks), expandedIds),
   }), [todayTasks, weekTasks, overdueTasks, expandedIds]);
 
-  const [stats, setStats] = useState({ deadlinesToday: 0 });
-
-  useEffect(() => {
-    if (!todayTasks.length && !todayTasksQuery.data?.pages?.[0]) return;
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfToday = new Date(startOfToday);
-    endOfToday.setDate(endOfToday.getDate() + 1);
-
-    const count = todayTasks.filter((t) => {
-      if (t.status === "completed" || !t.deadline) return false;
-      const d = new Date(t.deadline);
-      return d >= startOfToday && d < endOfToday;
-    }).length;
-
-    setStats({ deadlinesToday: count });
-  }, [todayTasks, todayTasksQuery.data]);
+  const stats = useMemo(() => ({
+    deadlinesToday: todayTasksQuery.data?.pages[0]?.total || 0
+  }), [todayTasksQuery.data]);
 
   const shouldShowTasksSkeleton =
     status === "loading" ||
