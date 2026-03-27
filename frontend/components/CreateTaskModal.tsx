@@ -80,8 +80,9 @@ export default function CreateTaskModal({
             setRecurrenceEndDate("");
 
             // Logic for "Assign to me":
-            const shouldAssignToMe = isPersonalWorkspace || (!!currentUserId && initialAssignedToId === currentUserId);
-            setAssignToMe(shouldAssignToMe);
+            // Default to true if creating a new task (no initial assignee) or if explicitly assigned to self
+            const shouldAssignToMe = isPersonalWorkspace || !initialAssignedToId || (!!currentUserId && initialAssignedToId === currentUserId);
+            setAssignToMe(!!currentUserId && shouldAssignToMe);
         }
     }, [isOpen, initialTeamId, initialAssignedToId, isPersonalWorkspace, currentUserId, initialParentId, initialDeadline]);
 
@@ -124,9 +125,8 @@ export default function CreateTaskModal({
         if (isPersonalTeam) {
             setAssignToMe(true);
             if (currentUserId) setAssignedToId(currentUserId);
-        } else if (teamId !== initialTeamId) {
-            // Only reset if we've explicitly changed the team and it's not the initial one
-            setAssignToMe(false);
+        } else if (teamId !== initialTeamId && !assignToMe) {
+            // Only reset ID if we've explicitly changed the team and aren't assigning to self
             setAssignedToId("");
         }
 

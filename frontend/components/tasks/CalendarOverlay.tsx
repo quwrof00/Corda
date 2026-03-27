@@ -173,14 +173,14 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                     <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[var(--accent-time)] opacity-[0.08] rounded-full blur-[120px] pointer-events-none" />
                     <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--accent-time)] opacity-[0.08] rounded-full blur-[120px] pointer-events-none" />
                     {/* Header */}
-                    <div className="p-6 flex items-center justify-between border-b border-[var(--border-time)] bg-gradient-to-r from-[var(--header-time)] to-background shadow-sm">
-                        <div className="flex items-center gap-4">
+                    <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-6 border-b border-[var(--border-time)] bg-gradient-to-r from-[var(--header-time)] to-background shadow-sm">
+                        <div className="flex items-center gap-4 w-full md:w-auto">
                             <div className="p-2 bg-[var(--accent-time)] rounded-lg shadow-sm">
                                 <CalendarIcon className="w-5 h-5 text-[var(--accent-time-text)]" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-black text-foreground leading-none tracking-tight">{monthName} <span className="text-[var(--accent-time)] opacity-70 font-mono">{year}</span></h2>
-                                <p className="text-zinc-400 text-xs mt-1 uppercase tracking-widest font-bold">
+                                <h2 className="text-xl md:text-2xl font-black text-foreground leading-none tracking-tight">{monthName} <span className="text-[var(--accent-time)] opacity-70 font-mono">{year}</span></h2>
+                                <p className="text-zinc-400 text-[10px] md:text-xs mt-1 uppercase tracking-widest font-bold">
                                     {tasks.filter(t => {
                                         if (!t.deadline) return false;
                                         const d = new Date(t.deadline);
@@ -190,7 +190,7 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-between w-full md:w-auto gap-4">
                             <div className="flex items-center gap-1 bg-[var(--header-time)] p-1 rounded-lg border border-[var(--border-time)]">
                                 <button
                                     onClick={handlePrevMonth}
@@ -200,7 +200,7 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                                 </button>
                                 <button
                                     onClick={() => setCurrentDate(new Date())}
-                                    className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors"
+                                    className="px-3 py-1.5 text-[10px] md:text-xs font-bold uppercase tracking-wider text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-md transition-colors"
                                 >
                                     Today
                                 </button>
@@ -222,10 +222,10 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                     </div>
 
                     {/* Calendar Body */}
-                    <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 custom-calendar-scroll">
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 custom-calendar-scroll">
                         <div className="max-w-7xl mx-auto">
-                            {/* Days of week */}
-                            <div className="grid grid-cols-7 mb-4">
+                            {/* Days of week - Hidden on Mobile */}
+                            <div className="hidden md:grid grid-cols-7 mb-4">
                                 {DAYS.map(day => (
                                     <div key={day} className="text-center py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
                                         {day}
@@ -233,8 +233,8 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                                 ))}
                             </div>
 
-                            {/* Calendar Grid - Modern Floating Cards Look */}
-                            <div className="grid grid-cols-7 gap-3 mb-8">
+                            {/* Calendar Grid - Mobile-first 1 Column, Desktop 7 Columns */}
+                            <div className="grid grid-cols-1 md:grid-cols-7 gap-3 mb-8">
                                 {calendarDays.map((d, i) => {
                                     const dateKey = `${d.year}-${d.month}-${d.day}`;
                                     const dayTasks = tasksByDate[dateKey] || [];
@@ -246,18 +246,22 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                                             onDragOver={handleDragOver}
                                             onDrop={(e) => handleDrop(e, d.year, d.month, d.day)}
                                             className={cn(
-                                                "group p-4 flex flex-col gap-3 min-h-[160px] relative transition-all rounded-2xl border-2",
+                                                "group p-4 flex flex-col gap-3 transition-all rounded-2xl border-2",
                                                 todaysDate 
                                                     ? "bg-[var(--accent-time)]/[0.03] border-[var(--accent-time)] shadow-[0_15px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_15px_30px_rgba(0,0,0,0.3)] z-10" 
                                                     : "bg-card/50 backdrop-blur-md border-[var(--border-time)] hover:border-[var(--accent-time)]/30 hover:shadow-xl hover:-translate-y-1",
-                                                !d.isCurrentMonth && "opacity-20 grayscale-[0.8] scale-[0.98] pointer-events-none"
+                                                !d.isCurrentMonth ? "hidden md:flex opacity-20 grayscale-[0.8] scale-[0.98] pointer-events-none" : "flex",
+                                                "min-h-[100px] md:min-h-[160px]"
                                             )}
                                         >
                                             <div className="flex items-center justify-between">
                                                 <span className={cn(
-                                                    "text-sm font-black tabular-nums transition-all",
+                                                    "text-sm font-black tabular-nums transition-all flex items-center gap-2",
                                                     todaysDate ? "text-[var(--accent-time)]" : "text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-200"
                                                 )}>
+                                                    <span className="md:hidden text-[10px] font-bold uppercase tracking-widest opacity-60">
+                                                        {DAYS[new Date(d.year, d.month, d.day).getDay()]}
+                                                    </span>
                                                     {d.day}
                                                 </span>
                                                 <div className="flex gap-2 items-center">
@@ -285,9 +289,9 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                                                                     onAddTask(dateStr);
                                                                 }
                                                             }}
-                                                            className="p-0.5 hover:bg-zinc-800 rounded text-zinc-500 hover:text-white transition-all duration-200"
+                                                            className="p-1 hover:bg-zinc-800 rounded text-zinc-500 hover:text-white transition-all duration-200"
                                                         >
-                                                            <Plus className="w-3.5 h-3.5" />
+                                                            <Plus className="w-4 h-4 md:w-3.5 md:h-3.5" />
                                                         </button>
                                                     )}
                                                 </div>
