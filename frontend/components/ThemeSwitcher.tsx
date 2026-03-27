@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 export function ThemeSwitcher({ isCollapsed }: { isCollapsed?: boolean }) {
     const { theme, setTheme } = useThemeStore();
 
-    const themes: { id: ThemeType; name: string; icon: any; color: string }[] = [
+    const themes: { id: ThemeType; name: string; icon: React.ElementType; color: string }[] = [
         { id: "auto", name: "Auto", icon: Zap, color: "bg-zinc-500" },
         { id: "coffee", name: "Coffee", icon: Coffee, color: "bg-amber-700" },
         { id: "mountains", name: "Mountains", icon: Mountain, color: "bg-blue-600" },

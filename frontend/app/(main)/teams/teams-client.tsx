@@ -51,13 +51,11 @@ export default function TeamsClient() {
         }
     }, [status, router]);
 
-    const shouldShowSkeleton = status === "loading" || isLoading;
-    if (!session && status !== "loading") return null;
-
     const visibleTeams = useMemo(
         () => flattenInfiniteTeams(paginatedTeams).filter((team: Team) => team.name !== "Personal"),
         [paginatedTeams]
     );
+
     const teamsSentinelRef = useInfiniteScrollTrigger({
         hasMore: !!hasNextPage,
         isLoading: isFetchingNextPage,
@@ -65,6 +63,9 @@ export default function TeamsClient() {
             void fetchNextPage();
         },
     });
+
+    const shouldShowSkeleton = status === "loading" || isLoading;
+    if (!session && status !== "loading") return null;
 
     return (
         <motion.main

@@ -30,8 +30,6 @@ export function WorkloadAnalysis({
     removeMemberMutationPending,
     isVisible
 }: WorkloadAnalysisProps) {
-    if (!isVisible) return null;
-
     const {
         visibleItems: visibleMembers,
         hasMore,
@@ -46,6 +44,8 @@ export function WorkloadAnalysis({
         
         return Array.from(requiredSkills).filter(s => !collectiveSkills.has(s));
     }, [members, allTasks]);
+
+    if (!isVisible) return null;
 
     // 2. Stress Score Helper
     const calculateStress = (memberTasks: Task[]) => {

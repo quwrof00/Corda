@@ -60,7 +60,7 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                 deadline: newDeadline,
             });
             toast.success("Deadline updated");
-        } catch (error) {
+        } catch {
             toast.error("Failed to update deadline");
         }
     };

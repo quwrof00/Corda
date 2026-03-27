@@ -65,7 +65,7 @@ export default function GlobalModals() {
         initialAssignedToId={initialAssignedToId}
         initialParentId={initialParentId}
         isPersonalWorkspace={isPersonalWorkspace || initialTeamId === personalTeamId}
-        currentUserId={(session?.user as any)?.id}
+        currentUserId={(session?.user as { id?: string })?.id}
         onTaskCreated={() => {
           queryClient.invalidateQueries({ queryKey: ["tasks"] });
         }}

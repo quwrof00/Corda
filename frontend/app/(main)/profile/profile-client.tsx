@@ -3,11 +3,11 @@ import { LoadingBars } from "@/components/shared/LoadingBars";
 import { ProfileSkeleton } from "@/components/shared/SkeletonLoader";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useUser, useUpdateUser } from "@/hooks/useUser";
-import { Plus, Save, User, X, FileUp, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Save, User, X, FileUp, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import Image from "next/image";
+
 import { cn } from "@/lib/utils";
 
 // Skill categorization
@@ -64,7 +64,7 @@ export default function ProfileClient() {
     const [isEditing, setIsEditing] = useState(false);
     const [uploadStatus, setUploadStatus] = useState<"IDLE" | "UPLOADING" | "PARSING" | "EXTRACTING" | "COMPLETE">("IDLE");
     const [resumeUrl, setResumeUrl] = useState<string | null>(null);
-    const [showAllSkills, setShowAllSkills] = useState(false);
+
 
     useEffect(() => {
         if (user) {
@@ -187,8 +187,6 @@ export default function ProfileClient() {
     };
 
     const categorizedSkills = categorizeSkills(skills);
-    const totalSkills = skills.length;
-    const visibleSkillsLimit = 4;
 
     return (
         <motion.main

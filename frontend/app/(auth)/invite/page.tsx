@@ -1,5 +1,4 @@
 "use client";
-import { LoadingBars } from "@/components/shared/LoadingBars";
 import { StatusCardSkeleton } from "@/components/shared/SkeletonLoader";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";

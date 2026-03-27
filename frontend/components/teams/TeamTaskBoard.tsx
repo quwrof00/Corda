@@ -96,7 +96,7 @@ export function TeamTaskBoard({
                 assignedToId: memberId,
             });
             toast.success(memberId ? "Task reassigned" : "Task unassigned");
-        } catch (error) {
+        } catch {
             toast.error("Failed to reassign task");
         }
     };
