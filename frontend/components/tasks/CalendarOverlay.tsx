@@ -173,7 +173,7 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                     <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[var(--accent-time)] opacity-[0.08] rounded-full blur-[120px] pointer-events-none" />
                     <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--accent-time)] opacity-[0.08] rounded-full blur-[120px] pointer-events-none" />
                     {/* Header */}
-                    <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-6 border-b border-[var(--border-time)] bg-gradient-to-r from-[var(--header-time)] to-background shadow-sm">
+                    <div className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-[var(--border-time)] bg-gradient-to-r from-[var(--header-time)] to-background shadow-sm">
                         <div className="flex items-center gap-4 w-full md:w-auto">
                             <div className="p-2 bg-[var(--accent-time)] rounded-lg shadow-sm">
                                 <CalendarIcon className="w-5 h-5 text-[var(--accent-time-text)]" />
@@ -260,7 +260,7 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                                                     todaysDate ? "text-[var(--accent-time)]" : "text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-200"
                                                 )}>
                                                     <span className="md:hidden text-[10px] font-bold uppercase tracking-widest opacity-60">
-                                                        {DAYS[new Date(d.year, d.month, d.day).getDay()]}
+                                                        {new Intl.DateTimeFormat("en-US", { month: "short" }).format(new Date(d.year, d.month, d.day))} {DAYS[new Date(d.year, d.month, d.day).getDay()]}
                                                     </span>
                                                     {d.day}
                                                 </span>
