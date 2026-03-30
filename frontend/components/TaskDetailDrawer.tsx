@@ -319,7 +319,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                                 <select
                                                     value={editForm.priority}
                                                     onChange={(e) => setEditForm(prev => ({ ...prev, priority: e.target.value }))}
-                                                    disabled={!isLeader}
+                                                    disabled={!canEditDetails}
                                                     className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-zinc-700 disabled:opacity-50"
                                                 >
                                                     <option value="Low">Low</option>

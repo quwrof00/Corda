@@ -82,7 +82,7 @@ export default function LandingPage() {
               </h1>
 
               <p className="text-lg md:text-xl text-zinc-500 max-w-lg font-mono leading-relaxed">
-                The definitive platform for engineering leadership. Gain absolute clarity on team workload, assign tasks with precision, and eliminate ambiguity.
+                The definitive platform for engineering leadership. Gain absolute clarity on team progress, assign tasks with precision, and eliminate ambiguity.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -194,7 +194,7 @@ export default function LandingPage() {
                 <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 flex items-center justify-center text-emerald-500 mb-2">
                   <Activity className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold text-white uppercase font-mono">Workload Visibility</h3>
+                <h3 className="text-lg font-bold text-white uppercase font-mono">Team Visibility</h3>
                 <p className="text-sm text-zinc-500 leading-relaxed">
                   See exactly who is overloaded and who has capacity. Distribute work fairly to keep the team healthy.
                 </p>

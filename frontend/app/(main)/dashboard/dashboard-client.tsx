@@ -105,6 +105,7 @@ export default function DashboardClient() {
   const todayTasksQuery = useInfiniteTasks({ 
     startDate: todayRange.start, 
     endDate: todayRange.end, 
+    dateFilter: "overdue", // Ensures only pending tasks are counted/returned
     sortBy: "deadline", 
     limit: 6 
   }, { enabled: !!session });
@@ -112,6 +113,7 @@ export default function DashboardClient() {
   const weekTasksQuery = useInfiniteTasks({ 
     startDate: weekRange.start, 
     endDate: weekRange.end, 
+    dateFilter: "overdue", // Ensures only pending tasks are counted/returned
     sortBy: "deadline", 
     limit: 6 
   }, { enabled: !!session });

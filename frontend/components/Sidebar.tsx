@@ -267,7 +267,7 @@ export default function Sidebar() {
                                 "w-full flex items-center gap-2 py-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 dark:hover:text-red-500 uppercase tracking-wider border border-zinc-200 dark:border-zinc-800 hover:border-red-200 dark:hover:border-red-900 transition-colors rounded-lg",
                                 isCollapsed ? "justify-center px-0" : "justify-center px-4"
                             )}
-                            title={isCollapsed ? "Disconnect" : undefined}
+                            title={isCollapsed ? "Sign Out" : undefined}
                         >
                             <LogOut size={14} className="min-w-[0.875rem]" />
                             <AnimatePresence>
@@ -291,9 +291,9 @@ export default function Sidebar() {
                 isOpen={logoutModalOpen}
                 onClose={() => setLogoutModalOpen(false)}
                 onConfirm={() => signOut({ callbackUrl: "/login" })}
-                title="Disconnect Session"
-                description="Are you sure you want to terminate your current session? You will be redirected to the login terminal."
-                confirmText="Terminate"
+                title="Sign Out"
+                description="Are you sure you want to sign out of your account? You will be redirected to the login page."
+                confirmText="Sign Out"
                 variant="danger"
             />
         </motion.aside>

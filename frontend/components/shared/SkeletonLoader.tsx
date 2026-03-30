@@ -121,10 +121,7 @@ export function ProfileSkeleton() {
                 </div>
                 <div className="bg-card border border-zinc-900 p-6 shadow-xl rounded-xl space-y-4 animate-pulse">
                     <SkeletonBlock className="h-3 w-16" />
-                    <div className="grid grid-cols-2 gap-4">
-                        <SkeletonBlock className="h-20 w-full rounded-lg bg-zinc-900/80" />
-                        <SkeletonBlock className="h-20 w-full rounded-lg bg-zinc-900/80" />
-                    </div>
+                    <SkeletonBlock className="h-20 w-full rounded-lg bg-zinc-900/80" />
                 </div>
             </div>
             <div className="lg:col-span-2 space-y-6">
