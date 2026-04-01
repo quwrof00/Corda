@@ -31,4 +31,5 @@ export interface Team {
     desc?: string;
     leader?: { email: string };
     enableAll?: boolean;
+    scratchpad?: string;
 }

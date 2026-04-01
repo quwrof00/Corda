@@ -47,6 +47,9 @@ model Team {
   tasks    Task[]
   invites  Invite[]
   enableAll Boolean @default(false)
+
+  // 🔹 Team-wide scratchpad for collaborative notes
+  scratchpad String?  @db.Text
 }
 
 model Invite {

@@ -4,9 +4,10 @@ interface MobileNavTabsProps {
     isPersonal: boolean;
     mobileTab: "workload" | "unassigned" | "assigned";
     setMobileTab: (tab: "workload" | "unassigned" | "assigned") => void;
+    onOpenScratchpad: () => void;
 }
 
-export function MobileNavTabs({ isPersonal, mobileTab, setMobileTab }: MobileNavTabsProps) {
+export function MobileNavTabs({ isPersonal, mobileTab, setMobileTab, onOpenScratchpad }: MobileNavTabsProps) {
     return (
         <div className="lg:hidden sticky top-40 md:top-[95px] z-20 bg-background/95 backdrop-blur border-b border-zinc-800 overflow-x-auto scrollbar-hide">
             <div className="flex px-6 gap-6 min-w-max">
@@ -54,6 +55,12 @@ export function MobileNavTabs({ isPersonal, mobileTab, setMobileTab }: MobileNav
                             )}
                         >
                             Unassigned
+                        </button>
+                        <button
+                            onClick={onOpenScratchpad}
+                            className="py-4 text-xs font-bold transition-colors border-b-2 text-zinc-500 border-transparent hover:text-zinc-300"
+                        >
+                            Scratchpad
                         </button>
                     </>
                 )}

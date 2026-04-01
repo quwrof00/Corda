@@ -1,5 +1,5 @@
 import { LoadingBars } from "@/components/shared/LoadingBars";
-import { ArrowLeft, Lock, Settings, Users, CheckCircle2, Plus, BrainCircuit, Trash2 } from "lucide-react";
+import { ArrowLeft, Lock, Settings, Users, CheckCircle2, Plus, BrainCircuit, Trash2, Pen } from "lucide-react";
 import { cn } from "./utils";
 import { Member, Task, Team } from "./types";
 interface AppRouterInstance {
@@ -28,6 +28,7 @@ interface TeamHeaderProps {
     handleAllocate: () => void;
     allocating: boolean;
     handleDeleteTeam: () => void;
+    onOpenScratchpad: () => void;
 }
 
 export function TeamHeader({
@@ -46,7 +47,8 @@ export function TeamHeader({
     setCreateTaskModalOpen,
     handleAllocate,
     allocating,
-    handleDeleteTeam
+    handleDeleteTeam,
+    onOpenScratchpad
 }: TeamHeaderProps) {
     return (
         <header className={cn("border-b border-zinc-200 dark:border-zinc-800 sticky top-16 md:top-0 z-30 transition-all duration-300", isScrolled ? "bg-white/90 dark:bg-black/90 backdrop-blur-md shadow-lg" : "bg-card")}>
@@ -77,6 +79,15 @@ export function TeamHeader({
                     </div>
 
                     <div className="flex items-center gap-3">
+                        {!isPersonal && (
+                            <button
+                                onClick={onOpenScratchpad}
+                                className="px-4 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 bg-background hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-white transition-all rounded-lg flex items-center gap-2 group"
+                            >
+                                <Pen className="w-3.5 h-3.5 text-emerald-500 group-hover:scale-110 transition-transform" />
+                                Scratchpad
+                            </button>
+                        )}
                         {isLeader && !isPersonal && (
                             <button
                                 onClick={() => setInviteModalOpen(true)}

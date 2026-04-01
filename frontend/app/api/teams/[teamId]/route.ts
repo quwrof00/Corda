@@ -41,17 +41,32 @@ export async function PUT(
 
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const { name, description, enableAll } = await req.json();
+        const { name, description, enableAll, scratchpad } = await req.json();
 
-        const team = await prisma.team.findUnique({ where: { id: teamId } });
+        // Check if user is at least a member
+        const team = await prisma.team.findUnique({
+            where: { id: teamId },
+            include: {
+                members: { select: { id: true } }
+            }
+        });
+        
         if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
-        if (team.leaderId !== user.id) {
-            return NextResponse.json({ error: "Only team leader can update team" }, { status: 403 });
+        const isMember = team.members.some(m => m.id === user.id);
+        const isLeader = team.leaderId === user.id;
+
+        if (!isMember) {
+            return NextResponse.json({ error: "Access denied" }, { status: 403 });
+        }
+
+        // Only leader can update core team info
+        if ((name !== undefined || description !== undefined || enableAll !== undefined) && !isLeader) {
+            return NextResponse.json({ error: "Only team leader can update team settings" }, { status: 403 });
         }
 
         // Prevent renaming the personal workspace team
-        if (team.name === "Personal" && name !== "Personal") {
+        if (team.name === "Personal" && name !== undefined && name !== "Personal") {
             return NextResponse.json({ error: "Cannot rename your personal workspace" }, { status: 403 });
         }
 
@@ -66,6 +81,7 @@ export async function PUT(
                 name: name !== undefined ? name : undefined,
                 desc: description !== undefined ? description : undefined,
                 enableAll: enableAll !== undefined ? enableAll : undefined,
+                scratchpad: scratchpad !== undefined ? scratchpad : undefined,
             },
             select: {
                 id: true,
@@ -73,15 +89,24 @@ export async function PUT(
                 desc: true,
                 leaderId: true,
                 enableAll: true,
+                scratchpad: true,
             }
         });
 
-        // Real-time notification
-        await publishTeamEvent(teamId, {
-            type: "TEAM_UPDATED",
-            payload: updatedTeam,
-            meta: { triggeredBy: user.id }
-        });
+        // Real-time notification for scratchpad or team updates
+        if (scratchpad !== undefined) {
+            await publishTeamEvent(teamId, {
+                type: "SCRATCHPAD_UPDATED",
+                payload: { scratchpad: updatedTeam.scratchpad },
+                meta: { triggeredBy: user.id }
+            });
+        } else {
+            await publishTeamEvent(teamId, {
+                type: "TEAM_UPDATED",
+                payload: updatedTeam,
+                meta: { triggeredBy: user.id }
+            });
+        }
 
         return NextResponse.json(updatedTeam);
     } catch (error) {

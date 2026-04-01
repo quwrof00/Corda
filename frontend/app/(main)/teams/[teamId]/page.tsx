@@ -24,6 +24,7 @@ import { TeamTaskBoard } from "@/components/teams/TeamTaskBoard";
 import { InviteModal, EditTeamModal } from "@/components/teams/TeamModals";
 import { Member } from "@/components/teams/types";
 import { cn } from "@/components/teams/utils";
+import { TeamScratchpad } from "@/components/teams/TeamScratchpad";
 
 interface AllocationUpdateData {
     type: 'autoalloc_started' | 'allocation_completed' | 'task_reallocated' | 'allocation_error' | 'task_created' | 'task_updated' | 'task_deleted';
@@ -64,6 +65,7 @@ export default function TeamDetailsPage() {
 
     const [teamModalOpen, setTeamModalOpen] = useState(false);
     const [createTaskModalOpen, setCreateTaskModalOpen] = useState(false);
+    const [scratchpadOpen, setScratchpadOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [selectedMemberId, setSelectedMemberId] = useState<string>("");
     const [parentTaskId, setParentTaskId] = useState<string | undefined>(undefined);
@@ -110,12 +112,12 @@ export default function TeamDetailsPage() {
             socket.emit("join-team", teamId);
         });
 
-        socket.on("allocation-update", (data: AllocationUpdateData) => {
-            console.log("TeamPage received update:", data.type);
+        socket.on("team-event", (data: any) => {
+            console.log("TeamPage received event:", data.type);
 
             if (data.type === 'autoalloc_started') {
                 const runner = data.byUser ? `User ${data.byUser}` : "A member";
-                toast.info(`${runner} started allocation...`, { id: "alloc-start-toast" }); // dedupe ID
+                toast.info(`${runner} started allocation...`, { id: "alloc-start-toast" }); 
             } else if (data.type === 'allocation_completed') {
                 toast.success(`Allocation complete! Assigned ${data.count} tasks.`);
                 queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -132,6 +134,15 @@ export default function TeamDetailsPage() {
             } else if (data.type === 'task_updated') {
                 toast.success(`Task updated`);
                 queryClient.invalidateQueries({ queryKey: ["tasks"] });
+            } else if (data.type === 'SCRATCHPAD_UPDATED' || data.type === 'TEAM_UPDATED') {
+                queryClient.invalidateQueries({ queryKey: ["team", teamId] });
+            }
+        });
+
+        socket.on("allocation-update", (data: any) => {
+            if (data.type === 'allocation_completed') {
+                queryClient.invalidateQueries({ queryKey: ["tasks"] });
+                queryClient.invalidateQueries({ queryKey: ["teamMembers", teamId] });
             }
         });
 
@@ -348,10 +359,18 @@ export default function TeamDetailsPage() {
                         setCreateTaskModalOpen={setCreateTaskModalOpen}
                         handleAllocate={handleAllocate}
                         allocating={allocating}
+                        onOpenScratchpad={() => setScratchpadOpen(true)}
                         handleDeleteTeam={handleDeleteTeam}
                     />
 
-                    <MobileNavTabs isPersonal={isPersonal} mobileTab={mobileTab} setMobileTab={setMobileTab} />
+                    <TeamScratchpad 
+                        team={team} 
+                        isOpen={scratchpadOpen} 
+                        onClose={() => setScratchpadOpen(false)}
+                        currentUserId={currentUserMemberId}
+                    />
+
+                    <MobileNavTabs isPersonal={isPersonal} mobileTab={mobileTab} setMobileTab={setMobileTab} onOpenScratchpad={() => setScratchpadOpen(true)} />
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8 mt-8">
                         {isPersonal ? (
