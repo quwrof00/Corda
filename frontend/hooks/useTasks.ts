@@ -206,9 +206,10 @@ export const useCreateTask = () => {
     onMutate: async (newTask) => {
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
 
+      const tempId = `temp-task-${Date.now()}`;
       const tempTask: Task = {
         ...newTask,
-        id: `temp-task-${Date.now()}`,
+        id: tempId,
         createdAt: new Date().toISOString(),
         status: newTask.status || "pending",
         priority: newTask.priority || "Medium",
@@ -227,7 +228,27 @@ export const useCreateTask = () => {
         queryClient.setQueryData(queryKey, prependTaskCache(previousData, tempTask));
       });
 
-      return { snapshots };
+      return { snapshots, tempId };
+    },
+    onSuccess: (realTask, variables, context) => {
+      if (!context) return;
+      
+      // 1. Seed the individual task cache so navigating to it is instantaneous
+      queryClient.setQueryData(["task", realTask.id], realTask);
+
+      // 2. Seamlessly swap the fake temp ID with the real ID in all task lists locally!
+      const snapshots = queryClient.getQueriesData<TaskCacheData>({
+        queryKey: ["tasks"],
+      });
+
+      snapshots.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(
+          queryKey,
+          updateTaskCache(previousData, (task) =>
+            task.id === context.tempId ? { ...task, ...realTask } : task
+          )
+        );
+      });
     },
     onError: (err, newTask, context) => {
       context?.snapshots?.forEach(([queryKey, previousData]) => {

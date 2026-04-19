@@ -198,9 +198,10 @@ export const useCreateTeam = () => {
         queryKey: ["teams"],
       });
 
+      const tempId = `temp-id-${Date.now()}`;
       const optimisticTeam = {
         ...newTeam,
-        id: `temp-id-${Date.now()}`,
+        id: tempId,
         members: [],
       } as Team;
 
@@ -208,7 +209,27 @@ export const useCreateTeam = () => {
         queryClient.setQueryData(queryKey, prependTeamCache(previousData, optimisticTeam));
       });
 
-      return { snapshots };
+      return { snapshots, tempId };
+    },
+    onSuccess: (realTeam, variables, context) => {
+      if (!context) return;
+      
+      // Seed the individual team cache
+      queryClient.setQueryData(["team", realTeam.id], realTeam);
+
+      // Seamlessly swap the fake temp ID with the real ID locally
+      const snapshots = queryClient.getQueriesData<TeamCacheData>({
+        queryKey: ["teams"],
+      });
+
+      snapshots.forEach(([queryKey, previousData]) => {
+        queryClient.setQueryData(
+          queryKey,
+          updateTeamCache(previousData, (team) =>
+            team.id === context.tempId ? { ...team, ...realTeam } : team
+          )
+        );
+      });
     },
     onError: (err, newTeam, context) => {
       context?.snapshots?.forEach(([queryKey, previousData]) => {
