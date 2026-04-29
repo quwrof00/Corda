@@ -63,7 +63,7 @@ export function TeamHeader({
                         </div>
                         <div>
                             <h1 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-3">
-                                {isPersonal ? "Personal Workspace" : team.name}
+                                {isPersonal ? "Personal" : team.name}
                                 {isActualLeader && !isPersonal && (
                                     <button onClick={openEditTeam} className="text-zinc-600 hover:text-zinc-400 transition-colors">
                                         <Settings className="w-4 h-4" />

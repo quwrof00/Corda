@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTeams } from "@/hooks/useTeams";
 import { useCreateTask } from "@/hooks/useTasks";
-import { ListTodo, X, Repeat, CalendarClock } from "lucide-react";
+import { ListTodo, X, Repeat, CalendarClock, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -321,37 +321,29 @@ export default function CreateTaskModal({
                                         </div>
 
                                         {/* Team Selection */}
-                                        {!isPersonalWorkspace ? (
-                                            <div className="space-y-1.5">
-                                                <label className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                                                    Team <span className="text-red-500">*</span>
-                                                </label>
-                                                <div className="relative">
-                                                    <select
-                                                        value={teamId}
-                                                        onChange={(e) => setTeamId(e.target.value)}
-                                                        className="w-full px-3 py-2.5 bg-[var(--header-time)] border border-[var(--border-time)] rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm appearance-none"
-                                                        required
-                                                    >
-                                                        {!teamId && <option value="" disabled>Select a team</option>}
-                                                        {teams?.map((team: { id: string, name: string }) => (
-                                                            <option key={team.id} value={team.id}>
-                                                                {team.name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                                                Team <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <select
+                                                    value={teamId}
+                                                    onChange={(e) => setTeamId(e.target.value)}
+                                                    className="w-full px-3 py-2.5 bg-[var(--header-time)] border border-[var(--border-time)] rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 focus:border-zinc-900 dark:focus:border-white outline-none transition-all text-zinc-900 dark:text-zinc-200 text-sm appearance-none"
+                                                    required
+                                                >
+                                                    {!teamId && <option value="" disabled>Select a team</option>}
+                                                    {teams?.map((team: { id: string, name: string }) => (
+                                                        <option key={team.id} value={team.id}>
+                                                            {team.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                                                    <ChevronDown className="w-4 h-4" />
                                                 </div>
                                             </div>
-                                        ) : (
-                                            <div className="space-y-1.5">
-                                                <label className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                                                    Workspace
-                                                </label>
-                                                <div className="px-3 py-2.5 bg-zinc-100/50 dark:bg-zinc-800/50 border border-[var(--border-time)] rounded-lg text-zinc-500 text-sm cursor-not-allowed">
-                                                    Personal Workspace
-                                                </div>
-                                            </div>
-                                        )}
+                                        </div>
 
                                         {/* Assign to Me Checkbox */}
                                         <div className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors -ml-2">

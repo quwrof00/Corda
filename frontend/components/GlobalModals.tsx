@@ -17,43 +17,36 @@ export default function GlobalModals() {
     initialTeamId,
     initialAssignedToId,
     initialParentId,
+    initialDeadline,
     isPersonalWorkspace,
     closeTaskModal,
     closeTeamModal,
     openTaskModal,
-    openTeamModal
+    openTeamModal,
   } = useModalStore();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if already typing in an input
-      const isInput = document.activeElement?.tagName === 'INPUT' || 
-                      document.activeElement?.tagName === 'TEXTAREA' ||
-                      (document.activeElement as HTMLElement)?.isContentEditable;
-      
-      if (isInput || e.ctrlKey || e.metaKey) return;
+      // Don't trigger if already typing in an input / textarea / contenteditable
+      const tag = (document.activeElement as HTMLElement)?.tagName;
+      const isEditable =
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        (document.activeElement as HTMLElement)?.isContentEditable;
 
-      if (e.key.toLowerCase() === 't') { // T for Task (User said it, dashboard had 'C' and 'N')
+      if (isEditable || e.ctrlKey || e.metaKey) return;
+
+      if (e.key.toLowerCase() === "c") {
         e.preventDefault();
-        openTaskModal();
-      } else if (e.key.toLowerCase() === 'm') { // M for Team (User said n/c or standard?)
-        // Wait, dashboard used 'C' for task and 'N' for team.
-        // Let's stick to 'C' for Task (Create) and 'N' for Team (New).
-        // Standard in many apps: 'C' or 'T' for Task.
-        // Let's use 'c' for task and 'n' for team as per previous dashboard implementation.
-      }
-      
-      if (e.key.toLowerCase() === 'c') {
-        e.preventDefault();
-        openTaskModal();
-      } else if (e.key.toLowerCase() === 'n') {
+        openTaskModal(); // auto-focuses title field via CreateTaskModal's useEffect
+      } else if (e.key.toLowerCase() === "n") {
         e.preventDefault();
         openTeamModal();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [openTaskModal, openTeamModal]);
 
   return (
@@ -64,13 +57,14 @@ export default function GlobalModals() {
         initialTeamId={initialTeamId || personalTeamId || ""}
         initialAssignedToId={initialAssignedToId}
         initialParentId={initialParentId}
+        initialDeadline={initialDeadline}
         isPersonalWorkspace={isPersonalWorkspace || initialTeamId === personalTeamId}
         currentUserId={(session?.user as { id?: string })?.id}
         onTaskCreated={() => {
           queryClient.invalidateQueries({ queryKey: ["tasks"] });
         }}
       />
-      
+
       <CreateTeamModal
         isOpen={isTeamModalOpen}
         onClose={closeTeamModal}

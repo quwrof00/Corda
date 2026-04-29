@@ -128,7 +128,12 @@ export default function DashboardClient() {
   const teamsQuery = useInfiniteTeams({ enabled: !!session, limit: 6 });
   const [activeFilter, setActiveFilter] = useState<"Today" | "This Week" | "Overdue">("Today");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const { openTaskModal } = useModalStore();
+  const { openTaskModal, setPageContext } = useModalStore();
+
+  useEffect(() => {
+    setPageContext({ isPersonalWorkspace: true });
+    return () => setPageContext({});
+  }, [setPageContext]);
   const updateTaskMutation = useUpdateTask();
   const [greeting, setGreeting] = useState("Good morning");
   const dashboardTasksRootRef = useRef<HTMLDivElement | null>(null);

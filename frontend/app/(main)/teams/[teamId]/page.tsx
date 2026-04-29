@@ -13,8 +13,8 @@ import { io, Socket } from "socket.io-client";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import CreateTaskModal from "@/components/CreateTaskModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
+import { useModalStore } from "@/hooks/useModalStore";
 import ConfirmModal from "@/components/ConfirmModal";
 import { TeamHeader } from "@/components/teams/TeamHeader";
 import { MobileNavTabs } from "@/components/teams/MobileNavTabs";
@@ -64,12 +64,19 @@ export default function TeamDetailsPage() {
     const [inviteLink, setInviteLink] = useState("");
 
     const [teamModalOpen, setTeamModalOpen] = useState(false);
-    const [createTaskModalOpen, setCreateTaskModalOpen] = useState(false);
     const [scratchpadOpen, setScratchpadOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-    const [selectedMemberId, setSelectedMemberId] = useState<string>("");
-    const [parentTaskId, setParentTaskId] = useState<string | undefined>(undefined);
-    const [parentTeamId, setParentTeamId] = useState<string | undefined>(undefined);
+    const { openTaskModal, setPageContext } = useModalStore();
+
+    useEffect(() => {
+        if (teamId) {
+            setPageContext({ 
+                teamId, 
+                isPersonalWorkspace: isPersonal 
+            });
+        }
+        return () => setPageContext({});
+    }, [teamId, isPersonal, setPageContext]);
 
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
@@ -331,7 +338,7 @@ export default function TeamDetailsPage() {
                     <div className="mb-8 space-y-3">
                         <p className="text-xs font-mono uppercase tracking-[0.3em] text-zinc-500">Workspace</p>
                         <h1 className="text-3xl font-bold text-zinc-100">
-                            {team?.name || (teamId === personalTeamId ? "Personal Workspace" : "Team Workspace")}
+                            {team?.name || (teamId === personalTeamId ? "Personal" : "Team Workspace")}
                         </h1>
                         <p className="text-sm text-zinc-500 font-sans">
                             {teamId === personalTeamId 
@@ -354,9 +361,9 @@ export default function TeamDetailsPage() {
                         assignedTasks={assignedTasks}
                         openEditTeam={openEditTeam}
                         setInviteModalOpen={setInviteModalOpen}
-                        setSelectedMemberId={setSelectedMemberId}
+                        setSelectedMemberId={() => {}}
                         currentUserMemberId={currentUserMemberId}
-                        setCreateTaskModalOpen={setCreateTaskModalOpen}
+                        setCreateTaskModalOpen={(open) => open && openTaskModal({ teamId, isPersonalWorkspace: isPersonal })}
                         handleAllocate={handleAllocate}
                         allocating={allocating}
                         onOpenScratchpad={() => setScratchpadOpen(true)}
@@ -377,10 +384,6 @@ export default function TeamDetailsPage() {
                             <PersonalWorkspace
                                 assignedTasks={assignedTasks}
                                 currentUserMemberId={currentUserMemberId}
-                                setSelectedMemberId={setSelectedMemberId}
-                                setCreateTaskModalOpen={setCreateTaskModalOpen}
-                                setParentTaskId={setParentTaskId}
-                                setParentTeamId={setParentTeamId}
                                 openEditTask={openEditTask}
                             />
                         ) : (
@@ -393,8 +396,6 @@ export default function TeamDetailsPage() {
                                             tasksByMember={tasksByMember}
                                             isLeader={isLeader}
                                             isActualLeader={isActualLeader}
-                                            setSelectedMemberId={setSelectedMemberId}
-                                            setCreateTaskModalOpen={setCreateTaskModalOpen}
                                             handleRemoveMember={handleRemoveMember}
                                             removeMemberMutationPending={removeMemberMutation.isPending}
                                             isVisible={true}
@@ -432,23 +433,6 @@ export default function TeamDetailsPage() {
                 inviteLoading={inviteLoading}
             />
 
-            <CreateTaskModal
-                isOpen={createTaskModalOpen}
-                onClose={() => {
-                    setCreateTaskModalOpen(false);
-                    setSelectedMemberId("");
-                    setParentTaskId(undefined);
-                    setParentTeamId(undefined);
-                }}
-                initialTeamId={parentTeamId || teamId}
-                initialAssignedToId={selectedMemberId}
-                initialParentId={parentTaskId}
-                isPersonalWorkspace={isPersonal}
-                currentUserId={currentUserMemberId}
-                onTaskCreated={() => {
-                    queryClient.invalidateQueries({ queryKey: ["tasks"] });
-                }}
-            />
 
             <EditTeamModal
                 isOpen={teamModalOpen}

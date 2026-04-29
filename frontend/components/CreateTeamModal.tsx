@@ -1,6 +1,6 @@
 import { LoadingBars } from "@/components/shared/LoadingBars";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
@@ -19,8 +19,16 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
     const [description, setDescription] = useState("");
     const [enableAll, setEnableAll] = useState(false);
     const [loading, setLoading] = useState(false);
+    const nameInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
+        if (isOpen) {
+            setName("");
+            setDescription("");
+            setEnableAll(false);
+            setTimeout(() => nameInputRef.current?.focus(), 100);
+        }
+
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && isOpen) {
                 onClose();
@@ -120,6 +128,7 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
                                         Team Name <span className="text-red-500">*</span>
                                     </label>
                                     <input
+                                        ref={nameInputRef}
                                         type="text"
                                         placeholder="Engineering Team"
                                         value={name}

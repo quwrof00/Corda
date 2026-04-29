@@ -5,31 +5,23 @@ import { cn, formatDaysLeft } from "./utils";
 import { CheckCircle2, Plus, ChevronRight, Repeat } from "lucide-react";
 import { buildTaskTree, flattenTree } from "@/lib/taskTreeUtils";
 import { useUpdateTask } from "@/hooks/useTasks";
+import { useModalStore } from "@/hooks/useModalStore";
 import MoodleSyncButton from "@/components/tasks/moodle-sync-button";
 
 interface PersonalWorkspaceProps {
     assignedTasks: Task[];
     currentUserMemberId?: string;
-    setSelectedMemberId: (id: string) => void;
-    setCreateTaskModalOpen: (open: boolean) => void;
-    setParentTaskId?: (id: string | undefined) => void;
-    setParentTeamId?: (id: string | undefined) => void;
     openEditTask: (task: Task) => void;
 }
-
-
 
 export function PersonalWorkspace({
     assignedTasks,
     currentUserMemberId,
-    setSelectedMemberId,
-    setCreateTaskModalOpen,
-    setParentTaskId,
-    setParentTeamId,
     openEditTask
 }: PersonalWorkspaceProps) {
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
     const updateTaskMutation = useUpdateTask();
+    const { openTaskModal } = useModalStore();
 
     const handleToggleExpand = (taskId: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -65,24 +57,6 @@ export function PersonalWorkspace({
         const tree = buildTaskTree(sortedTasks);
         return flattenTree(tree, expandedIds);
     }, [assignedTasks, expandedIds]);
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            // Check if user is typing in an input or textarea
-            if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
-                return;
-            }
-
-            if (e.key.toLowerCase() === 'c') {
-                e.preventDefault();
-                setSelectedMemberId(currentUserMemberId || "");
-                setCreateTaskModalOpen(true);
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [currentUserMemberId, setSelectedMemberId, setCreateTaskModalOpen]);
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -162,10 +136,7 @@ export function PersonalWorkspace({
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                            setSelectedMemberId(currentUserMemberId || "");
-                            setCreateTaskModalOpen(true);
-                        }}
+                        onClick={() => openTaskModal({ assignedToId: currentUserMemberId, isPersonalWorkspace: true })}
                         className="text-xs flex items-center gap-1 font-bold text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
                     >
                         <Plus className="w-4 h-4" /> Add Task
@@ -260,10 +231,12 @@ export function PersonalWorkspace({
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setSelectedMemberId(currentUserMemberId || '');
-                                                        if (setParentTaskId) setParentTaskId(task.id);
-                                                        if (setParentTeamId && task.teamId) setParentTeamId(task.teamId as string);
-                                                        setCreateTaskModalOpen(true);
+                                                        openTaskModal({
+                                                            assignedToId: currentUserMemberId,
+                                                            parentId: task.id,
+                                                            teamId: task.teamId as string | undefined,
+                                                            isPersonalWorkspace: true,
+                                                        });
                                                     }}
                                                     className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md transition-colors"
                                                     title="Add Subtask"
@@ -297,10 +270,7 @@ export function PersonalWorkspace({
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => {
-                                        setSelectedMemberId(currentUserMemberId || "");
-                                        setCreateTaskModalOpen(true);
-                                    }}
+                                    onClick={() => openTaskModal({ assignedToId: currentUserMemberId, isPersonalWorkspace: true })}
                                     className="px-6 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-black dark:hover:bg-zinc-200 text-sm font-bold rounded-lg transition-colors"
                                 >
                                     Create First Task

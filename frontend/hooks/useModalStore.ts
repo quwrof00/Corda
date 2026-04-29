@@ -1,5 +1,13 @@
 import { create } from 'zustand';
 
+export interface OpenTaskModalOptions {
+  teamId?: string;
+  assignedToId?: string;
+  parentId?: string;
+  isPersonalWorkspace?: boolean;
+  initialDeadline?: string;
+}
+
 interface ModalState {
   isTaskModalOpen: boolean;
   isTeamModalOpen: boolean;
@@ -7,41 +15,55 @@ interface ModalState {
   initialAssignedToId?: string;
   initialParentId?: string;
   isPersonalWorkspace?: boolean;
+  initialDeadline?: string;
 
-  openTaskModal: (options?: { 
-    teamId?: string; 
-    assignedToId?: string; 
-    parentId?: string; 
-    isPersonalWorkspace?: boolean 
-  }) => void;
+  // Page-level context: set by each page on mount so the global 'C' shortcut
+  // automatically carries the right team/workspace context.
+  pageContext: OpenTaskModalOptions;
+  setPageContext: (ctx: OpenTaskModalOptions) => void;
+
+  // openTaskModal merges caller options ON TOP of pageContext, so explicit
+  // args always win but pageContext fills in the blanks.
+  openTaskModal: (options?: OpenTaskModalOptions) => void;
   closeTaskModal: () => void;
-  
+
   openTeamModal: () => void;
   closeTeamModal: () => void;
 }
 
-export const useModalStore = create<ModalState>((set) => ({
+export const useModalStore = create<ModalState>((set, get) => ({
   isTaskModalOpen: false,
   isTeamModalOpen: false,
   initialTeamId: undefined,
   initialAssignedToId: undefined,
   initialParentId: undefined,
   isPersonalWorkspace: false,
+  initialDeadline: undefined,
+  pageContext: {},
 
-  openTaskModal: (options) => set({ 
-    isTaskModalOpen: true, 
-    initialTeamId: options?.teamId,
-    initialAssignedToId: options?.assignedToId,
-    initialParentId: options?.parentId,
-    isPersonalWorkspace: options?.isPersonalWorkspace ?? false
-  }),
-  closeTaskModal: () => set({ 
-    isTaskModalOpen: false,
-    initialTeamId: undefined,
-    initialAssignedToId: undefined,
-    initialParentId: undefined
-  }),
-  
+  setPageContext: (ctx) => set({ pageContext: ctx }),
+
+  openTaskModal: (options) => {
+    const merged = { ...get().pageContext, ...options };
+    set({
+      isTaskModalOpen: true,
+      initialTeamId: merged.teamId,
+      initialAssignedToId: merged.assignedToId,
+      initialParentId: merged.parentId,
+      isPersonalWorkspace: merged.isPersonalWorkspace ?? false,
+      initialDeadline: merged.initialDeadline,
+    });
+  },
+
+  closeTaskModal: () =>
+    set({
+      isTaskModalOpen: false,
+      initialTeamId: undefined,
+      initialAssignedToId: undefined,
+      initialParentId: undefined,
+      initialDeadline: undefined,
+    }),
+
   openTeamModal: () => set({ isTeamModalOpen: true }),
   closeTeamModal: () => set({ isTeamModalOpen: false }),
 }));

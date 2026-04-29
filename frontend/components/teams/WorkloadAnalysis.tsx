@@ -4,6 +4,7 @@ import { Member, Task } from "./types";
 import { cn } from "./utils";
 import { User, AlertTriangle, Plus, UserMinus, TrendingUp } from "lucide-react";
 import { useBatchedItems } from "@/hooks/useBatchedItems";
+import { useModalStore } from "@/hooks/useModalStore";
 
 interface WorkloadAnalysisProps {
     members: Member[] | undefined;
@@ -11,8 +12,6 @@ interface WorkloadAnalysisProps {
     tasksByMember: Record<string, Task[]>;
     isLeader: boolean;
     isActualLeader: boolean;
-    setSelectedMemberId: (id: string) => void;
-    setCreateTaskModalOpen: (open: boolean) => void;
     handleRemoveMember: (id: string) => void;
     removeMemberMutationPending: boolean;
     isVisible: boolean;
@@ -24,12 +23,11 @@ export function WorkloadAnalysis({
     tasksByMember,
     isLeader,
     isActualLeader,
-    setSelectedMemberId,
-    setCreateTaskModalOpen,
     handleRemoveMember,
     removeMemberMutationPending,
     isVisible
 }: WorkloadAnalysisProps) {
+    const { openTaskModal } = useModalStore();
     const {
         visibleItems: visibleMembers,
         hasMore,
@@ -133,8 +131,7 @@ export function WorkloadAnalysis({
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setSelectedMemberId(member.id);
-                                            setCreateTaskModalOpen(true);
+                                            openTaskModal({ assignedToId: member.id });
                                         }}
                                         className="p-1 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors rounded hover:bg-zinc-200 dark:hover:bg-zinc-800"
                                         title="Assign Task"

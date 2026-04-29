@@ -3,10 +3,9 @@ import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, Chev
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import CreateTaskModal from "@/components/CreateTaskModal";
-import CreateTeamModal from "@/components/CreateTeamModal";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
 import CalendarOverlay from "@/components/tasks/CalendarOverlay";
+import { useModalStore } from "@/hooks/useModalStore";
 
 import { TaskListSkeleton } from "@/components/shared/SkeletonLoader";
 import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
@@ -306,8 +305,12 @@ export default function TasksClient() {
     const tasks = useMemo(() => (tasksData as Task[]) || [], [tasksData]);
     const teams = useMemo(() => teamsData || [], [teamsData]);
 
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
+    const { openTaskModal, openTeamModal, setPageContext } = useModalStore();
+
+    useEffect(() => {
+        setPageContext({ isPersonalWorkspace: true });
+        return () => setPageContext({});
+    }, [setPageContext]);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -351,31 +354,14 @@ export default function TasksClient() {
         });
     };
 
-    const [createParentId, setCreateParentId] = useState<string | undefined>(undefined);
-    const [createTeamId, setCreateTeamId] = useState<string | undefined>(undefined);
-    const [createDeadline, setCreateDeadline] = useState<string | undefined>(undefined);
-
     const handleCreateSubtask = (parentId: string, teamId: string, e?: React.MouseEvent) => {
         e?.stopPropagation();
-        setCreateParentId(parentId);
-        setCreateTeamId(teamId);
-        setIsCreateModalOpen(true);
+        openTaskModal({ parentId, teamId });
         setExpandedIds(prev => new Set(prev).add(parentId));
     };
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            const isInput = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
-            if (isInput || e.ctrlKey || e.metaKey) return;
-
-            if (e.key.toLowerCase() === 'c') {
-                e.preventDefault();
-                setIsCreateModalOpen(true);
-            } else if (e.key.toLowerCase() === 'n') {
-                e.preventDefault();
-                setIsCreateTeamModalOpen(true);
-            }
-
             if (e.key === 'Escape' && selectedTask) {
                 setSelectedTask(null);
             }
@@ -523,7 +509,7 @@ export default function TasksClient() {
                             >
                                 <Calendar className="w-4 h-4" /> Calendar View
                             </motion.button>
-                            <motion.button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-zinc-100 text-black rounded-lg font-bold text-sm hover:bg-white transition-colors">
+                            <motion.button onClick={() => openTaskModal()} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex items-center gap-2 px-4 py-2 bg-zinc-100 text-black rounded-lg font-bold text-sm hover:bg-white transition-colors">
                                 <Plus className="w-4 h-4" /> New Task
                             </motion.button>
                         </div>
@@ -713,11 +699,7 @@ export default function TasksClient() {
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => {
-                                    setCreateParentId(undefined);
-                                    setCreateDeadline(undefined);
-                                    setIsCreateModalOpen(true);
-                                }}
+                                onClick={() => openTaskModal()}
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors"
                             >
                                 <Plus className="w-3 h-3" />
@@ -727,26 +709,6 @@ export default function TasksClient() {
                     )}
                 </motion.div>
             </div>
-
-            <CreateTaskModal
-                isOpen={isCreateModalOpen}
-                onClose={() => {
-                    setIsCreateModalOpen(false);
-                    setCreateParentId(undefined);
-                    setCreateTeamId(undefined);
-                    setCreateDeadline(undefined);
-                }}
-                onTaskCreated={refetch}
-                currentUserId={userId}
-                initialParentId={createParentId}
-                initialTeamId={createTeamId}
-                initialDeadline={createDeadline}
-            />
-
-            <CreateTeamModal
-                isOpen={isCreateTeamModalOpen}
-                onClose={() => setIsCreateTeamModalOpen(false)}
-            />
 
             {selectedTask && !shouldShowSkeleton && (
                 <TaskDetailDrawer
@@ -767,8 +729,7 @@ export default function TasksClient() {
                     setSelectedTask(task);
                 }}
                 onAddTask={(dateStr) => {
-                    setCreateDeadline(dateStr);
-                    setIsCreateModalOpen(true);
+                    openTaskModal({ initialDeadline: dateStr });
                 }}
             />
         </motion.div>
