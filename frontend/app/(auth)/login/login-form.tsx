@@ -2,11 +2,12 @@
 
 import { AuthSkeleton } from "@/components/shared/SkeletonLoader";
 import { LoadingBars } from "@/components/shared/LoadingBars";
+import { DEMO_CREDENTIALS } from "@/lib/demo-credentials";
 import { useEffect, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Lock, Mail, ArrowRight, ShieldCheck } from "lucide-react";
+import { Lock, Mail, ArrowRight, ShieldCheck, FlaskConical, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -16,6 +17,8 @@ export default function LoginForm() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showTestCredentials, setShowTestCredentials] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const isSessionLoading = status === "loading";
 
     useEffect(() => {
@@ -83,6 +86,33 @@ export default function LoginForm() {
                     </div>
                 ) : (
                     <form onSubmit={handleLogin} className="space-y-6">
+                        <div className="space-y-3">
+                            <motion.button
+                                whileHover={{ y: -1 }}
+                                whileTap={{ scale: 0.98 }}
+                                type="button"
+                                onClick={() => {
+                                    setShowTestCredentials((prev) => !prev);
+                                    setEmail(DEMO_CREDENTIALS.email);
+                                    setPassword(DEMO_CREDENTIALS.password);
+                                }}
+                                className="w-full border border-zinc-800 bg-zinc-950 px-4 py-3 text-left text-xs font-mono uppercase tracking-wider text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900"
+                            >
+                                <span className="flex items-center justify-center gap-2">
+                                    <FlaskConical className="h-4 w-4" />
+                                    {showTestCredentials ? "Hide Test Credentials" : "Show Test Credentials"}
+                                </span>
+                            </motion.button>
+
+                            {showTestCredentials ? (
+                                <div className="border border-zinc-800 bg-zinc-950 p-4 text-xs font-mono text-zinc-400">
+                                    <p className="uppercase tracking-wider text-zinc-500">Test Account</p>
+                                    <p className="mt-3 break-all text-white">Email: {DEMO_CREDENTIALS.email}</p>
+                                    <p className="mt-1 text-white">Password: {DEMO_CREDENTIALS.password}</p>
+                                </div>
+                            ) : null}
+                        </div>
+
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-zinc-500 uppercase font-mono ml-1" htmlFor="email">Email Address</label>
                             <div className="relative group">
@@ -112,13 +142,21 @@ export default function LoginForm() {
                                 </div>
                                 <input
                                     id="password"
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     placeholder="........"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-zinc-900 border border-zinc-800 focus:border-white outline-none transition-all text-white placeholder:text-zinc-700 font-mono text-sm"
+                                    className="w-full pl-10 pr-12 py-3 bg-zinc-900 border border-zinc-800 focus:border-white outline-none transition-all text-white placeholder:text-zinc-700 font-mono text-sm"
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((prev) => !prev)}
+                                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-500 transition-colors hover:text-white"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
                             </div>
                         </div>
 

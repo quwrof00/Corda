@@ -3,6 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import type { NextAuthOptions } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { DEMO_CREDENTIALS, isDemoCredentials } from "@/lib/demo-credentials";
 
 export const getAuthOptions = (): NextAuthOptions => ({
   providers: [
@@ -18,9 +19,20 @@ export const getAuthOptions = (): NextAuthOptions => ({
         }
 
         try {
-          const user = await prisma.user.findUnique({
+          let user = await prisma.user.findUnique({
             where: { email: credentials.email }
           });
+
+          if (!user && isDemoCredentials(credentials.email, credentials.password)) {
+            user = await prisma.user.create({
+              data: {
+                email: DEMO_CREDENTIALS.email,
+                name: DEMO_CREDENTIALS.name,
+                password: await bcrypt.hash(DEMO_CREDENTIALS.password, 10),
+                emailVerified: new Date(),
+              }
+            });
+          }
 
           if (!user || !user.password) {
             throw new Error("Invalid login");
