@@ -47,10 +47,10 @@ export default function TeamDetailsPage() {
     const { data: team, isLoading: teamLoading } = useTeam(teamId);
     const { data: members, isLoading: membersLoading } = useTeamMembers(teamId);
     const isPersonal = team?.name === "Personal";
-    const tasksQuery = useInfiniteTasks({ teamId, limit: 30 }, { enabled: !!teamId && !!session && !isPersonal });
-    const { data: personalTasksData, isLoading: personalTasksLoading } = useTasks(teamId, {
-        enabled: !!teamId && !!session && isPersonal,
-    });
+    const tasksQuery = useInfiniteTasks(
+        { teamId, limit: 30, sortBy: isPersonal ? "newest" : undefined }, 
+        { enabled: !!teamId && !!session }
+    );
 
     const deleteTeamMutation = useDeleteTeam();
     const removeMemberMutation = useRemoveMember();
@@ -159,8 +159,8 @@ export default function TeamDetailsPage() {
     }, [teamId, queryClient]);
 
     const tasks = useMemo(
-        () => (isPersonal ? ((personalTasksData as Task[]) || []) : flattenInfiniteTasks(tasksQuery.data)),
-        [isPersonal, personalTasksData, tasksQuery.data]
+        () => flattenInfiniteTasks(tasksQuery.data),
+        [tasksQuery.data]
     );
     const unassignedTasks = useMemo(() => tasks.filter((t) => !t.assignedTo), [tasks]);
     const assignedTasks = useMemo(() => tasks.filter((t) => t.assignedTo), [tasks]);
@@ -317,8 +317,7 @@ export default function TeamDetailsPage() {
         status === "loading" ||
         teamLoading ||
         membersLoading ||
-        (!isPersonal && tasksQuery.isPending) ||
-        (isPersonal && personalTasksLoading);
+        tasksQuery.isPending;
     if (!session && status !== "loading") return null;
     if (!team && !shouldShowSkeleton) return <div className="p-10 text-center bg-background text-zinc-500 font-sans">Team Not Found</div>;
 
@@ -385,6 +384,11 @@ export default function TeamDetailsPage() {
                                 assignedTasks={assignedTasks}
                                 currentUserMemberId={currentUserMemberId}
                                 openEditTask={openEditTask}
+                                hasMoreTasks={!!tasksQuery.hasNextPage}
+                                isFetchingMoreTasks={tasksQuery.isFetchingNextPage}
+                                onLoadMoreTasks={() => {
+                                    void tasksQuery.fetchNextPage();
+                                }}
                             />
                         ) : (
                             <>
@@ -460,6 +464,14 @@ export default function TeamDetailsPage() {
                     teamName={team?.name}
                     currentUserId={currentUserMemberId}
                     members={members as Member[]}
+                    onCreateSubtask={(parentId, teamId) => {
+                        openTaskModal({
+                            assignedToId: currentUserMemberId,
+                            parentId: parentId,
+                            teamId: teamId,
+                            isPersonalWorkspace: team?.name === 'Personal',
+                        });
+                    }}
                 />
             )}
 

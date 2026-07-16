@@ -20,6 +20,13 @@ export async function GET(
                 team: true,
                 assignedTo: {
                     select: { id: true, name: true, email: true }
+                },
+                children: {
+                    include: {
+                        assignedTo: {
+                            select: { id: true, name: true, email: true }
+                        }
+                    }
                 }
             }
         });

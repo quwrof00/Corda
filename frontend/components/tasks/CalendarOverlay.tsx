@@ -386,9 +386,7 @@ export default function CalendarOverlay({ isOpen, onClose, tasks, onSelectTask, 
                                             >
                                                 <div className={cn(
                                                     "w-1 h-8 rounded-full",
-                                                    task.status === 'completed' ? "bg-emerald-500" :
-                                                        (task.status === 'active' || task.status === 'in-progress') ? "bg-blue-500" :
-                                                            "bg-zinc-700"
+                                                    task.status === 'completed' ? "bg-emerald-500" : "bg-zinc-700"
                                                 )} />
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className={cn(

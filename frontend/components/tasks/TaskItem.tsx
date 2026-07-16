@@ -39,12 +39,7 @@ export function TaskItem({
     };
 
     return (
-        <motion.div
-            layout
-            variants={itemVariants}
-            initial="hidden"
-            animate="visible"
-            exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+        <div
             key={task.id}
             className={cn(
                 "group relative flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer",
@@ -56,8 +51,6 @@ export function TaskItem({
                 variant === "dashboard" && "hover:shadow-lg shadow-black/5 dark:shadow-white/5"
             )}
             style={{ marginLeft: level > 0 ? `${level * 1.5}rem` : 0 }}
-            whileHover={{ y: variant === "dashboard" ? -2 : 0, transition: { duration: 0.2 } }}
-            whileTap={{ scale: 0.98 }}
             onClick={() => onSelect(task)}
             role="button"
             tabIndex={0}
@@ -138,13 +131,11 @@ export function TaskItem({
                 {showStatus && (
                     <span className={cn(
                         "hidden sm:flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
-                        task.status === "active" || task.status === "in-progress"
-                            ? "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/30"
+                        task.status === "completed"
+                            ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30"
                             : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800"
                     )}>
-                        {task.status === 'pending' || task.status === 'to-do' ? 'To Do' :
-                            task.status === 'active' || task.status === 'in-progress' ? 'In Progress' :
-                                task.status.replace('-', ' ')}
+                        {task.status === 'completed' ? 'Completed' : 'To Do'}
                     </span>
                 )}
             </div>
@@ -166,6 +157,6 @@ export function TaskItem({
             {variant === "dashboard" && (
                 <ArrowRight className="w-4 h-4 text-zinc-600 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
             )}
-        </motion.div>
+        </div>
     );
 }

@@ -1,7 +1,8 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Task } from "./types";
 import { cn, formatDaysLeft } from "./utils";
+import { useInfiniteScrollTrigger } from "@/hooks/useInfiniteScrollTrigger";
 import { CheckCircle2, Plus, ChevronRight, Repeat } from "lucide-react";
 import { buildTaskTree, flattenTree } from "@/lib/taskTreeUtils";
 import { useUpdateTask } from "@/hooks/useTasks";
@@ -12,12 +13,18 @@ interface PersonalWorkspaceProps {
     assignedTasks: Task[];
     currentUserMemberId?: string;
     openEditTask: (task: Task) => void;
+    hasMoreTasks: boolean;
+    isFetchingMoreTasks: boolean;
+    onLoadMoreTasks: () => void;
 }
 
 export function PersonalWorkspace({
     assignedTasks,
     currentUserMemberId,
-    openEditTask
+    openEditTask,
+    hasMoreTasks,
+    isFetchingMoreTasks,
+    onLoadMoreTasks,
 }: PersonalWorkspaceProps) {
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
     const updateTaskMutation = useUpdateTask();
@@ -49,14 +56,18 @@ export function PersonalWorkspace({
 
     // Build tree and flatten for rendering
     const tasksToRender = useMemo(() => {
-        const sortedTasks = [...assignedTasks].sort((a, b) => {
-            if (!a.deadline) return 1;
-            if (!b.deadline) return -1;
-            return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
-        });
-        const tree = buildTaskTree(sortedTasks);
+        const tree = buildTaskTree(assignedTasks);
         return flattenTree(tree, expandedIds);
     }, [assignedTasks, expandedIds]);
+
+    const scrollRootRef = useRef<HTMLDivElement>(null);
+    
+    const sentinelRef = useInfiniteScrollTrigger({
+        hasMore: hasMoreTasks,
+        isLoading: isFetchingMoreTasks,
+        onLoadMore: onLoadMoreTasks,
+        rootRef: scrollRootRef,
+    });
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -143,8 +154,7 @@ export function PersonalWorkspace({
                     </motion.button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-0">
-                    <AnimatePresence mode="popLayout">
+                <div ref={scrollRootRef as any} className="flex-1 overflow-y-auto p-0">
                         {tasksToRender.length > 0 ? (
                             <div className="divide-y divide-zinc-200 dark:divide-zinc-900">
                                 {tasksToRender.map((task) => {
@@ -152,12 +162,7 @@ export function PersonalWorkspace({
                                     const isExpanded = expandedIds.has(task.id);
 
                                     return (
-                                        <motion.div
-                                            layout
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -20 }}
-                                            whileHover={{ x: 4 }}
+                                        <div
                                             key={task.id}
                                             onClick={() => openEditTask(task)}
                                             className={cn(
@@ -246,20 +251,23 @@ export function PersonalWorkspace({
 
                                                 <div className={cn("px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
                                                     task.status === 'completed' ? "bg-emerald-950/10 text-emerald-500 border-emerald-900/30" :
-                                                        task.status === 'in-progress' ? "bg-blue-950/10 text-blue-500 border-blue-900/30" :
-                                                            "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800"
+                                                    (task.deadline && new Date(task.deadline) < new Date()) ? "bg-red-950/10 text-red-500 border-red-900/30" :
+                                                        "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800"
                                                 )}>
-                                                    {task.status.replace('-', ' ')}
+                                                    {task.status === 'completed' ? 'Completed' : (task.deadline && new Date(task.deadline) < new Date()) ? 'Overdue' : 'To Do'}
                                                 </div>
                                             </div>
-                                        </motion.div>
+                                        </div>
                                     );
                                 })}
+                                {hasMoreTasks && (
+                                    <div ref={sentinelRef} className="p-4 flex justify-center text-zinc-500">
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-zinc-500"></div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
+                            <div
                                 className="flex flex-col items-center justify-center p-20 text-center"
                             >
                                 <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-900 rounded-full flex items-center justify-center text-zinc-500 dark:text-zinc-700 mb-4">
@@ -275,9 +283,8 @@ export function PersonalWorkspace({
                                 >
                                     Create First Task
                                 </motion.button>
-                            </motion.div>
+                            </div>
                         )}
-                    </AnimatePresence>
                 </div>
             </motion.div >
         </motion.div >

@@ -48,7 +48,7 @@ export async function POST(
                 assignedTasks: {
                     where: {
                         teamId: teamId,
-                        status: { in: ['pending', 'active', 'in-progress', 'blocked'] }
+                        status: { not: 'completed' }
                     },
                     select: { id: true }
                 }

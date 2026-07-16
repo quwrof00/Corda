@@ -66,9 +66,8 @@ const TaskItem = ({ task, onSelect, onStatusUpdate, getPriorityColor, onToggleEx
             <div className={cn(
                 "w-1 h-12 flex-shrink-0 transition-colors duration-300 rounded-full",
                 task.status === 'completed' ? "bg-emerald-500" :
-                    (task.status === 'active' || task.status === 'in-progress') ? "bg-blue-500" :
-                        task.status === 'blocked' ? "bg-red-500" :
-                            "bg-zinc-700 group-hover:bg-zinc-500"
+                    (task.deadline && new Date(task.deadline) < new Date()) ? "bg-red-500" :
+                        "bg-zinc-700 group-hover:bg-zinc-500"
             )} />
 
             {/* Checkbox/Status Action */}
@@ -148,40 +147,12 @@ const TaskItem = ({ task, onSelect, onStatusUpdate, getPriorityColor, onToggleEx
 
             {/* Hover Actions - always visible for better UX */}
             <div className="flex items-center gap-1 pl-4 border-l border-zinc-800 ml-4">
-                {/* Logic for expand repeated here for redundancy/ease of access if needed, but chevron is primary */}
                 <button
                     onClick={(e) => onAddSubtask(task.id, task.teamId || "", e)}
                     className="p-1.5 text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors rounded-md"
                     title="Add Subtask"
                 >
                     <Plus className="w-4 h-4" />
-                </button>
-                {task.status !== 'active' && task.status !== 'in-progress' && task.status !== 'completed' && task.team?.name !== "Personal" && (
-                    <button
-                        onClick={(e) => onStatusUpdate(task.id, 'active', e)}
-                        className="p-1.5 text-zinc-500 hover:text-blue-400 hover:bg-blue-950/30 transition-colors rounded-md"
-                        title="Start Task"
-                    >
-                        <Play className="w-4 h-4" />
-                    </button>
-                )}
-
-                {(task.status === 'active' || task.status === 'in-progress') && (
-                    <button
-                        onClick={(e) => onStatusUpdate(task.id, 'pending', e)}
-                        className="p-1.5 text-zinc-500 hover:text-amber-400 hover:bg-amber-950/30 transition-colors rounded-md"
-                        title="Pause Task"
-                    >
-                        <Pause className="w-4 h-4" />
-                    </button>
-                )}
-
-                <button
-                    onClick={(e) => onStatusUpdate(task.id, 'blocked', e)}
-                    className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-950/30 transition-colors rounded-md"
-                    title="Block Task"
-                >
-                    <Ban className="w-4 h-4" />
                 </button>
             </div>
         </motion.div>
@@ -287,11 +258,11 @@ export default function TasksClient() {
 
 
     // Filters & Sort State
-    const [sortBy, setSortBy] = useState<"deadline" | "priority" | "newest">("deadline");
+    const [sortBy, setSortBy] = useState<"deadline" | "priority" | "newest">("newest");
     const [dateFilter, setDateFilter] = useState<"all" | "today" | "week" | "overdue" | "custom">("all");
     const [priorityFilter, setPriorityFilter] = useState<"all" | "High" | "Medium" | "Low">("all");
     const [teamFilter, setTeamFilter] = useState<"all" | string>("all");
-    const [statusFilter, setStatusFilter] = useState<"All" | "Todo" | "In Progress" | "Blocked" | "Done">("Todo");
+    const [statusFilter, setStatusFilter] = useState<"All" | "Todo" | "Done">("Todo");
 
     // Custom date range (simple implementation)
     const [customStartDate, setCustomStartDate] = useState("");
@@ -375,7 +346,7 @@ export default function TasksClient() {
     useEffect(() => {
         const personalTeam = teams.find(t => t.name === 'Personal');
         if (personalTeam && teamFilter === personalTeam.id) {
-            setSortBy('deadline');
+            setSortBy('newest');
         }
     }, [teamFilter, teams]);
 
@@ -388,8 +359,6 @@ export default function TasksClient() {
             result = result.filter(t => {
                 const s = (t.status || "pending").toLowerCase();
                 if (statusFilter === "Todo") return s === "pending" || s === "to-do";
-                if (statusFilter === "In Progress") return s === "active" || s === "in-progress";
-                if (statusFilter === "Blocked") return s === "blocked";
                 if (statusFilter === "Done") return s === "completed";
                 return false;
             });
@@ -521,7 +490,7 @@ export default function TasksClient() {
 
                         {/* Status Tabs */}
                         <div className="flex items-center gap-1 p-1 bg-zinc-950/50 rounded-lg border border-zinc-900/50 overflow-x-auto scrollbar-hide max-w-full">
-                            {(["All", "Todo", "In Progress", "Blocked", "Done"] as const).map((s) => (
+                            {(["All", "Todo", "Done"] as const).map((s) => (
                                 <button
                                     key={s}
                                     onClick={() => setStatusFilter(s)}

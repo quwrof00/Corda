@@ -106,7 +106,7 @@ export default function DashboardClient() {
     startDate: todayRange.start, 
     endDate: todayRange.end, 
     dateFilter: "overdue", // Ensures only pending tasks are counted/returned
-    sortBy: "deadline", 
+    sortBy: "newest", 
     limit: 6 
   }, { enabled: !!session });
 
@@ -114,14 +114,14 @@ export default function DashboardClient() {
     startDate: weekRange.start, 
     endDate: weekRange.end, 
     dateFilter: "overdue", // Ensures only pending tasks are counted/returned
-    sortBy: "deadline", 
+    sortBy: "newest", 
     limit: 6 
   }, { enabled: !!session });
 
   const overdueTasksQuery = useInfiniteTasks({ 
     endDate: currentNow, // Due before now
     dateFilter: "overdue", // Triggers the "not completed" logic on server
-    sortBy: "deadline", 
+    sortBy: "newest", 
     limit: 6 
   }, { enabled: !!session });
 
@@ -265,9 +265,8 @@ export default function DashboardClient() {
   ) => (
     <motion.div id={id} className="scroll-mt-24 space-y-4" variants={itemVariants}>
       <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest pl-1">{title} <span className="text-zinc-600 ml-2 text-xs">({totalCount ?? taskList.length})</span></h3>
-      <AnimatePresence mode="popLayout">
         {taskList.length > 0 ? (
-          <motion.div key={`list-${id}`} className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <div key={`list-${id}`} className="space-y-3">
             {taskList.map((task) => (
               <TaskItem
                 key={task.id}
@@ -288,9 +287,9 @@ export default function DashboardClient() {
               />
             ))}
             {hasMore && sentinelRef ? <div ref={sentinelRef} className="h-4 w-full" /> : null}
-          </motion.div>
+          </div>
         ) : (
-          <motion.div key={`empty-${id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <div key={`empty-${id}`}>
             <EmptyState
               icon={CheckCircle2}
               title=""
@@ -299,9 +298,8 @@ export default function DashboardClient() {
               onAction={() => openTaskModal()}
               variant="minimal"
             />
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
     </motion.div>
   );
 
@@ -508,6 +506,14 @@ export default function DashboardClient() {
               )
             }
             currentUserId={session?.user?.id}
+            onCreateSubtask={(parentId, teamId) => {
+              openTaskModal({
+                assignedToId: session?.user?.id,
+                parentId: parentId,
+                teamId: teamId,
+                isPersonalWorkspace: selectedTask.team?.name === 'Personal',
+              });
+            }}
           />
         )
       }

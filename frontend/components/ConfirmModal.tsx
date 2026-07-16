@@ -51,15 +51,15 @@ export default function ConfirmModal({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
                     className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
                     onClick={onClose}
                 >
                     <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
+                        initial={{ scale: 0.95, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.9, opacity: 0 }}
-                        transition={{ type: "spring", duration: 0.3 }}
+                        exit={{ scale: 0.95, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
                         className="w-full max-w-md bg-background border border-[var(--border-time)] p-6 shadow-2xl rounded-2xl"
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -81,8 +81,6 @@ export default function ConfirmModal({
 
                         <div className="flex justify-end gap-3 pt-2">
                             <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
                                 onClick={onClose}
                                 disabled={loading}
                                 className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -90,8 +88,6 @@ export default function ConfirmModal({
                                 {cancelText}
                             </motion.button>
                             <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
                                 onClick={onConfirm}
                                 disabled={loading}
                                 className={`px-4 py-2 text-sm font-bold text-white rounded-lg flex items-center gap-2 transition-all ${isDanger

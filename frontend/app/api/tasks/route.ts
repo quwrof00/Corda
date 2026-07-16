@@ -38,10 +38,6 @@ export async function GET(req: Request) {
         if (status && status !== "All") {
             if (status === "Todo") {
                 where.status = { in: ["pending", "to-do"] };
-            } else if (status === "In Progress") {
-                where.status = { in: ["active", "in-progress"] };
-            } else if (status === "Blocked") {
-                where.status = "blocked";
             } else if (status === "Done") {
                 where.status = "completed";
             }
@@ -162,6 +158,7 @@ export async function POST(req: Request) {
         }
 
         const {
+            id,
             title,
             description,
             deadline,
@@ -271,6 +268,7 @@ export async function POST(req: Request) {
 
         const newTask = await prisma.task.create({
             data: {
+                ...(id ? { id } : {}),
                 title,
                 desc: description,
                 deadline: new Date(deadline),
@@ -282,6 +280,14 @@ export async function POST(req: Request) {
                 assignedToId: assignedToId || null,
                 parentId: parentId || null,
                 recurrenceId: recurrenceId,
+            },
+            include: {
+                team: {
+                    select: { id: true, name: true }
+                },
+                assignedTo: {
+                    select: { id: true, name: true, email: true }
+                }
             }
         });
 

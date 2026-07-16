@@ -21,7 +21,7 @@ export interface Task {
   parentId?: string | null;
   children?: Task[];
   assignedTo?: { id: string; name: string } | null;
-  team?: { id?: string; name?: string; [key: string]: unknown } | null;
+  team?: { id?: string; name?: string;[key: string]: unknown } | null;
   requiredSkill?: string | null;
   source?: string;
   recurrenceId?: string | null;
@@ -206,10 +206,13 @@ export const useCreateTask = () => {
     onMutate: async (newTask) => {
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
 
-      const tempId = `temp-task-${Date.now()}`;
+      // Generate a permanent client-side UUID so we don't have temp ID mismatches
+      if (!newTask.id) newTask.id = crypto.randomUUID();
+      const realId = newTask.id;
+
       const tempTask: Task = {
         ...newTask,
-        id: tempId,
+        id: realId,
         createdAt: new Date().toISOString(),
         status: newTask.status || "pending",
         priority: newTask.priority || "Medium",
@@ -228,15 +231,15 @@ export const useCreateTask = () => {
         queryClient.setQueryData(queryKey, prependTaskCache(previousData, tempTask));
       });
 
-      return { snapshots, tempId };
+      return { snapshots, realId };
     },
     onSuccess: (realTask, variables, context) => {
       if (!context) return;
-      
+
       // 1. Seed the individual task cache so navigating to it is instantaneous
       queryClient.setQueryData(["task", realTask.id], realTask);
 
-      // 2. Seamlessly swap the fake temp ID with the real ID in all task lists locally!
+      // 2. Seamlessly swap if the server returns any updated fields
       const snapshots = queryClient.getQueriesData<TaskCacheData>({
         queryKey: ["tasks"],
       });
@@ -245,7 +248,7 @@ export const useCreateTask = () => {
         queryClient.setQueryData(
           queryKey,
           updateTaskCache(previousData, (task) =>
-            task.id === context.tempId ? { ...task, ...realTask } : task
+            task.id === context.realId ? { ...task, ...realTask } : task
           )
         );
       });
@@ -269,6 +272,12 @@ export const useUpdateTask = () => {
       const { data } = await api.put(`/tasks/${id}`, updates);
       return data;
     },
+    retry: (failureCount, error: any) => {
+      // Retry up to 8 times for 404s to handle optimistic UI race conditions in slow dev environments
+      if (error?.response?.status === 404 && failureCount < 8) return true;
+      return false;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * (1.5 ** attemptIndex), 5000),
     onMutate: async ({ id, ...updates }) => {
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
       await queryClient.cancelQueries({ queryKey: ["task", id] });
@@ -290,10 +299,10 @@ export const useUpdateTask = () => {
         } else {
           // If we have previousTask, we might keep its name if IDs match (unlikely for reassign)
           // Otherwise, we just set the ID so filters/grouping logic (which uses task.assignedTo.id) works.
-          const targetName = previousTask?.assignedTo?.id === updates.assignedToId 
-            ? previousTask?.assignedTo?.name 
+          const targetName = previousTask?.assignedTo?.id === updates.assignedToId
+            ? previousTask?.assignedTo?.name
             : "Assigning...";
-            
+
           optimisticUpdate.assignedTo = {
             id: updates.assignedToId as string,
             name: targetName ?? "Assigning..."
@@ -346,6 +355,12 @@ export const useDeleteTask = () => {
       const { data } = await api.delete(url);
       return data;
     },
+    retry: (failureCount, error: any) => {
+      // Retry up to 8 times for 404s to handle optimistic UI race conditions in slow dev environments
+      if (error?.response?.status === 404 && failureCount < 8) return true;
+      return false;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * (1.5 ** attemptIndex), 5000),
     onMutate: async (payload) => {
       const id = typeof payload === "string" ? payload : payload.id;
       const deleteRecurring = typeof payload === "string" ? false : !!payload.deleteRecurring;

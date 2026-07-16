@@ -83,7 +83,7 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-hidden"
                     onClick={onClose}
                 >
@@ -91,7 +91,7 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
                         initial={{ scale: 0.95, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                        transition={{ type: "spring", duration: 0.4, bounce: 0.3 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
                         className="w-full max-w-lg bg-background border border-[var(--border-time)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -107,8 +107,6 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
                                 </div>
                             </div>
                             <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
                                 onClick={onClose}
                                 className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-full transition-colors"
                                 title="Close (Esc)"
@@ -177,8 +175,6 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
                                 </span>
                                 <div className="flex items-center gap-3">
                                     <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
                                         type="button"
                                         onClick={onClose}
                                         className="px-5 py-2.5 rounded-xl text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 font-medium transition-all text-sm"
@@ -186,8 +182,6 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
                                         Cancel
                                     </motion.button>
                                     <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
                                         type="submit"
                                         disabled={loading}
                                         className="px-6 py-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black transition-all disabled:opacity-70 disabled:cursor-not-allowed text-sm flex items-center gap-2 font-semibold shadow-lg shadow-zinc-500/10"
