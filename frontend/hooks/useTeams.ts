@@ -43,7 +43,7 @@ type TeamCacheData = Team[] | InfiniteData<PaginatedTeamResponse> | undefined;
 
 const DEFAULT_LIMIT = 12;
 
-async function fetchTeamsPage(page: number = 1, limit: number = DEFAULT_LIMIT) {
+export async function fetchTeamsPage(page: number = 1, limit: number = DEFAULT_LIMIT) {
   const { data } = await api.get(`/teams?page=${page}&limit=${limit}`);
   return data as PaginatedTeamResponse;
 }

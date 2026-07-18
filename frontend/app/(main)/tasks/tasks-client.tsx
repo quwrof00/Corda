@@ -8,9 +8,10 @@ import CalendarOverlay from "@/components/tasks/CalendarOverlay";
 import { useModalStore } from "@/hooks/useModalStore";
 
 import { TaskListSkeleton } from "@/components/shared/SkeletonLoader";
-import { useTasks, useUpdateTask, Task } from "@/hooks/useTasks";
+import { flattenInfiniteTasks, useInfiniteTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 import { useTeams } from "@/hooks/useTeams";
 import { buildTaskTree } from "@/lib/taskTreeUtils";
+import { useInfiniteScrollTrigger } from "@/hooks/useInfiniteScrollTrigger";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return inputs.filter(Boolean).join(' ');
@@ -250,12 +251,7 @@ const FilterDropdown = ({
 
 export default function TasksClient() {
     const { data: session, status } = useSession();
-    const { data: tasksData, isLoading, refetch } = useTasks(undefined, { enabled: !!session });
     const { data: teamsData } = useTeams();
-
-    // Redundant socket logic removed in favor of global SocketProvider
-
-
 
     // Filters & Sort State
     const [sortBy, setSortBy] = useState<"deadline" | "priority" | "newest">("newest");
@@ -271,9 +267,25 @@ export default function TasksClient() {
     // Toggle for Tree View vs Flat View
     const [isTreeView, setIsTreeView] = useState(true); // Default to Tree View per requirement
 
-    // Data Hooks
+    const {
+        data: tasksData,
+        isLoading,
+        hasNextPage,
+        isFetchingNextPage,
+        fetchNextPage,
+        refetch
+    } = useInfiniteTasks({
+        sortBy,
+        dateFilter: dateFilter === "all" ? undefined : dateFilter,
+        priority: priorityFilter === "all" ? undefined : priorityFilter,
+        teamId: teamFilter === "all" ? undefined : teamFilter,
+        status: statusFilter === "All" ? undefined : statusFilter,
+        startDate: customStartDate || undefined,
+        endDate: customEndDate || undefined,
+        limit: 20
+    }, { enabled: !!session });
 
-    const tasks = useMemo(() => (tasksData as Task[]) || [], [tasksData]);
+    const tasks = useMemo(() => flattenInfiniteTasks(tasksData), [tasksData]);
     const teams = useMemo(() => teamsData || [], [teamsData]);
 
     const { openTaskModal, openTeamModal, setPageContext } = useModalStore();
@@ -353,76 +365,13 @@ export default function TasksClient() {
 
 
     const flatTasks = useMemo(() => {
-        let result = [...tasks];
-
-        if (statusFilter !== "All") {
-            result = result.filter(t => {
-                const s = (t.status || "pending").toLowerCase();
-                if (statusFilter === "Todo") return s === "pending" || s === "to-do";
-                if (statusFilter === "Done") return s === "completed";
-                return false;
-            });
-        }
-
-        if (teamFilter !== "all") {
-            result = result.filter(t => t.teamId === teamFilter);
-        }
-
-        if (priorityFilter !== "all") {
-            result = result.filter(t => t.priority === priorityFilter);
-        }
-
-        if (dateFilter !== "all") {
-            const now = new Date();
-            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const endOfToday = new Date(startOfToday);
-            endOfToday.setDate(endOfToday.getDate() + 1);
-            const endOfWeek = new Date(startOfToday);
-            endOfWeek.setDate(endOfWeek.getDate() + 7);
-
-            result = result.filter(t => {
-                if (!t.deadline) return false;
-                const d = new Date(t.deadline);
-                const dDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-
-                if (dateFilter === "today") return dDate.getTime() === startOfToday.getTime();
-                if (dateFilter === "week") return dDate >= startOfToday && dDate < endOfWeek;
-                if (dateFilter === "overdue") return dDate < startOfToday && t.status !== 'completed';
-                if (dateFilter === "custom") {
-                    if (!customStartDate || !customEndDate) return true;
-                    const startRaw = new Date(customStartDate);
-                    const endRaw = new Date(customEndDate);
-                    return dDate >= startRaw && dDate <= endRaw;
-                }
-                return true;
-            });
-        }
-
-        result.sort((a, b) => {
-            if (sortBy === 'deadline') {
-                if (!a.deadline) return 1;
-                if (!b.deadline) return -1;
-                return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
-            }
-            if (sortBy === 'priority') {
-                return (priorityScore[b.priority] || 0) - (priorityScore[a.priority] || 0);
-            }
-            if (sortBy === 'newest') {
-                return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-            }
-            return 0;
-        });
+        const result = [...tasks];
 
         if (isTreeView) {
             // Build tree
             const tree = buildTaskTree(result);
             // Flatten functionality for rendering
             const hierarchy: (Task & { level: number })[] = [];
-
-            // Re-implement flatten with recursive visibility if needed, 
-            // but since we already filtered the *nodes* list, buildTaskTree might have orphans.
-            // lib/taskTreeUtils handles this by making orphans roots.
-            // We just need to traverse valid children.
 
             function traverse(nodes: Task[], level: number) {
                 for (const node of nodes) {
@@ -439,7 +388,13 @@ export default function TasksClient() {
             return result.map(t => ({ ...t, level: 0 }));
         }
 
-    }, [tasks, statusFilter, teamFilter, priorityFilter, dateFilter, customStartDate, customEndDate, sortBy, isTreeView, expandedIds]);
+    }, [tasks, isTreeView, expandedIds]);
+
+    const sentinelRef = useInfiniteScrollTrigger({
+        hasMore: !!hasNextPage,
+        isLoading: isFetchingNextPage,
+        onLoadMore: () => void fetchNextPage(),
+    });
 
     const getPriorityColor = (priority: string) => {
         switch (priority) {
@@ -651,6 +606,11 @@ export default function TasksClient() {
                                     onAddSubtask={handleCreateSubtask}
                                 />
                             ))}
+                            {hasNextPage && (
+                                <div ref={sentinelRef} className="p-4 flex justify-center text-zinc-500">
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-zinc-500"></div>
+                                </div>
+                            )}
                         </AnimatePresence>
                     ) : (
                         <motion.div

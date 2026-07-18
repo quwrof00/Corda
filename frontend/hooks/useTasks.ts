@@ -68,7 +68,7 @@ function buildTaskSearchParams(params?: TaskListParams, page?: number) {
   return searchParams.toString();
 }
 
-async function fetchTaskPage(
+export async function fetchTaskPage(
   params?: TaskListParams,
   page: number = 1
 ): Promise<PaginatedResponse<Task>> {

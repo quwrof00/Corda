@@ -9,12 +9,15 @@ import { LayoutDashboard, CheckSquare, Users, LogOut, User, Terminal, Lock, Aler
 import { usePersonalWorkspace } from "@/hooks/usePersonalWorkspace";
 import { useUser } from "@/hooks/useUser";
 import { useSession, signOut } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ConfirmModal from "./ConfirmModal";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { clsx } from "clsx";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
+import { fetchTaskPage } from "@/hooks/useTasks";
+import { fetchTeamsPage } from "@/hooks/useTeams";
 
 export default function Sidebar() {
     const pathname = usePathname();
@@ -27,8 +30,40 @@ export default function Sidebar() {
 
     const { data: user } = useUser(userId, { enabled: !!userId });
 
+    const queryClient = useQueryClient();
+    const prefetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     const [logoutModalOpen, setLogoutModalOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
+
+    const handlePrefetch = (href: string) => {
+        // Clear any existing timeout
+        if (prefetchTimeoutRef.current) clearTimeout(prefetchTimeoutRef.current);
+        
+        // Add a small delay to ensure intentional hover (avoids wasted requests)
+        prefetchTimeoutRef.current = setTimeout(() => {
+            if (href === "/teams") {
+                queryClient.prefetchInfiniteQuery({
+                    queryKey: ["teams", "infinite", 12],
+                    queryFn: ({ pageParam }) => fetchTeamsPage(pageParam as number, 12),
+                    initialPageParam: 1
+                });
+            } else if (href === "/tasks") {
+                queryClient.prefetchInfiniteQuery({
+                    queryKey: ["tasks", "infinite", { sortBy: "newest", status: "Todo", limit: 20 }],
+                    queryFn: ({ pageParam }) => fetchTaskPage({ sortBy: "newest", status: "Todo", limit: 20 }, pageParam as number),
+                    initialPageParam: 1
+                });
+            }
+        }, 120); // 120ms intentionality threshold
+    };
+
+    const handleMouseLeave = () => {
+        if (prefetchTimeoutRef.current) {
+            clearTimeout(prefetchTimeoutRef.current);
+            prefetchTimeoutRef.current = null;
+        }
+    };
 
     // Effect to update CSS variable for main content margin
     useEffect(() => {
@@ -104,6 +139,8 @@ export default function Sidebar() {
                                         ? "bg-[var(--accent-time)]/10 text-[var(--accent-time)]"
                                         : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
                                 )}
+                                onMouseEnter={() => handlePrefetch(item.href)}
+                                onMouseLeave={handleMouseLeave}
                                 prefetch={false}
                                 title={isCollapsed ? item.name : undefined}
                             >
@@ -156,6 +193,18 @@ export default function Sidebar() {
                                     ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white"
                                     : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
                             )}
+                            onMouseEnter={() => {
+                                // Clear any existing timeout
+                                if (prefetchTimeoutRef.current) clearTimeout(prefetchTimeoutRef.current);
+                                prefetchTimeoutRef.current = setTimeout(() => {
+                                    queryClient.prefetchInfiniteQuery({
+                                        queryKey: ["tasks", "infinite", { teamId: personalTeamId, sortBy: "newest", limit: 30 }],
+                                        queryFn: ({ pageParam }) => fetchTaskPage({ teamId: personalTeamId, sortBy: "newest", limit: 30 }, pageParam as number),
+                                        initialPageParam: 1
+                                    });
+                                }, 120);
+                            }}
+                            onMouseLeave={handleMouseLeave}
                             title={isCollapsed ? "My Workspace" : undefined}
                         >
                             <Lock className={clsx("h-4 w-4 min-w-[1rem]", pathname === `/teams/${personalTeamId}` ? "text-zinc-900 dark:text-white" : "text-zinc-600 group-hover:text-zinc-400")} />
