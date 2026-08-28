@@ -11,6 +11,8 @@ export interface User {
     skills?: string[];
     workload?: number;
     teams?: Team[];
+    resumeUrl?: string;
+    wallpaperUrl?: string;
     [key: string]: unknown;
 }
 

@@ -45,7 +45,7 @@ export function TaskItem({
                 "group relative flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer",
                 task.source === 'moodle'
                     ? "bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/30 dark:to-transparent border-orange-200/80 dark:border-orange-800/50 hover:from-orange-100/50 dark:hover:from-orange-900/50"
-                    : "bg-card border-[var(--border-time)] hover:shadow-lg transition-all",
+                    : "bg-card/85 backdrop-blur-sm border-[var(--border-time)] hover:shadow-lg transition-all",
                 level > 0 && "border-l-4 border-l-[var(--border-time)]",
                 task.status === 'completed' && "opacity-60",
                 variant === "dashboard" && "hover:shadow-lg shadow-black/5 dark:shadow-white/5"

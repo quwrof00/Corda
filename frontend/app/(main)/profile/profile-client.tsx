@@ -64,6 +64,9 @@ export default function ProfileClient() {
     const [isEditing, setIsEditing] = useState(false);
     const [uploadStatus, setUploadStatus] = useState<"IDLE" | "UPLOADING" | "PARSING" | "EXTRACTING" | "COMPLETE">("IDLE");
     const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+    const [wallpaperUploadStatus, setWallpaperUploadStatus] = useState<"IDLE" | "UPLOADING" | "COMPLETE">("IDLE");
+    const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
+    // Only block UI for resume processing which requires document parsing
     const isProcessing = uploadStatus !== "IDLE" && uploadStatus !== "COMPLETE";
 
 
@@ -76,6 +79,7 @@ export default function ProfileClient() {
             setSkills(initialSkills);
             setName(user.name || session?.user?.name || "");
             setResumeUrl((user.resumeUrl as string | null) ?? null);
+            setWallpaperUrl((user.wallpaperUrl as string | null) ?? null);
         }
     }, [user, session]);
 
@@ -196,6 +200,101 @@ export default function ProfileClient() {
         }
     };
 
+    const handleWallpaperUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+        if (!allowedTypes.includes(file.type)) {
+            toast.error("Only JPEG, PNG, WebP, and AVIF images are allowed");
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error("File size must be less than 10MB");
+            return;
+        }
+
+        // Optimistic UI update: instantly show the selected image
+        const previousUrl = wallpaperUrl;
+        const previewUrl = URL.createObjectURL(file);
+        setWallpaperUrl(previewUrl);
+        setWallpaperUploadStatus("UPLOADING");
+
+        try {
+            // Compress image in Web Worker
+            const compressedBlob = await new Promise<Blob>((resolve, reject) => {
+                const worker = new Worker(new URL('./image.worker.ts', import.meta.url));
+                
+                worker.onmessage = (e) => {
+                    if (e.data.success) {
+                        resolve(e.data.blob);
+                    } else {
+                        reject(new Error(e.data.error));
+                    }
+                    worker.terminate();
+                };
+                
+                worker.onerror = (error) => {
+                    reject(error);
+                    worker.terminate();
+                };
+                
+                worker.postMessage({ file, maxWidth: 1920, maxHeight: 1080, quality: 0.8 });
+            });
+
+            const formData = new FormData();
+            // Append the compressed WebP blob with a new filename
+            formData.append("wallpaper", compressedBlob, file.name.replace(/\.[^/.]+$/, "") + ".webp");
+
+            const response = await fetch(`/api/users/${userId}/wallpaper`, {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!response.ok) throw new Error("Upload failed");
+
+            const data = await response.json();
+            // Free the object URL and set the permanent remote URL
+            URL.revokeObjectURL(previewUrl);
+            setWallpaperUrl(data.wallpaperUrl);
+            setWallpaperUploadStatus("COMPLETE");
+            setTimeout(() => setWallpaperUploadStatus("IDLE"), 1000);
+            toast.success("Wallpaper uploaded successfully");
+        } catch (error) {
+            console.error(error);
+            URL.revokeObjectURL(previewUrl);
+            setWallpaperUrl(previousUrl); // Revert on failure
+            toast.error("Failed to upload wallpaper");
+            setWallpaperUploadStatus("IDLE");
+        }
+    };
+
+    const handleWallpaperDelete = async () => {
+        if (!wallpaperUrl) return;
+        
+        // Optimistic UI update
+        const previousUrl = wallpaperUrl;
+        setWallpaperUrl(null);
+        setWallpaperUploadStatus("UPLOADING");
+
+        try {
+            const response = await fetch(`/api/users/${userId}/wallpaper`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) throw new Error("Delete failed");
+
+            toast.success("Wallpaper deleted successfully");
+        } catch (error) {
+            console.error(error);
+            setWallpaperUrl(previousUrl); // Revert on failure
+            toast.error("Failed to delete wallpaper");
+        } finally {
+            setWallpaperUploadStatus("IDLE");
+        }
+    };
+
     const categorizedSkills = categorizeSkills(skills);
 
     return (
@@ -223,7 +322,7 @@ export default function ProfileClient() {
                                 <LoadingBars className="w-8 h-8 text-emerald-500" />
                             </div>
                             <h2 className="text-xl font-bold text-white uppercase tracking-tight mb-2 font-mono">
-                                {uploadStatus === "UPLOADING" ? "Uploading Docs" : 
+                                {uploadStatus === "UPLOADING" || wallpaperUploadStatus === "UPLOADING" ? "Uploading Docs" : 
                                  uploadStatus === "PARSING" ? "Parsing Identity" : 
                                  "Extracting Skills"}
                             </h2>
@@ -299,6 +398,47 @@ export default function ProfileClient() {
 
                         {/* Right Column */}
                         <div className="lg:col-span-2 space-y-6">
+                            {/* Dashboard Wallpaper Section */}
+                            <div className="bg-card border border-[var(--border-time)] p-8 shadow-xl rounded-xl">
+                                <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--border-time)]">
+                                    <h2 className="text-lg font-bold text-white font-mono uppercase tracking-tight">Dashboard Wallpaper</h2>
+                                </div>
+
+                                {wallpaperUrl ? (
+                                    <div className="flex flex-col gap-4">
+                                        <div className="relative w-full h-40 rounded-lg overflow-hidden border border-[var(--border-time)]">
+                                            <img src={wallpaperUrl} alt="Wallpaper Preview" className="absolute inset-0 w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black/40" />
+                                            <div className="absolute bottom-3 left-3 bg-black/60 px-2 py-1 rounded text-[10px] font-mono text-white tracking-widest uppercase">Preview</div>
+                                        </div>
+                                        <div className="flex items-center justify-between p-4 bg-zinc-900/50 border border-[var(--border-time)] rounded-lg transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <FileUp className="w-5 h-5 text-emerald-500" />
+                                                <div>
+                                                    <p className="text-white text-sm font-mono uppercase">Wallpaper Active</p>
+                                                </div>
+                                            </div>
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={handleWallpaperDelete}
+                                                disabled={wallpaperUploadStatus !== "IDLE"}
+                                                className="flex items-center gap-2 px-3 py-2 bg-red-950/30 hover:bg-red-950/50 border border-red-900/50 text-red-400 rounded-md text-xs font-bold uppercase transition-colors disabled:opacity-50"
+                                            >
+                                                {wallpaperUploadStatus !== "IDLE" ? <LoadingBars className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />} Remove
+                                            </motion.button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="relative">
+                                        <input type="file" id="wallpaper-upload" accept="image/jpeg,image/png,image/webp,image/avif" onChange={handleWallpaperUpload} disabled={wallpaperUploadStatus !== "IDLE"} className="hidden" />
+                                        <label htmlFor="wallpaper-upload" className={cn("flex items-center justify-center gap-3 p-8 bg-zinc-900/20 border-2 border-dashed border-[var(--border-time)] hover:border-[var(--accent-time)] rounded-lg cursor-pointer transition-all", wallpaperUploadStatus !== "IDLE" && "opacity-50 cursor-not-allowed")}>
+                                            {wallpaperUploadStatus !== "IDLE" ? <LoadingBars className="w-6 h-6 text-emerald-500" /> : <><FileUp className="w-6 h-6 text-emerald-500" /><div className="text-center"><span className="text-white text-base font-mono uppercase block">Upload Image</span><span className="text-zinc-600 text-[10px] uppercase">(JPG/PNG/WEBP/AVIF)</span></div></>}
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="bg-card border border-[var(--border-time)] p-8 shadow-xl rounded-xl">
                                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--border-time)]">
                                     <h2 className="text-lg font-bold text-white font-mono uppercase tracking-tight">Resume</h2>

@@ -22,7 +22,9 @@ export async function GET(
                 role: true,
                 teams: {
                     select: { id: true, name: true }
-                }
+                },
+                resumeUrl: true,
+                wallpaperUrl: true
             }
         });
 
@@ -49,14 +51,18 @@ export async function PUT(
             return NextResponse.json({ error: "Unauthorized: You can only update your own profile" }, { status: 403 });
         }
 
-        const { name, skills } = await req.json();
+        const { name, skills, resumeUrl, wallpaperUrl } = await req.json();
 
         const dataToUpdate: {
             name?: string;
             skills?: string[];
+            resumeUrl?: string | null;
+            wallpaperUrl?: string | null;
         } = {};
 
         if (name !== undefined) dataToUpdate.name = name;
+        if (resumeUrl !== undefined) dataToUpdate.resumeUrl = resumeUrl;
+        if (wallpaperUrl !== undefined) dataToUpdate.wallpaperUrl = wallpaperUrl;
         if (skills !== undefined) {
             dataToUpdate.skills = Array.isArray(skills)
                 ? skills.map(formatSkill).filter(Boolean)

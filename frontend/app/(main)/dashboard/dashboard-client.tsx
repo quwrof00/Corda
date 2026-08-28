@@ -4,6 +4,8 @@ import MoodleSyncButton from "@/components/tasks/moodle-sync-button";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import { useUser } from "@/hooks/useUser";
 import { flattenInfiniteTasks, useInfiniteTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 import { flattenInfiniteTeams, useInfiniteTeams } from "@/hooks/useTeams";
 import { buildTaskTree, flattenTree } from "@/lib/taskTreeUtils";
@@ -78,6 +80,8 @@ const PrimaryButton = ({ children, onClick, className, disabled }: { children: R
 export default function DashboardClient() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { data: user } = useUser(session?.user?.id ?? "", { enabled: !!session?.user?.id });
+
   // Calculate localized date ranges for accurate filtering
   const { todayRange, weekRange, currentNow } = useMemo(() => {
     const now = new Date();
@@ -264,7 +268,7 @@ export default function DashboardClient() {
     sentinelRef?: React.RefObject<HTMLDivElement | null>
   ) => (
     <motion.div id={id} className="scroll-mt-24 space-y-4" variants={itemVariants}>
-      <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest pl-1">{title} <span className="text-zinc-600 ml-2 text-xs">({totalCount ?? taskList.length})</span></h3>
+      <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">{title} <span className="text-zinc-400 dark:text-zinc-500 ml-2 text-xs">({totalCount ?? taskList.length})</span></h3>
         {taskList.length > 0 ? (
           <div key={`list-${id}`} className="space-y-3">
             {taskList.map((task) => (
@@ -308,17 +312,30 @@ export default function DashboardClient() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="min-h-screen bg-background text-zinc-900 dark:text-zinc-200 selection:bg-zinc-200 dark:selection:bg-zinc-800 p-6 md:p-12"
+      className="min-h-screen bg-background text-zinc-900 dark:text-zinc-200 selection:bg-zinc-200 dark:selection:bg-zinc-800 p-6 md:p-12 relative"
     >
-      <div className="max-w-7xl mx-auto space-y-12">
+      {user?.wallpaperUrl && (
+        <>
+          <Image
+            src={user.wallpaperUrl}
+            alt="Dashboard Wallpaper"
+            fill
+            className="object-cover absolute inset-0 -z-20 opacity-100"
+            priority
+          />
+          <div className="absolute inset-0 bg-white/60 dark:bg-black/60 -z-10" />
+        </>
+      )}
+
+      <div className="max-w-7xl mx-auto space-y-12 relative z-10">
 
         {/* Top Section: Greeting & Status */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-[var(--border-time)]">
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white mb-2">
+          <div className="flex-1 drop-shadow-xl [text-shadow:_0_2px_10px_rgb(0_0_0_/_0.8)]">
+            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
               {greeting}, {session?.user?.name?.split(" ")[0] || "there"}
             </h1>
-            <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-500 text-sm">
+            <div className="flex items-center gap-2 text-zinc-200 text-sm font-medium">
               <span className="flex h-2 w-2 rounded-full bg-[var(--success-time)] shadow-[0_0_8px_var(--success-glow)] transition-all"></span>
               <p>You have <span className="text-zinc-900 dark:text-zinc-300 font-bold">{stats.deadlinesToday === 1 ? `1 deadline` : `${stats.deadlinesToday} deadlines`}</span> approaching.</p>
             </div>
@@ -370,12 +387,12 @@ export default function DashboardClient() {
 
           {/* A. My Tasks (Primary - 2 cols on wide, goes to 1st pos) */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2 tracking-tight">
-                <CheckCircle2 className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
+            <div className="flex items-center justify-between drop-shadow-lg [text-shadow:_0_1px_5px_rgb(0_0_0_/_0.8)]">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
+                <CheckCircle2 className="w-5 h-5 text-zinc-200" />
                 My Tasks
               </h2>
-              <Link href="/tasks" className="text-xs font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 uppercase tracking-wider flex items-center gap-1 transition-colors mr-2">
+              <Link href="/tasks" className="text-xs font-bold text-zinc-300 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-colors mr-2">
                 View All <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
@@ -413,12 +430,12 @@ export default function DashboardClient() {
 
           {/* B. My Teams (Secondary) */}
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2 tracking-tight">
-                <Users className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
+            <div className="flex items-center justify-between drop-shadow-lg [text-shadow:_0_1px_5px_rgb(0_0_0_/_0.8)]">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
+                <Users className="w-5 h-5 text-zinc-200" />
                 My Teams
               </h2>
-              <Link href="/teams" className="text-xs font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 uppercase tracking-wider flex items-center gap-1 transition-colors mr-2">
+              <Link href="/teams" className="text-xs font-bold text-zinc-300 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-colors mr-2">
                 View All <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
@@ -432,7 +449,7 @@ export default function DashboardClient() {
                   <motion.div
                     key={team.id}
                     onClick={() => router.push(`/teams/${team.id}`)}
-                    className="relative group p-5 rounded-xl bg-card border border-[var(--border-time)] hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer transition-all hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50"
+                    className="relative group p-5 rounded-xl bg-card/85 backdrop-blur-sm border border-[var(--border-time)] hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer transition-all hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50"
                     whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.98 }}
                   >

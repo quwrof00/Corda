@@ -19,6 +19,7 @@ model User {
   workload      Int      @default(0)
   role          String?
   resumeUrl     String?
+  wallpaperUrl  String?
 
   teams         Team[]   @relation("TeamMembers")
 
