@@ -288,7 +288,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
+                            transition={{ duration: 0.1 }}
                             className="absolute inset-0 z-[-1]"
                         />
 
@@ -296,7 +296,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                             initial={{ x: "100%" }}
                             animate={{ x: 0 }}
                             exit={{ x: "100%" }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            transition={{ duration: 0.1, ease: "easeOut" }}
                             className="w-full max-w-md bg-black h-full shadow-2xl flex flex-col border-l border-[var(--border-time)]" // Use dark bg as per image
                             onClick={(e) => e.stopPropagation()}
                         >

@@ -89,7 +89,7 @@ export default function Sidebar() {
             initial="expanded"
             animate={isCollapsed ? "collapsed" : "expanded"}
             variants={sidebarVariants}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            transition={{ type: "spring", stiffness: 500, damping: 35 }}
             className="hidden md:flex fixed left-0 top-0 z-40 h-screen border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex-col justify-between font-mono"
         >
             <div className="bg-white dark:bg-zinc-950 flex flex-col h-full">
