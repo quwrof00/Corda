@@ -20,6 +20,7 @@ model User {
   role          String?
   resumeUrl     String?
   wallpaperUrl  String?
+  autoDeleteStaleTasks Boolean @default(false)
 
   teams         Team[]   @relation("TeamMembers")
 

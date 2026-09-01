@@ -24,7 +24,8 @@ export async function GET(
                     select: { id: true, name: true }
                 },
                 resumeUrl: true,
-                wallpaperUrl: true
+                wallpaperUrl: true,
+                autoDeleteStaleTasks: true
             }
         });
 
@@ -51,18 +52,20 @@ export async function PUT(
             return NextResponse.json({ error: "Unauthorized: You can only update your own profile" }, { status: 403 });
         }
 
-        const { name, skills, resumeUrl, wallpaperUrl } = await req.json();
+        const { name, skills, resumeUrl, wallpaperUrl, autoDeleteStaleTasks } = await req.json();
 
         const dataToUpdate: {
             name?: string;
             skills?: string[];
             resumeUrl?: string | null;
             wallpaperUrl?: string | null;
+            autoDeleteStaleTasks?: boolean;
         } = {};
 
         if (name !== undefined) dataToUpdate.name = name;
         if (resumeUrl !== undefined) dataToUpdate.resumeUrl = resumeUrl;
         if (wallpaperUrl !== undefined) dataToUpdate.wallpaperUrl = wallpaperUrl;
+        if (autoDeleteStaleTasks !== undefined) dataToUpdate.autoDeleteStaleTasks = autoDeleteStaleTasks;
         if (skills !== undefined) {
             dataToUpdate.skills = Array.isArray(skills)
                 ? skills.map(formatSkill).filter(Boolean)

@@ -5,7 +5,7 @@ import { LoadingBars } from "@/components/shared/LoadingBars";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CheckSquare, Users, LogOut, User, Terminal, Lock, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Users, LogOut, User, Terminal, Lock, AlertCircle, ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { usePersonalWorkspace } from "@/hooks/usePersonalWorkspace";
 import { useUser } from "@/hooks/useUser";
 import { useSession, signOut } from "next-auth/react";
@@ -77,6 +77,7 @@ export default function Sidebar() {
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { name: "My Teams", href: "/teams", icon: Users },
         { name: "My Tasks", href: "/tasks", icon: CheckSquare },
+        { name: "Settings", href: "/settings", icon: Settings },
     ];
 
     const sidebarVariants = {

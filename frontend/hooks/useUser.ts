@@ -13,6 +13,7 @@ export interface User {
     teams?: Team[];
     resumeUrl?: string;
     wallpaperUrl?: string;
+    autoDeleteStaleTasks?: boolean;
     [key: string]: unknown;
 }
 
