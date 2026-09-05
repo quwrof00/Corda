@@ -35,6 +35,17 @@ export default function Sidebar() {
 
     const [logoutModalOpen, setLogoutModalOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+    const [isSigningOut, setIsSigningOut] = useState(false);
+
+    const handleSignOut = async () => {
+        setIsSigningOut(true);
+        await signOut({ callbackUrl: "/login" });
+    };
+
+    useEffect(() => {
+        setNavigatingTo(null);
+    }, [pathname]);
 
     const handlePrefetch = (href: string) => {
         // Clear any existing timeout
@@ -77,7 +88,6 @@ export default function Sidebar() {
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { name: "My Teams", href: "/teams", icon: Users },
         { name: "My Tasks", href: "/tasks", icon: CheckSquare },
-        { name: "Settings", href: "/settings", icon: Settings },
     ];
 
     const sidebarVariants = {
@@ -133,8 +143,9 @@ export default function Sidebar() {
                             <Link
                                 key={item.href}
                                 href={item.href}
+                                onClick={() => setNavigatingTo(item.href)}
                                 className={clsx(
-                                    "group flex items-center gap-3 px-3 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all relative",
+                                    "group flex items-center gap-3 px-3 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all relative overflow-hidden",
                                     isCollapsed ? "justify-center" : "",
                                     isActive
                                         ? "bg-[var(--accent-time)]/10 text-[var(--accent-time)]"
@@ -164,6 +175,16 @@ export default function Sidebar() {
                                         className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[var(--accent-time)] rounded-l-full"
                                     />
                                 )}
+                                {navigatingTo === item.href && (
+                                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-transparent">
+                                        <motion.div
+                                            initial={{ width: "0%" }}
+                                            animate={{ width: "100%" }}
+                                            transition={{ duration: 1.5, ease: "easeOut" }}
+                                            className="h-full bg-[var(--accent-time)] shadow-[0_0_8px_var(--accent-time)]"
+                                        />
+                                    </div>
+                                )}
                             </Link>
                         );
                     })}
@@ -184,31 +205,86 @@ export default function Sidebar() {
                         )}
                     </AnimatePresence>
 
-                    {personalTeamId ? (
+                    <div className="flex flex-col gap-1">
+                        {personalTeamId ? (
+                            <Link
+                                href={`/teams/${personalTeamId}`}
+                                onClick={() => setNavigatingTo(`/teams/${personalTeamId}`)}
+                                className={clsx(
+                                    "group flex items-center gap-3 px-3 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all relative overflow-hidden",
+                                    isCollapsed ? "justify-center" : "",
+                                    pathname === `/teams/${personalTeamId}`
+                                        ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white"
+                                        : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                                )}
+                                onMouseEnter={() => {
+                                    // Clear any existing timeout
+                                    if (prefetchTimeoutRef.current) clearTimeout(prefetchTimeoutRef.current);
+                                    prefetchTimeoutRef.current = setTimeout(() => {
+                                        queryClient.prefetchInfiniteQuery({
+                                            queryKey: ["tasks", "infinite", { teamId: personalTeamId, sortBy: "newest", limit: 30 }],
+                                            queryFn: ({ pageParam }) => fetchTaskPage({ teamId: personalTeamId, sortBy: "newest", limit: 30 }, pageParam as number),
+                                            initialPageParam: 1
+                                        });
+                                    }, 120);
+                                }}
+                                onMouseLeave={handleMouseLeave}
+                                title={isCollapsed ? "My Workspace" : undefined}
+                            >
+                                <Lock className={clsx("h-4 w-4 min-w-[1rem]", pathname === `/teams/${personalTeamId}` ? "text-zinc-900 dark:text-white" : "text-zinc-600 group-hover:text-zinc-400")} />
+                                <AnimatePresence>
+                                    {!isCollapsed && (
+                                        <motion.span
+                                            initial={{ opacity: 0, width: 0 }}
+                                            animate={{ opacity: 1, width: "auto" }}
+                                            exit={{ opacity: 0, width: 0 }}
+                                            className="whitespace-nowrap overflow-hidden"
+                                        >
+                                            My Workspace
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                                {navigatingTo === `/teams/${personalTeamId}` && (
+                                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-transparent">
+                                        <motion.div
+                                            initial={{ width: "0%" }}
+                                            animate={{ width: "100%" }}
+                                            transition={{ duration: 1.5, ease: "easeOut" }}
+                                            className="h-full bg-[var(--accent-time)] shadow-[0_0_8px_var(--accent-time)]"
+                                        />
+                                    </div>
+                                )}
+                            </Link>
+                        ) : (
+                            <div className="px-3 py-3 flex items-center justify-center md:justify-start gap-2 text-zinc-700 text-xs">
+                                <LoadingBars className="w-4 h-4 min-w-[1rem] rounded-full" />
+                                <AnimatePresence>
+                                    {!isCollapsed && (
+                                        <motion.span
+                                            initial={{ opacity: 0, width: 0 }}
+                                            animate={{ opacity: 1, width: "auto" }}
+                                            exit={{ opacity: 0, width: 0 }}
+                                            className="whitespace-nowrap overflow-hidden"
+                                        >
+                                            Loading...
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        )}
                         <Link
-                            href={`/teams/${personalTeamId}`}
+                            href="/settings"
+                            onClick={() => setNavigatingTo("/settings")}
                             className={clsx(
-                                "group flex items-center gap-3 px-3 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all relative",
+                                "group flex items-center gap-3 px-3 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all relative overflow-hidden",
                                 isCollapsed ? "justify-center" : "",
-                                pathname === `/teams/${personalTeamId}`
+                                pathname === "/settings"
                                     ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white"
                                     : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
                             )}
-                            onMouseEnter={() => {
-                                // Clear any existing timeout
-                                if (prefetchTimeoutRef.current) clearTimeout(prefetchTimeoutRef.current);
-                                prefetchTimeoutRef.current = setTimeout(() => {
-                                    queryClient.prefetchInfiniteQuery({
-                                        queryKey: ["tasks", "infinite", { teamId: personalTeamId, sortBy: "newest", limit: 30 }],
-                                        queryFn: ({ pageParam }) => fetchTaskPage({ teamId: personalTeamId, sortBy: "newest", limit: 30 }, pageParam as number),
-                                        initialPageParam: 1
-                                    });
-                                }, 120);
-                            }}
-                            onMouseLeave={handleMouseLeave}
-                            title={isCollapsed ? "My Workspace" : undefined}
+                            title={isCollapsed ? "Settings" : undefined}
                         >
-                            <Lock className={clsx("h-4 w-4 min-w-[1rem]", pathname === `/teams/${personalTeamId}` ? "text-zinc-900 dark:text-white" : "text-zinc-600 group-hover:text-zinc-400")} />
+                            <Settings className={clsx("h-4 w-4 min-w-[1rem]", pathname === "/settings" ? "text-zinc-900 dark:text-white" : "text-zinc-600 group-hover:text-zinc-400")} />
                             <AnimatePresence>
                                 {!isCollapsed && (
                                     <motion.span
@@ -217,28 +293,22 @@ export default function Sidebar() {
                                         exit={{ opacity: 0, width: 0 }}
                                         className="whitespace-nowrap overflow-hidden"
                                     >
-                                        My Workspace
+                                        Settings
                                     </motion.span>
                                 )}
                             </AnimatePresence>
+                            {navigatingTo === "/settings" && (
+                                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-transparent">
+                                    <motion.div
+                                        initial={{ width: "0%" }}
+                                        animate={{ width: "100%" }}
+                                        transition={{ duration: 1.5, ease: "easeOut" }}
+                                        className="h-full bg-[var(--accent-time)] shadow-[0_0_8px_var(--accent-time)]"
+                                    />
+                                </div>
+                            )}
                         </Link>
-                    ) : (
-                        <div className="px-3 py-3 flex items-center justify-center md:justify-start gap-2 text-zinc-700 text-xs">
-                            <LoadingBars className="w-4 h-4 min-w-[1rem] rounded-full" />
-                            <AnimatePresence>
-                                {!isCollapsed && (
-                                    <motion.span
-                                        initial={{ opacity: 0, width: 0 }}
-                                        animate={{ opacity: 1, width: "auto" }}
-                                        exit={{ opacity: 0, width: 0 }}
-                                        className="whitespace-nowrap overflow-hidden"
-                                    >
-                                        Loading...
-                                    </motion.span>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    )}
+                    </div>
                 </div>
 
                 <div className="flex-1" />
@@ -340,11 +410,12 @@ export default function Sidebar() {
             <ConfirmModal
                 isOpen={logoutModalOpen}
                 onClose={() => setLogoutModalOpen(false)}
-                onConfirm={() => signOut({ callbackUrl: "/login" })}
+                onConfirm={handleSignOut}
                 title="Sign Out"
                 description="Are you sure you want to sign out of your account? You will be redirected to the login page."
                 confirmText="Sign Out"
                 variant="danger"
+                loading={isSigningOut}
             />
         </motion.aside>
     );

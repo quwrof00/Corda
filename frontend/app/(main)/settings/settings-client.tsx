@@ -17,7 +17,6 @@ export default function SettingsClient() {
 
     const updateUserMutation = useUpdateUser();
 
-    const [name, setName] = useState("");
     const [autoDeleteStaleTasks, setAutoDeleteStaleTasks] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [wallpaperUploadStatus, setWallpaperUploadStatus] = useState<"IDLE" | "UPLOADING" | "COMPLETE">("IDLE");
@@ -25,7 +24,6 @@ export default function SettingsClient() {
 
     useEffect(() => {
         if (user) {
-            setName(user.name || session?.user?.name || "");
             setWallpaperUrl((user.wallpaperUrl as string | null) ?? null);
             setAutoDeleteStaleTasks(user.autoDeleteStaleTasks ?? false);
         }
@@ -37,7 +35,7 @@ export default function SettingsClient() {
         if (!userId) return;
 
         updateUserMutation.mutate(
-            { id: userId, data: { name, autoDeleteStaleTasks } },
+            { id: userId, data: { autoDeleteStaleTasks } },
             {
                 onSuccess: () => {
                     setIsEditing(false);
@@ -181,7 +179,7 @@ export default function SettingsClient() {
                             whileTap={{ scale: 0.95 }}
                             onClick={handleSave}
                             disabled={updateUserMutation.isPending}
-                            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-lg shadow-sm transition-all text-xs font-bold uppercase tracking-wider disabled:opacity-50"
+                            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-lg shadow-sm transition-all text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-wait cursor-pointer"
                         >
                             {updateUserMutation.isPending ? <LoadingBars className="w-3 h-3" /> : <Save className="w-3 h-3" />}
                             Save Changes
@@ -196,26 +194,8 @@ export default function SettingsClient() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Identity & Preferences */}
+                        {/* Preferences */}
                         <div className="space-y-6">
-                            <div className="bg-card border border-[var(--border-time)] p-6 shadow-xl rounded-xl">
-                                <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6 font-mono border-b border-[var(--border-time)] pb-2">Identity</h2>
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-[10px] uppercase text-zinc-600 font-bold block mb-1">Name</label>
-                                        <input
-                                            className="bg-transparent text-white font-bold text-lg w-full border-b border-[var(--border-time)] focus:border-white outline-none pb-1 font-mono transition-colors"
-                                            value={name}
-                                            onChange={(e) => { setName(e.target.value); setIsEditing(true); }}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] uppercase text-zinc-600 font-bold block mb-1">Email Address</label>
-                                        <p className="text-zinc-400 font-mono text-sm">{user?.email || session?.user?.email}</p>
-                                    </div>
-                                </div>
-                            </div>
-
                             <div className="bg-card border border-[var(--border-time)] p-6 shadow-xl rounded-xl">
                                 <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6 font-mono border-b border-[var(--border-time)] pb-2">Task Management</h2>
                                 <div className="space-y-4">
@@ -267,7 +247,7 @@ export default function SettingsClient() {
                                         <button
                                             onClick={handleWallpaperDelete}
                                             disabled={wallpaperUploadStatus !== "IDLE"}
-                                            className="flex items-center gap-2 px-3 py-2 bg-red-950/30 hover:bg-red-950/50 border border-red-900/50 text-red-400 rounded-md text-xs font-bold uppercase transition-colors disabled:opacity-50"
+                                            className="flex items-center gap-2 px-3 py-2 bg-red-950/30 hover:bg-red-950/50 border border-red-900/50 text-red-400 rounded-md text-xs font-bold uppercase transition-colors disabled:opacity-50 disabled:cursor-wait cursor-pointer"
                                         >
                                             {wallpaperUploadStatus !== "IDLE" ? <LoadingBars className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />} Remove
                                         </button>

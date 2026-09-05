@@ -239,7 +239,7 @@ export function EditTaskModal({
                     </select>
                     <input
                         type="date"
-                        value={editingTask.deadline ? new Date(editingTask.deadline).toISOString().split('T')[0] : ""}
+                        value={editingTask.deadline ? (() => { const d = new Date(editingTask.deadline); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })() : ""}
                         onChange={e => setEditingTask({ ...editingTask, deadline: e.target.value })}
                         className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-200 text-sm rounded-xl [color-scheme:light] dark:[color-scheme:dark]"
                     />

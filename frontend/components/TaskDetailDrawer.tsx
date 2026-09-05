@@ -127,7 +127,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
             setEditForm({
                 title: selectedTask.title || "",
                 description: selectedTask.desc || selectedTask.description || "",
-                deadline: selectedTask.deadline ? new Date(selectedTask.deadline).toISOString().split('T')[0] : "",
+                deadline: selectedTask.deadline ? (() => { const d = new Date(selectedTask.deadline); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })() : "",
                 priority: selectedTask.priority || "Medium",
                 requiredSkill: selectedTask.requiredSkill || "",
                 assignedToId: selectedTask.assignedToId || selectedTask.assignedTo?.id || ""
@@ -393,7 +393,15 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                                 )}
 
                                 {isEditing ? (
-                                    <div className="space-y-4 mb-6">
+                                    <div 
+                                        className="space-y-4 mb-6"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+                                                e.preventDefault();
+                                                handleSaveChanges();
+                                            }
+                                        }}
+                                    >
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-zinc-500 uppercase">Title</label>
                                             <input

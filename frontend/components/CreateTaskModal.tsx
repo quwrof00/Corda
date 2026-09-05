@@ -61,8 +61,10 @@ export default function CreateTaskModal({
                 setDeadline(initialDeadline);
             } else {
                 const today = new Date();
-                const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
-                setDeadline(formattedDate);
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                setDeadline(`${year}-${month}-${day}`);
             }
             setPriority("Medium");
             setRequiredSkill("");
@@ -214,8 +216,10 @@ export default function CreateTaskModal({
             setDesc("");
             // Reset to today's date
             const today = new Date();
-            const formattedDate = today.toISOString().split('T')[0];
-            setDeadline(formattedDate);
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            setDeadline(`${year}-${month}-${day}`);
             setPriority("Medium");
             setRequiredSkill("");
             setTeamId(initialTeamId || "");

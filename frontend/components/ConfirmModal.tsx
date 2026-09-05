@@ -83,14 +83,14 @@ export default function ConfirmModal({
                             <motion.button
                                 onClick={onClose}
                                 disabled={loading}
-                                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 cursor-pointer"
                             >
                                 {cancelText}
                             </motion.button>
                             <motion.button
                                 onClick={onConfirm}
                                 disabled={loading}
-                                className={`px-4 py-2 text-sm font-bold text-white rounded-lg flex items-center gap-2 transition-all ${isDanger
+                                className={`px-4 py-2 text-sm font-bold text-white rounded-lg flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-wait cursor-pointer ${isDanger
                                     ? "bg-red-600 hover:bg-red-500 shadow-[0_0_15px_rgba(220,38,38,0.3)]"
                                     : "bg-amber-600 hover:bg-amber-500 shadow-[0_0_15px_rgba(217,119,6,0.3)]"
                                     }`}

@@ -112,50 +112,77 @@ export default function LandingPage() {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="relative hidden lg:block"
             >
-              <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/10 to-transparent blur-3xl opacity-20" />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-4 translate-y-8">
+              <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/10 to-transparent blur-3xl opacity-30" />
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-6 translate-y-12">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
-                    whileHover={{ y: -4 }}
-                    className="bg-card border border-zinc-900 p-6 rounded-none h-40 flex flex-col justify-between cursor-pointer transition-all hover:border-zinc-700"
+                    whileHover={{ y: -2 }}
+                    className="group relative bg-zinc-950/50 backdrop-blur-sm border border-zinc-800/50 p-6 rounded-none h-48 flex flex-col justify-between cursor-pointer transition-all hover:border-emerald-500/50 overflow-hidden"
                   >
-                    <Cpu className="w-8 h-8 text-zinc-700" />
-                    <div className="text-xs font-mono text-zinc-500 uppercase">Clarity <br /> <span className="text-white font-bold">MAXIMIZED</span></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="w-12 h-12 rounded-none bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                      <Cpu className="w-6 h-6 text-emerald-400" />
+                    </div>
+                    <div className="z-10 mt-2">
+                      <h3 className="text-base font-bold text-white">Seamless Collaboration</h3>
+                      <p className="text-xs text-zinc-400 mt-1">Work together without friction across teams.</p>
+                    </div>
                   </motion.div>
+                  
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.7 }}
-                    whileHover={{ y: -4 }}
-                    className="bg-zinc-900 border border-zinc-800 p-6 rounded-none h-40 flex flex-col justify-between cursor-pointer transition-all hover:border-zinc-700"
+                    whileHover={{ y: -2 }}
+                    className="group relative bg-zinc-950/50 backdrop-blur-sm border border-zinc-800/50 p-6 rounded-none h-48 flex flex-col justify-between cursor-pointer transition-all hover:border-emerald-500/50 overflow-hidden"
                   >
-                    <Activity className="w-8 h-8 text-emerald-500" />
-                    <div className="text-xs font-mono text-zinc-500 uppercase">Team Velocity <br /> <span className="text-emerald-500 font-bold">TRACKED</span></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="w-12 h-12 rounded-none bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                      <Activity className="w-6 h-6 text-emerald-400" />
+                    </div>
+                    <div className="z-10 mt-2">
+                      <h3 className="text-base font-bold text-white">Effortless Tracking</h3>
+                      <p className="text-xs text-zinc-400 mt-1">Know exactly what's happening in real-time.</p>
+                    </div>
                   </motion.div>
                 </div>
-                <div className="space-y-4">
+                
+                <div className="space-y-6">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.8 }}
-                    whileHover={{ y: -4 }}
-                    className="bg-zinc-900 border border-zinc-800 p-6 rounded-none h-40 flex flex-col justify-between cursor-pointer transition-all hover:border-zinc-700"
+                    whileHover={{ y: -2 }}
+                    className="group relative bg-zinc-950/50 backdrop-blur-sm border border-zinc-800/50 p-6 rounded-none h-48 flex flex-col justify-between cursor-pointer transition-all hover:border-zinc-500/50 overflow-hidden"
                   >
-                    <Shield className="w-8 h-8 text-white" />
-                    <div className="text-xs font-mono text-zinc-500 uppercase">Data Privacy <br /> <span className="text-white font-bold">SECURE</span></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-zinc-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="w-12 h-12 rounded-none bg-zinc-800/50 flex items-center justify-center border border-zinc-700/50">
+                      <Shield className="w-6 h-6 text-zinc-300" />
+                    </div>
+                    <div className="z-10 mt-2">
+                      <h3 className="text-base font-bold text-white">Enterprise Security</h3>
+                      <p className="text-xs text-zinc-400 mt-1">Your data is completely protected and private.</p>
+                    </div>
                   </motion.div>
+                  
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.9 }}
-                    whileHover={{ y: -4 }}
-                    className="bg-card border border-zinc-900 p-6 rounded-none h-40 flex flex-col justify-between cursor-pointer transition-all hover:border-zinc-700"
+                    whileHover={{ y: -2 }}
+                    className="group relative bg-zinc-950/50 backdrop-blur-sm border border-zinc-800/50 p-6 rounded-none h-48 flex flex-col justify-between cursor-pointer transition-all hover:border-zinc-500/50 overflow-hidden"
                   >
-                    <Users className="w-8 h-8 text-zinc-700" />
-                    <div className="text-xs font-mono text-zinc-500 uppercase">Alignment <br /> <span className="text-white font-bold">OPTIMAL</span></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-zinc-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="w-12 h-12 rounded-none bg-zinc-800/50 flex items-center justify-center border border-zinc-700/50">
+                      <Users className="w-6 h-6 text-zinc-300" />
+                    </div>
+                    <div className="z-10 mt-2">
+                      <h3 className="text-base font-bold text-white">Team Alignment</h3>
+                      <p className="text-xs text-zinc-400 mt-1">Keep everyone perfectly in sync, always.</p>
+                    </div>
                   </motion.div>
                 </div>
               </div>
@@ -164,58 +191,83 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Features / Metrics */}
-        <section className="py-24 px-6 border-b border-zinc-900 bg-background/50">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                className="space-y-4"
-              >
-                <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white mb-2">
-                  <Cpu className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-white uppercase font-mono">Precision Assignment</h3>
-                <p className="text-sm text-zinc-500 leading-relaxed">
-                  Assign tasks with clear requirements and ownership. No more ambiguity about who is responsible for what.
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2 }}
-                className="space-y-4"
-              >
-                <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 flex items-center justify-center text-emerald-500 mb-2">
-                  <Activity className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-white uppercase font-mono">Team Visibility</h3>
-                <p className="text-sm text-zinc-500 leading-relaxed">
-                  See exactly who is overloaded and who has capacity. Distribute work fairly to keep the team healthy.
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3 }}
-                className="space-y-4"
-              >
-                <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white mb-2">
-                  <Lock className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-white uppercase font-mono">Roles & Permissions</h3>
-                <p className="text-sm text-zinc-500 leading-relaxed">
-                  Granular control over specific teams and projects. Ensure everyone has access to only what they need.
-                </p>
-              </motion.div>
+        {/* How it Works & Who it's for */}
+        <section className="py-24 px-6 border-b border-zinc-900 bg-zinc-950/50">
+          <div className="w-full">
+            <div className="max-w-7xl mx-auto mb-16">
+              <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-4 uppercase font-mono">BUILT FOR CLARITY.</h2>
+              <p className="text-zinc-400 text-lg max-w-2xl">Everything you need to orchestrate your teams, elegantly packaged into one platform.</p>
             </div>
+
+            {/* Content Area */}
+            <motion.div 
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-16 relative max-w-7xl mx-auto"
+            >
+              {/* How it works */}
+              <div className="space-y-10">
+                <div className="flex items-center gap-3 border-b border-zinc-800 pb-4">
+                  <Activity className="w-5 h-5 text-emerald-500" /> 
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-300 font-mono">How It Works</h3>
+                </div>
+                
+                <div className="space-y-8">
+                  <div className="flex gap-6 group">
+                    <div className="flex-shrink-0 w-12 h-12 bg-zinc-900 flex items-center justify-center font-mono font-bold text-white border border-zinc-800 group-hover:border-emerald-500/50 group-hover:text-emerald-400 transition-colors">01</div>
+                    <div>
+                      <h4 className="text-white font-bold text-lg uppercase font-mono tracking-tight">Create Workspace</h4>
+                      <p className="text-zinc-500 text-sm mt-2 leading-relaxed">Set up your company, invite leaders, and map out your organizational structure effortlessly.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-6 group">
+                    <div className="flex-shrink-0 w-12 h-12 bg-zinc-900 flex items-center justify-center font-mono font-bold text-white border border-zinc-800 group-hover:border-emerald-500/50 group-hover:text-emerald-400 transition-colors">02</div>
+                    <div>
+                      <h4 className="text-white font-bold text-lg uppercase font-mono tracking-tight">Define Goals</h4>
+                      <p className="text-zinc-500 text-sm mt-2 leading-relaxed">Break down large objectives into assignable, trackable tasks for specific teams and members.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-6 group">
+                    <div className="flex-shrink-0 w-12 h-12 bg-zinc-900 flex items-center justify-center font-mono font-bold text-emerald-500 border border-emerald-500/30 transition-colors">03</div>
+                    <div>
+                      <h4 className="text-white font-bold text-lg uppercase font-mono tracking-tight">Orchestrate</h4>
+                      <p className="text-zinc-500 text-sm mt-2 leading-relaxed">Watch real-time progress. Identify blockers instantly. Ship faster with absolute clarity.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Who is it for */}
+              <div className="space-y-10">
+                <div className="flex items-center gap-3 border-b border-zinc-800 pb-4">
+                  <Users className="w-5 h-5 text-zinc-500" /> 
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-300 font-mono">Target Audience</h3>
+                </div>
+                
+                <div className="grid gap-4">
+                  <div className="bg-zinc-950/50 border border-zinc-800 p-6 rounded-none hover:border-zinc-700 hover:bg-zinc-900 transition-all">
+                    <h4 className="text-white font-bold flex items-center gap-3 uppercase font-mono tracking-tight">
+                      <Terminal className="w-5 h-5 text-emerald-500" /> Engineering Leaders
+                    </h4>
+                    <p className="text-zinc-500 text-sm mt-3 leading-relaxed">CTOs and VPs who need a bird's-eye view of all engineering operations without micromanaging.</p>
+                  </div>
+                  <div className="bg-zinc-950/50 border border-zinc-800 p-6 rounded-none hover:border-zinc-700 hover:bg-zinc-900 transition-all">
+                    <h4 className="text-white font-bold flex items-center gap-3 uppercase font-mono tracking-tight">
+                      <Lock className="w-5 h-5 text-emerald-500" /> Product Managers
+                    </h4>
+                    <p className="text-zinc-500 text-sm mt-3 leading-relaxed">PMs ensuring features ship on time by perfectly aligning resources and tracking daily velocity.</p>
+                  </div>
+                  <div className="bg-zinc-950/50 border border-zinc-800 p-6 rounded-none hover:border-zinc-700 hover:bg-zinc-900 transition-all">
+                    <h4 className="text-white font-bold flex items-center gap-3 uppercase font-mono tracking-tight">
+                      <Cpu className="w-5 h-5 text-emerald-500" /> Development Teams
+                    </h4>
+                    <p className="text-zinc-500 text-sm mt-3 leading-relaxed">Engineers who want clear requirements, less noise, and obvious priorities every single sprint.</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </section>
 

@@ -59,6 +59,7 @@ export default function ProfileClient() {
     const updateUserMutation = useUpdateUser();
 
     const [skills, setSkills] = useState<string[]>([]);
+    const [name, setName] = useState("");
     const [newSkill, setNewSkill] = useState("");
     const [isEditing, setIsEditing] = useState(false);
     const [uploadStatus, setUploadStatus] = useState<"IDLE" | "UPLOADING" | "PARSING" | "EXTRACTING" | "COMPLETE">("IDLE");
@@ -74,6 +75,7 @@ export default function ProfileClient() {
                 arr.findIndex(v => v.toLowerCase() === s.toLowerCase()) === i
             );
             setSkills(initialSkills);
+            setName(user.name || session?.user?.name || "");
             setResumeUrl((user.resumeUrl as string | null) ?? null);
         }
     }, [user, session]);
@@ -100,7 +102,7 @@ export default function ProfileClient() {
         if (!userId) return;
 
         updateUserMutation.mutate(
-            { id: userId, data: { skills } },
+            { id: userId, data: { skills, name } },
             {
                 onSuccess: () => {
                     setIsEditing(false);
@@ -262,6 +264,24 @@ export default function ProfileClient() {
                         {/* Left Column */}
                         <div className="lg:col-span-1 space-y-6">
                             <div className="bg-card border border-[var(--border-time)] p-6 shadow-xl rounded-xl">
+                                <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6 font-mono border-b border-[var(--border-time)] pb-2">Identity</h2>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-[10px] uppercase text-zinc-600 font-bold block mb-1">Name</label>
+                                        <input
+                                            className="bg-transparent text-white font-bold text-lg w-full border-b border-[var(--border-time)] focus:border-white outline-none pb-1 font-mono transition-colors"
+                                            value={name}
+                                            onChange={(e) => { setName(e.target.value); setIsEditing(true); }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] uppercase text-zinc-600 font-bold block mb-1">Email Address</label>
+                                        <p className="text-zinc-400 font-mono text-sm">{user?.email || session?.user?.email}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-card border border-[var(--border-time)] p-6 shadow-xl rounded-xl">
                                 <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6 font-mono border-b border-[var(--border-time)] pb-2">Metrics</h2>
                                 <div className="space-y-4">
                                     <div className="p-4 bg-zinc-900/50 border border-[var(--border-time)] rounded-lg text-center transition-colors">
@@ -284,7 +304,7 @@ export default function ProfileClient() {
                                             whileTap={{ scale: 0.95 }}
                                             onClick={handleSave}
                                             disabled={updateUserMutation.isPending}
-                                            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-lg shadow-sm transition-all text-xs font-bold uppercase tracking-wider disabled:opacity-50"
+                                            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-lg shadow-sm transition-all text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-wait cursor-pointer"
                                         >
                                             {updateUserMutation.isPending ? <LoadingBars className="w-3 h-3" /> : <Save className="w-3 h-3" />}
                                             Save Data
@@ -306,9 +326,9 @@ export default function ProfileClient() {
                                             whileTap={{ scale: 0.95 }}
                                             onClick={handleResumeDelete}
                                             disabled={uploadStatus !== "IDLE"}
-                                            className="flex items-center gap-2 px-3 py-2 bg-red-950/30 hover:bg-red-950/50 border border-red-900/50 text-red-400 rounded-md text-xs font-bold uppercase transition-colors disabled:opacity-50"
+                                            className="flex items-center gap-2 px-3 py-2 bg-red-950/30 hover:bg-red-950/50 border border-red-900/50 text-red-400 rounded-md text-xs font-bold uppercase transition-colors disabled:opacity-50 disabled:cursor-wait cursor-pointer"
                                         >
-                                            <Trash2 className="w-3 h-3" /> Delete
+                                            {uploadStatus !== "IDLE" ? <LoadingBars className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />} Delete
                                         </motion.button>
                                     </div>
                                 ) : (
