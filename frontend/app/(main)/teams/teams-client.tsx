@@ -3,12 +3,14 @@
 import { TeamGridSkeleton } from "@/components/shared/SkeletonLoader";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Plus, Users, ArrowRight, Hexagon } from "lucide-react";
+import { Plus, Users, ArrowRight, Hexagon, Mail } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useInfiniteScrollTrigger } from "@/hooks/useInfiniteScrollTrigger";
 import { useModalStore } from "@/hooks/useModalStore";
 import { flattenInfiniteTeams, useInfiniteTeams } from "@/hooks/useTeams";
+import { useInvites } from "@/hooks/useInvites";
+import InvitesModal from "@/components/teams/InvitesModal";
 
 interface Team {
     id: string;
@@ -43,7 +45,9 @@ export default function TeamsClient() {
         isFetchingNextPage,
         fetchNextPage,
     } = useInfiniteTeams({ enabled: !!session, limit: 9 });
-    const { openTeamModal } = useModalStore();
+    const { openTeamModal, openInvitesModal } = useModalStore();
+    const { data: invitesData } = useInvites({ enabled: !!session });
+    const pendingInvitesCount = invitesData?.received?.length || 0;
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -80,18 +84,34 @@ export default function TeamsClient() {
                         <h1 className="text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">Teams</h1>
                         <p className="text-zinc-500 text-sm mt-2">Manage your teams and members.</p>
                     </div>
-                    <motion.button
-                        whileHover={{ y: -1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => openTeamModal()}
-                        className="group flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-black transition-all duration-200 font-medium text-sm overflow-hidden relative rounded-lg shadow-sm hover:shadow-md"
-                    >
-                        <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
-                        <span className="font-bold tracking-wide">Create Team</span>
-                        <div className="hidden md:flex items-center gap-0.5 ml-1 px-1.5 py-0.5 bg-black/10 rounded text-[9px] font-mono">
-                            <span>N</span>
-                        </div>
-                    </motion.button>
+                    <div className="flex items-center gap-3">
+                        <motion.button
+                            whileHover={{ y: -1 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => openInvitesModal()}
+                            className="group flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-zinc-50 border border-[var(--border-time)] text-zinc-900 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:text-zinc-100 transition-all duration-200 font-medium text-sm rounded-lg shadow-sm cursor-pointer"
+                        >
+                            <Mail className="w-4 h-4 text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors" />
+                            <span className="font-bold tracking-wide">Invites</span>
+                            {pendingInvitesCount > 0 && (
+                                <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">
+                                    {pendingInvitesCount}
+                                </span>
+                            )}
+                        </motion.button>
+                        <motion.button
+                            whileHover={{ y: -1 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => openTeamModal()}
+                            className="group flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-black transition-all duration-200 font-medium text-sm overflow-hidden relative rounded-lg shadow-sm hover:shadow-md"
+                        >
+                            <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
+                            <span className="font-bold tracking-wide">Create Team</span>
+                            <div className="hidden md:flex items-center gap-0.5 ml-1 px-1.5 py-0.5 bg-black/10 rounded text-[9px] font-mono">
+                                <span>N</span>
+                            </div>
+                        </motion.button>
+                    </div>
                 </div>
 
                 {shouldShowSkeleton ? (

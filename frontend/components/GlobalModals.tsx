@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import CreateTaskModal from "./CreateTaskModal";
 import CreateTeamModal from "./CreateTeamModal";
+import InvitesModal from "./teams/InvitesModal";
 import { useModalStore } from "@/hooks/useModalStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
@@ -23,6 +24,7 @@ export default function GlobalModals() {
     closeTeamModal,
     openTaskModal,
     openTeamModal,
+    openInvitesModal,
   } = useModalStore();
 
   useEffect(() => {
@@ -42,12 +44,15 @@ export default function GlobalModals() {
       } else if (e.key.toLowerCase() === "n") {
         e.preventDefault();
         openTeamModal();
+      } else if (e.key.toLowerCase() === "i") {
+        e.preventDefault();
+        openInvitesModal();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [openTaskModal, openTeamModal]);
+  }, [openTaskModal, openTeamModal, openInvitesModal]);
 
   return (
     <>
@@ -72,6 +77,8 @@ export default function GlobalModals() {
           queryClient.invalidateQueries({ queryKey: ["teams"] });
         }}
       />
+
+      <InvitesModal />
     </>
   );
 }

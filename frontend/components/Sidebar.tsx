@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchTaskPage } from "@/hooks/useTasks";
 import { fetchTeamsPage } from "@/hooks/useTeams";
+import { useInvites } from "@/hooks/useInvites";
 
 export default function Sidebar() {
     const pathname = usePathname();
@@ -32,6 +33,9 @@ export default function Sidebar() {
 
     const queryClient = useQueryClient();
     const prefetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const { data: invitesData } = useInvites({ enabled: !!userId });
+    const pendingInvitesCount = invitesData?.received?.length || 0;
 
     const [logoutModalOpen, setLogoutModalOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -163,12 +167,17 @@ export default function Sidebar() {
                                             initial={{ opacity: 0, width: 0 }}
                                             animate={{ opacity: 1, width: "auto" }}
                                             exit={{ opacity: 0, width: 0 }}
-                                            className="whitespace-nowrap overflow-hidden"
+                                            className="whitespace-nowrap overflow-hidden flex-1"
                                         >
                                             {item.name}
                                         </motion.span>
                                     )}
                                 </AnimatePresence>
+                                {item.name === "My Teams" && pendingInvitesCount > 0 && (
+                                    <div className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md min-w-[1.25rem] flex items-center justify-center">
+                                        {pendingInvitesCount}
+                                    </div>
+                                )}
                                 {isActive && !isCollapsed && (
                                     <motion.div
                                         layoutId="activeNavIndicator"

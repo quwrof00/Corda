@@ -11,6 +11,7 @@ export interface OpenTaskModalOptions {
 interface ModalState {
   isTaskModalOpen: boolean;
   isTeamModalOpen: boolean;
+  isInvitesModalOpen: boolean;
   initialTeamId?: string;
   initialAssignedToId?: string;
   initialParentId?: string;
@@ -29,11 +30,15 @@ interface ModalState {
 
   openTeamModal: () => void;
   closeTeamModal: () => void;
+
+  openInvitesModal: () => void;
+  closeInvitesModal: () => void;
 }
 
 export const useModalStore = create<ModalState>((set, get) => ({
   isTaskModalOpen: false,
   isTeamModalOpen: false,
+  isInvitesModalOpen: false,
   initialTeamId: undefined,
   initialAssignedToId: undefined,
   initialParentId: undefined,
@@ -66,4 +71,7 @@ export const useModalStore = create<ModalState>((set, get) => ({
 
   openTeamModal: () => set({ isTeamModalOpen: true }),
   closeTeamModal: () => set({ isTeamModalOpen: false }),
+
+  openInvitesModal: () => set({ isInvitesModalOpen: true }),
+  closeInvitesModal: () => set({ isInvitesModalOpen: false }),
 }));
