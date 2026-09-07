@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { put, del } from "@vercel/blob";
 import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 // @ts-expect-error: No types available for pdf-parse
 import pdf from "pdf-parse/lib/pdf-parse";
 import mammoth from "mammoth";
@@ -183,22 +184,14 @@ export async function POST(
         const newSkills = await extractSkillsWithOpenRouter(extractedText);
         console.log(`[Resume Upload] Skills identified: ${newSkills.length}`);
 
-        const apiUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        const cookie = req.headers.get("cookie");
-
         // Fetch current user skills to merge
-        const userResponse = await fetch(
-            `${apiUrl}/api/users/${id}`,
-            {
-                headers: {
-                    Cookie: cookie || "",
-                },
-            }
-        );
+        const user = await prisma.user.findUnique({
+            where: { id },
+            select: { skills: true, resumeUrl: true }
+        });
 
         let mergedSkills: string[] = [];
-        if (userResponse.ok) {
-            const user = await userResponse.json();
+        if (user) {
             const existingSkills = user.skills || [];
             // Delete old resume if exists
             if (user.resumeUrl) {
@@ -224,22 +217,12 @@ export async function POST(
         });
 
         // Update user record with resume URL and new skills
-        const response = await fetch(
-            `${apiUrl}/api/users/${id}`,
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Cookie: cookie || "",
-                },
-                body: JSON.stringify({
-                    resumeUrl: blob.url
-                    // skills: mergedSkills -- We do NOT save skills automatically anymore. The user must review and save.
-                }),
-            }
-        );
-
-        if (!response.ok) {
+        try {
+            await prisma.user.update({
+                where: { id },
+                data: { resumeUrl: blob.url }
+            });
+        } catch (dbError) {
             // If database update fails, delete the uploaded blob
             await del(blob.url);
             throw new Error("Failed to update user");
@@ -278,23 +261,15 @@ export async function DELETE(
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const apiUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
         // Get current resume URL from user
-        const userResponse = await fetch(
-            `${apiUrl}/api/users/${id}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${session.accessToken}`,
-                },
-            }
-        );
+        const user = await prisma.user.findUnique({
+            where: { id },
+            select: { resumeUrl: true }
+        });
 
-        if (!userResponse.ok) {
+        if (!user) {
             throw new Error("Failed to fetch user");
         }
-
-        const user = await userResponse.json();
 
         if (user.resumeUrl) {
             // Delete from Vercel Blob
@@ -305,19 +280,12 @@ export async function DELETE(
             }
 
             // Update user record to remove resume URL
-            const response = await fetch(
-                `${apiUrl}/api/users/${id}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${session.accessToken}`,
-                    },
-                    body: JSON.stringify({ resumeUrl: null }),
-                }
-            );
-
-            if (!response.ok) {
+            try {
+                await prisma.user.update({
+                    where: { id },
+                    data: { resumeUrl: null }
+                });
+            } catch (dbError) {
                 throw new Error("Failed to update user");
             }
         }

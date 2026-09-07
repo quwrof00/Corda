@@ -131,7 +131,7 @@ export default function LandingPage() {
                       <p className="text-xs text-zinc-400 mt-1">Work together without friction across teams.</p>
                     </div>
                   </motion.div>
-                  
+
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -149,7 +149,7 @@ export default function LandingPage() {
                     </div>
                   </motion.div>
                 </div>
-                
+
                 <div className="space-y-6">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -167,7 +167,7 @@ export default function LandingPage() {
                       <p className="text-xs text-zinc-400 mt-1">Your data is completely protected and private.</p>
                     </div>
                   </motion.div>
-                  
+
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -200,7 +200,7 @@ export default function LandingPage() {
             </div>
 
             {/* Content Area */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -210,10 +210,10 @@ export default function LandingPage() {
               {/* How it works */}
               <div className="space-y-10">
                 <div className="flex items-center gap-3 border-b border-zinc-800 pb-4">
-                  <Activity className="w-5 h-5 text-emerald-500" /> 
+                  <Activity className="w-5 h-5 text-emerald-500" />
                   <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-300 font-mono">How It Works</h3>
                 </div>
-                
+
                 <div className="space-y-8">
                   <div className="flex gap-6 group">
                     <div className="flex-shrink-0 w-12 h-12 bg-zinc-900 flex items-center justify-center font-mono font-bold text-white border border-zinc-800 group-hover:border-emerald-500/50 group-hover:text-emerald-400 transition-colors">01</div>
@@ -242,10 +242,10 @@ export default function LandingPage() {
               {/* Who is it for */}
               <div className="space-y-10">
                 <div className="flex items-center gap-3 border-b border-zinc-800 pb-4">
-                  <Users className="w-5 h-5 text-zinc-500" /> 
+                  <Users className="w-5 h-5 text-zinc-500" />
                   <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-300 font-mono">Target Audience</h3>
                 </div>
-                
+
                 <div className="grid gap-4">
                   <div className="bg-zinc-950/50 border border-zinc-800 p-6 rounded-none hover:border-zinc-700 hover:bg-zinc-900 transition-all">
                     <h4 className="text-white font-bold flex items-center gap-3 uppercase font-mono tracking-tight">
@@ -277,12 +277,6 @@ export default function LandingPage() {
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-zinc-800 text-white flex items-center justify-center text-[10px] font-bold">C</div>
               <span className="text-xs font-bold text-zinc-500 uppercase font-mono">CORDA SYSTEMS &copy; {new Date().getFullYear()}</span>
-            </div>
-
-            <div className="flex gap-8">
-              <Link href="#" className="text-xs font-bold text-zinc-600 hover:text-white uppercase transition-colors">Documentation</Link>
-              <Link href="#" className="text-xs font-bold text-zinc-600 hover:text-white uppercase transition-colors">Status</Link>
-              <Link href="#" className="text-xs font-bold text-zinc-600 hover:text-white uppercase transition-colors">Privacy</Link>
             </div>
           </div>
         </footer>
