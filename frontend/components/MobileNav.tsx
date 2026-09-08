@@ -40,8 +40,8 @@ export default function MobileNav() {
             {/* Top Bar */}
             <header className="fixed top-0 left-0 right-0 h-16 bg-zinc-950 border-b border-zinc-800 z-50 flex items-center justify-between px-4 md:hidden font-mono">
                 <Link href="/dashboard" className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center bg-white text-black font-bold border border-zinc-500 rounded-sm">
-                        <Terminal className="w-5 h-5" />
+                    <div className="flex h-8 w-8 items-center justify-center relative">
+                        <Image src="/short-app-logo.png" alt="Corda Logo" fill sizes="32px" className="object-contain scale-150" />
                     </div>
                     <span className="text-lg font-bold tracking-tight text-white uppercase">CORDA</span>
                 </Link>

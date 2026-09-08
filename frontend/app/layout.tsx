@@ -17,14 +17,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://corda.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://corda.live'),
   title: {
     default: "Corda | Automated Task Allocation for High-Performance Teams",
     template: "%s | Corda"
   },
   description: "Corda is an intelligent task allocation and project management platform. Seamlessly distribute work, track deadlines, and sync with your tools like Moodle for maximum team productivity.",
   keywords: ["task allocation", "project management", "team productivity", "moodle sync", "automated tasks", "teamwork", "corda systems"],
-  authors: [{ name: "Corda Systems", url: "https://corda.app" }],
+  authors: [{ name: "Corda Systems", url: "https://corda.live" }],
   creator: "Corda Systems",
   publisher: "Corda Systems",
   formatDetection: {
@@ -35,11 +35,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Corda | Intelligent Task Management",
     description: "Streamline your team's workflow with automated task allocation, AI-driven insights, and seamless integrations.",
-    url: "https://corda.app",
+    url: "https://corda.live",
     siteName: "Corda",
     images: [
       {
-        url: "/og-image.jpg", // Make sure to add this image to your public folder
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "Corda Systems Dashboard preview",
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     title: "Corda | Work Together Without Friction",
     description: "Automated task allocation for high-performance teams.",
     creator: "@cordasystems",
-    images: ["/og-image.jpg"],
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,

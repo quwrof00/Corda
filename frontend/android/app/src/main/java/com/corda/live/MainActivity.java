@@ -1,4 +1,4 @@
-package com.corda.app;
+package com.corda.live;
 
 import com.getcapacitor.BridgeActivity;
 

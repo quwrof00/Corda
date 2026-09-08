@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.corda.app"
+    namespace "com.corda.live"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.corda.app"
+        applicationId "com.corda.live"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

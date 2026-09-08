@@ -111,8 +111,8 @@ export default function Sidebar() {
                 {/* Logo & Toggle */}
                 <div className="flex h-16 items-center px-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 relative shrink-0">
                     <div className="flex items-center gap-3 w-full overflow-hidden">
-                        <div className="flex h-8 w-8 min-w-[2rem] items-center justify-center bg-zinc-950 dark:bg-white text-white dark:text-black font-bold border border-zinc-200 dark:border-zinc-500 rounded-md">
-                            <Terminal className="w-5 h-5" />
+                        <div className="flex h-8 w-8 min-w-[2rem] items-center justify-center relative">
+                            <Image src="/short-app-logo.png" alt="Corda Logo" fill sizes="32px" className="object-contain scale-150" />
                         </div>
                         <AnimatePresence>
                             <Link href="/dashboard">

@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.corda.app',
+  appId: 'com.corda.live',
   appName: 'Corda',
   webDir: 'public',
   server: {

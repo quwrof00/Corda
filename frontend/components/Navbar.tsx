@@ -26,11 +26,15 @@ export default function Navbar() {
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
                     <Link href="/dashboard" className="flex items-center gap-2 group">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-md group-hover:shadow-lg transition-all">
-                            T
-                        </div>
+                        <Image
+                            src="/short-app-logo.png"
+                            alt="TaskAllo Logo"
+                            width={32}
+                            height={32}
+                            className="rounded-lg shadow-md group-hover:shadow-lg transition-all object-contain scale-150"
+                        />
                         <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-400">
-                            TaskAllo
+                            Corda
                         </span>
                     </Link>
 

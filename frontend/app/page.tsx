@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -30,8 +31,8 @@ export default function LandingPage() {
       >
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center bg-white text-black font-bold shadow-sm border border-zinc-500">
-              <Terminal className="w-6 h-6" />
+            <div className="flex h-10 w-10 items-center justify-center relative">
+              <Image src="/short-app-logo.png" alt="Corda Logo" fill sizes="40px" className="object-contain scale-150" />
             </div>
             <span className="text-xl font-bold tracking-tight text-white uppercase font-mono">CORDA</span>
           </div>
@@ -275,7 +276,9 @@ export default function LandingPage() {
         <footer className="py-12 px-6 bg-zinc-950 border-t border-zinc-900 mt-auto">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-zinc-800 text-white flex items-center justify-center text-[10px] font-bold">C</div>
+              <div className="w-4 h-4 flex items-center justify-center relative">
+                <Image src="/short-app-logo.png" alt="Corda Logo" fill sizes="16px" className="object-contain scale-150" />
+              </div>
               <span className="text-xs font-bold text-zinc-500 uppercase font-mono">CORDA SYSTEMS &copy; {new Date().getFullYear()}</span>
             </div>
           </div>

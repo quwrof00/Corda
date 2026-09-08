@@ -10,6 +10,7 @@ import Link from "next/link";
 import { Lock, Mail, ArrowRight, ShieldCheck, FlaskConical, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 export default function LoginForm() {
     const router = useRouter();
@@ -66,14 +67,14 @@ export default function LoginForm() {
                 <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-zinc-500"></div>
                 <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-zinc-500"></div>
 
-                <div className="text-center mb-8">
+                <div className="text-center mb-8 flex flex-col items-center">
                     <Link href="/" className="inline-block mb-6 group">
                         <motion.div
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="w-12 h-12 bg-white flex items-center justify-center text-black font-bold font-mono text-xl transition-transform"
+                            className="relative w-48 h-12 transition-transform"
                         >
-                            <ShieldCheck className="w-6 h-6" />
+                            <Image src="/main-app-logo.png" alt="Corda Logo" fill sizes="192px" className="object-contain drop-shadow-md" priority />
                         </motion.div>
                     </Link>
                     <h1 className="text-xl font-bold text-white tracking-widest uppercase font-mono">Login</h1>

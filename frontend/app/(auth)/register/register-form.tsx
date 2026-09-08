@@ -8,6 +8,7 @@ import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
 import { Lock, Mail, User, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import Image from "next/image";
 
 export default function RegisterForm() {
     const router = useRouter();
@@ -59,10 +60,10 @@ export default function RegisterForm() {
                 <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-zinc-500"></div>
                 <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-zinc-500"></div>
 
-                <div className="text-center mb-8">
+                <div className="text-center mb-8 flex flex-col items-center">
                     <Link href="/" className="inline-block mb-6 group">
-                        <div className="w-12 h-12 bg-white flex items-center justify-center text-black font-bold font-mono text-xl group-hover:scale-105 transition-transform">
-                            <ShieldCheck className="w-6 h-6" />
+                        <div className="relative w-48 h-12 group-hover:scale-105 transition-transform">
+                            <Image src="/main-app-logo.png" alt="Corda Logo" fill sizes="192px" className="object-contain drop-shadow-md" priority />
                         </div>
                     </Link>
                     <h1 className="text-xl font-bold text-white tracking-widest uppercase font-mono">Create Account</h1>
