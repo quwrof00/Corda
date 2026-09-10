@@ -5,6 +5,7 @@ import Providers from "./providers";
 import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
 import AmbientBackground from "@/components/AmbientBackground";
+import { Analytics } from "@vercel/analytics/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -81,6 +82,7 @@ export default async function RootLayout({
       >
         <AmbientBackground />
         <Providers session={session}>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
