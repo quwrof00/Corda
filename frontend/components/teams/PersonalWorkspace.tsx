@@ -139,7 +139,7 @@ export function PersonalWorkspace({
             </motion.div>
 
             {/* Main Task List */}
-            <motion.div variants={itemVariants} className="bg-card border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden min-h-[500px] flex flex-col">
+            <motion.div variants={itemVariants} className="bg-card border-y border-x-0 sm:border-x border-zinc-200 dark:border-zinc-800 sm:rounded-xl overflow-hidden min-h-[500px] flex flex-col">
                 <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-100 dark:bg-zinc-900/20">
                     <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                         <CheckCircle2 className="w-5 h-5 text-emerald-500" /> My Personal Tasks

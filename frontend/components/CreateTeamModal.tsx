@@ -84,7 +84,7 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.1, ease: "easeOut" }}
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-hidden"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-0 sm:p-4 overflow-hidden"
                     onClick={onClose}
                 >
                     <motion.div
@@ -92,7 +92,7 @@ export default function CreateTeamModal({ isOpen, onClose, onTeamCreated }: Crea
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 20 }}
                         transition={{ duration: 0.1, ease: "easeOut" }}
-                        className="w-full max-w-lg bg-background border border-[var(--border-time)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                        className="w-full h-full sm:h-auto max-w-lg bg-background sm:border border-[var(--border-time)] sm:rounded-2xl shadow-2xl flex flex-col sm:max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header - Fixed to top */}

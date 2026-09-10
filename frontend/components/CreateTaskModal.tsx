@@ -248,7 +248,7 @@ export default function CreateTaskModal({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.1, ease: "easeOut" }}
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-hidden"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-0 sm:p-4 overflow-hidden"
                     onClick={onClose}
                 >
                     <motion.div
@@ -256,7 +256,7 @@ export default function CreateTaskModal({
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 20 }}
                         transition={{ duration: 0.1, ease: "easeOut" }}
-                        className="w-full max-w-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                        className="w-full h-full sm:h-auto max-w-3xl bg-white dark:bg-zinc-950 sm:border border-zinc-200 dark:border-zinc-800 sm:rounded-2xl shadow-2xl flex flex-col sm:max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header - Fixed to top */}

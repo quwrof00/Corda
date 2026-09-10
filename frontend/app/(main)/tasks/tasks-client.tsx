@@ -54,10 +54,10 @@ const TaskItem = ({ task, onSelect, onStatusUpdate, getPriorityColor, onToggleEx
             initial="hidden"
             animate="visible"
             className={cn(
-                "group relative border transition-colors duration-200 p-4 flex items-center gap-4 rounded-lg cursor-pointer hover:z-10",
+                "group relative sm:border transition-colors duration-200 p-4 flex items-center gap-4 sm:rounded-lg cursor-pointer hover:z-10 border-y border-x-0",
                 task.source === 'moodle'
-                    ? "bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/30 dark:to-transparent border-orange-200/80 dark:border-orange-800/50 hover:from-orange-100/50 dark:hover:from-orange-900/50 hover:border-orange-300 dark:hover:border-orange-700"
-                    : "bg-card border-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900",
+                    ? "bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/30 dark:to-transparent sm:border-orange-200/80 dark:sm:border-orange-800/50 border-orange-200/40 dark:border-orange-800/30 hover:from-orange-100/50 dark:hover:from-orange-900/50 hover:border-orange-300 dark:hover:border-orange-700"
+                    : "bg-card border-zinc-900/20 sm:border-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900",
                 task.level > 0 && "border-l-4 border-l-zinc-800"
             )}
             onClick={() => onSelect(task)}
@@ -415,10 +415,10 @@ export default function TasksClient() {
             animate={{ opacity: 1 }}
             className="min-h-screen bg-background text-zinc-200 selection:bg-zinc-800"
         >
-            <div className="max-w-7xl mx-auto px-6 py-12">
+            <div className="max-w-7xl mx-auto py-4 sm:py-12">
 
                 {/* Header & Controls */}
-                <div className="mb-8 space-y-6">
+                <div className="mb-8 space-y-6 px-4 sm:px-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight text-white">Tasks</h1>
@@ -588,7 +588,7 @@ export default function TasksClient() {
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
-                    className="space-y-1"
+                    className="space-y-[1px] sm:space-y-1 sm:px-6"
                 >
                     {shouldShowSkeleton ? (
                         <TaskListSkeleton rows={7} />

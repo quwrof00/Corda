@@ -76,7 +76,7 @@ export default function InvitesModal() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.1, ease: "easeOut" }}
-                className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 overflow-hidden cursor-pointer"
+                className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 bg-black/80 overflow-hidden cursor-pointer"
                 onClick={closeInvitesModal}
             >
                 <motion.div
@@ -85,7 +85,7 @@ export default function InvitesModal() {
                     exit={{ scale: 0.95, opacity: 0, y: 20 }}
                     transition={{ duration: 0.1, ease: "easeOut" }}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-full max-w-2xl bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[85vh] cursor-default"
+                    className="w-full h-full sm:h-auto max-w-2xl bg-white dark:bg-zinc-950 sm:rounded-2xl shadow-2xl sm:border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[100vh] sm:max-h-[85vh] cursor-default"
                 >
                     <div className="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800">
                         <div>

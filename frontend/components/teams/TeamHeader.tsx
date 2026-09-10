@@ -1,7 +1,9 @@
 import { LoadingBars } from "@/components/shared/LoadingBars";
-import { ArrowLeft, Lock, Settings, Users, CheckCircle2, Plus, BrainCircuit, Trash2, Pen } from "lucide-react";
+import { ArrowLeft, Lock, Settings, Users, CheckCircle2, Plus, BrainCircuit, Trash2, Pen, ChevronDown } from "lucide-react";
 import { cn } from "./utils";
 import { Member, Task, Team } from "./types";
+import { useState } from "react";
+
 interface AppRouterInstance {
     push: (href: string) => void;
     replace: (href: string) => void;
@@ -50,25 +52,33 @@ export function TeamHeader({
     handleDeleteTeam,
     onOpenScratchpad
 }: TeamHeaderProps) {
+    const [isActionsExpanded, setIsActionsExpanded] = useState(false);
+
     return (
         <header className={cn("border-b border-zinc-200 dark:border-zinc-800 sticky top-16 md:top-0 z-30 transition-all duration-300", isScrolled ? "bg-white/90 dark:bg-black/90 backdrop-blur-md shadow-lg" : "bg-card")}>
             <div className="px-4 sm:px-6 py-5 max-w-7xl mx-auto">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="flex items-center gap-5">
-                        <button onClick={() => router.push("/teams")} className="p-2 -ml-2 text-zinc-500 hover:text-zinc-200 transition-colors">
+                    <div className="flex items-center gap-5 w-full lg:w-auto">
+                        <button onClick={() => router.push("/teams")} className="p-2 -ml-2 text-zinc-500 hover:text-zinc-200 transition-colors shrink-0">
                             <ArrowLeft className="w-5 h-5" />
                         </button>
-                        <div className="w-14 h-14 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-900 dark:text-zinc-200 font-bold text-xl rounded-lg">
+                        <div className="w-14 h-14 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-900 dark:text-zinc-200 font-bold text-xl rounded-lg shrink-0">
                             {isPersonal ? <Lock className="w-6 h-6 text-zinc-500" /> : team.name.substring(0, 2).toUpperCase()}
                         </div>
-                        <div>
-                            <h1 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-3">
-                                {isPersonal ? "Personal" : team.name}
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-3 w-full">
+                                <span className="truncate">{isPersonal ? "Personal" : team.name}</span>
                                 {isActualLeader && !isPersonal && (
-                                    <button onClick={openEditTeam} className="text-zinc-600 hover:text-zinc-400 transition-colors">
+                                    <button onClick={openEditTeam} className="text-zinc-600 hover:text-zinc-400 transition-colors shrink-0">
                                         <Settings className="w-4 h-4" />
                                     </button>
                                 )}
+                                <button 
+                                    onClick={() => setIsActionsExpanded(!isActionsExpanded)}
+                                    className="lg:hidden text-zinc-500 hover:text-zinc-300 transition-colors p-1 shrink-0 ml-auto"
+                                >
+                                    <ChevronDown className={cn("w-5 h-5 transition-transform duration-200", isActionsExpanded && "rotate-180")} />
+                                </button>
                             </h1>
                             <div className="flex flex-wrap items-center gap-4 mt-1 text-xs text-zinc-500 font-medium">
                                 {!isPersonal && <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {members?.length} Members</span>}
@@ -78,11 +88,11 @@ export function TeamHeader({
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className={cn("flex flex-wrap items-center gap-3 mt-2 lg:mt-0", !isActionsExpanded && "hidden lg:flex")}>
                         {!isPersonal && (
                             <button
                                 onClick={onOpenScratchpad}
-                                className="px-4 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 bg-background hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-white transition-all rounded-lg flex items-center gap-2 group"
+                                className="hidden lg:flex px-4 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 bg-background hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-white transition-all rounded-lg items-center gap-2 group"
                             >
                                 <Pen className="w-3.5 h-3.5 text-emerald-500 group-hover:scale-110 transition-transform" />
                                 Scratchpad

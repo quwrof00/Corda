@@ -114,7 +114,7 @@ export default function MobileNav() {
                                     )}
                                 >
                                     <Lock className={clsx("h-5 w-5", pathname === `/teams/${personalTeamId}` ? "text-white" : "text-zinc-600")} />
-                                    My Tasks
+                                    My Workspace
                                 </Link>
                             </div>
                         )}

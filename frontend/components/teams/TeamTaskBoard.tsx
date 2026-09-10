@@ -113,7 +113,7 @@ export function TeamTaskBoard({
             <div 
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDropOnMember(e, null)}
-                className={cn("bg-card border border-zinc-200 dark:border-zinc-800 flex flex-col rounded-xl overflow-hidden", mobileTab !== "unassigned" && "hidden lg:flex")}
+                className={cn("bg-card border-y border-x-0 sm:border-x border-zinc-200 dark:border-zinc-800 flex flex-col rounded-none sm:rounded-xl overflow-hidden", mobileTab !== "unassigned" && "hidden lg:flex")}
             >
                 <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-100 dark:bg-zinc-900/20">
                     <h3 className="text-xs font-bold text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
@@ -169,7 +169,7 @@ export function TeamTaskBoard({
             </div>
 
             {/* Assigned / Member Tasks (Right Col) */}
-            <div className={cn("bg-card border border-zinc-200 dark:border-zinc-800 flex flex-col rounded-xl overflow-hidden lg:col-span-2", mobileTab !== "assigned" && "hidden lg:flex")}>
+            <div className={cn("bg-card border-y border-x-0 sm:border-x border-zinc-200 dark:border-zinc-800 flex flex-col rounded-none sm:rounded-xl overflow-hidden lg:col-span-2", mobileTab !== "assigned" && "hidden lg:flex")}>
                 <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900/20">
                     <h3 className="text-xs font-bold text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
                         <CheckCircle2 className="w-3 h-3" /> Member Tasks
