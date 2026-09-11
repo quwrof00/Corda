@@ -29,11 +29,14 @@ export async function GET(
 
         if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
-        // Only members of the team can view it
+        // Allow access if user is a member OR the team leader
         const isMember = team.members.some(m => m.id === user.id);
-        if (!isMember) return NextResponse.json({ error: "Access denied" }, { status: 403 });
+        const isLeader = team.leaderId === user.id;
+        if (!isMember && !isLeader) return NextResponse.json({ error: "Access denied" }, { status: 403 });
 
-        return NextResponse.json(team);
+        // Return without exposing the members list (matches original response shape)
+        const { members: _members, ...teamData } = team;
+        return NextResponse.json(teamData);
     } catch (error) {
         console.error("Error fetching team:", error);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
