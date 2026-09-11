@@ -11,12 +11,17 @@ export async function POST(req: Request) {
         }
 
         const user = await prisma.user.findUnique({ where: { email } });
+
+        // Always return success to avoid leaking whether an email is registered
         if (!user) {
-            return NextResponse.json({ message: "User not found" }, { status: 404 });
+            return NextResponse.json({ message: "Reset link sent" }, { status: 200 });
         }
 
         const token = crypto.randomBytes(32).toString("hex");
         const expires = new Date(Date.now() + 3600000); // 1 hour
+
+        // Delete any existing token for this email before creating a new one
+        await prisma.verificationToken.deleteMany({ where: { identifier: email } });
 
         await prisma.verificationToken.create({
             data: {
@@ -26,20 +31,23 @@ export async function POST(req: Request) {
             }
         });
 
-        const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/reset-password?token=${token}`;
+        // Build the reset link, correctly preferring NEXT_PUBLIC_APP_URL first
+        const appUrl =
+            process.env.NEXT_PUBLIC_APP_URL ||
+            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+        const resetLink = `${appUrl}/reset-password?token=${token}`;
 
         const html = `
       <div style="font-family: Arial, sans-serif; color: #333;">
         <h2>Reset Password</h2>
-        <p>You requested a password reset for your TaskAllo account.</p>
+        <p>You requested a password reset for your Corda account.</p>
         <p>Click the button below to reset your password:</p>
         <a href="${resetLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
         <p style="margin-top: 20px; font-size: 12px; color: #666;">If you didn't ask for this, you can ignore this email.</p>
       </div>
     `;
 
-        // Send email using migrated mailer
-        await sendEmail(email, "Reset Your Password - TaskAllo", html);
+        await sendEmail(email, "Reset Your Password - Corda", html);
 
         return NextResponse.json({ message: "Reset link sent" }, { status: 200 });
 

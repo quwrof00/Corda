@@ -13,6 +13,13 @@ export async function POST(req: Request) {
             );
         }
 
+        if (password.length < 8) {
+            return NextResponse.json(
+                { message: "Password must be at least 8 characters" },
+                { status: 400 }
+            );
+        }
+
         const storedToken = await prisma.verificationToken.findUnique({
             where: { token }
         });

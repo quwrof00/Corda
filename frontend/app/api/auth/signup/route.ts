@@ -15,6 +15,13 @@ export async function POST(req: Request) {
             );
         }
 
+        if (password.length < 8) {
+            return NextResponse.json(
+                { message: "Password must be at least 8 characters" },
+                { status: 400 }
+            );
+        }
+
         const existingUser = await prisma.user.findFirst({ where: { email } });
         if (existingUser) {
             return NextResponse.json(
@@ -23,24 +30,23 @@ export async function POST(req: Request) {
             );
         }
 
-        const hashed = await bcrypt.hash(password, 10);
-        await prisma.user.create({
-            data: { name, email, password: hashed },
-        });
+        const hashed = await bcrypt.hash(password, 12);
 
         // Generate verification token
         const token = crypto.randomBytes(32).toString("hex");
         const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-        await prisma.verificationToken.create({
-            data: {
-                identifier: email,
-                token,
-                expires
-            }
+        // Wrap user + token creation atomically — if either fails, neither is committed
+        await prisma.$transaction(async (tx) => {
+            await tx.user.create({
+                data: { name, email, password: hashed },
+            });
+            await tx.verificationToken.create({
+                data: { identifier: email, token, expires }
+            });
         });
 
-        const verifyLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
+        const verifyLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/verify-email?token=${token}`;
 
         try {
             await sendEmail(

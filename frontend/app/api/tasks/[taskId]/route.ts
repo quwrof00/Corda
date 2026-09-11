@@ -14,6 +14,9 @@ export async function GET(
         const params = await props.params;
         const { taskId } = params;
 
+        const user = await getCurrentUser();
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
         const task = await prisma.task.findUnique({
             where: { id: taskId },
             include: {

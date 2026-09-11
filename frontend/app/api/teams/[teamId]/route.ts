@@ -12,16 +12,27 @@ export async function GET(
         const params = await props.params;
         const { teamId } = params;
 
+        const user = await getCurrentUser();
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
         const team = await prisma.team.findUnique({
             where: { id: teamId },
             include: {
                 leader: {
                     select: { id: true, name: true, email: true }
+                },
+                members: {
+                    select: { id: true }
                 }
             }
         });
 
         if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
+
+        // Only members of the team can view it
+        const isMember = team.members.some(m => m.id === user.id);
+        if (!isMember) return NextResponse.json({ error: "Access denied" }, { status: 403 });
+
         return NextResponse.json(team);
     } catch (error) {
         console.error("Error fetching team:", error);

@@ -101,9 +101,6 @@ export default function ForgotPasswordPage() {
                         <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
                             We have sent a password reset link to <span className="font-semibold text-foreground">{email}</span>.
                         </p>
-                        <p className="text-xs text-muted-foreground bg-muted p-4 rounded-lg border border-border">
-                            <strong>Developer Note:</strong> Since this is a demo, check the backend console logs for the reset link!
-                        </p>
                     </div>
                 )}
             </div>

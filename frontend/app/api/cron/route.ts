@@ -4,9 +4,9 @@ import { processRecurringTasks } from '@/lib/cron';
 // This route can be triggered manually or via Vercel Cron
 export async function GET(request: Request) {
     try {
-        // Optional: Add authentication check here
+        // Require CRON_SECRET — locked down regardless of env presence
         const authHeader = request.headers.get('authorization');
-        if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
 

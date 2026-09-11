@@ -11,6 +11,11 @@ export async function GET(
         const params = await props.params;
         const { id } = params;
 
+        const currentUser = await getCurrentUser();
+        if (!currentUser) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const user = await prisma.user.findUnique({
             where: { id },
             select: {
