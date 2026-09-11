@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
 import AmbientBackground from "@/components/AmbientBackground";
 import { Analytics } from "@vercel/analytics/react";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -83,6 +84,18 @@ export default async function RootLayout({
         <AmbientBackground />
         <Providers session={session}>{children}</Providers>
         <Analytics />
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-Y15Y3YZC9X"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-Y15Y3YZC9X');
+          `}
+        </Script>
       </body>
     </html>
   );
