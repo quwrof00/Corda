@@ -62,10 +62,50 @@ export const guestAdapter = async (config: InternalAxiosRequestConfig): Promise<
       // Return a single "guest" member so the page doesn't crash
       return respond(200, []);
     }
+    
+    // Helper to apply filters to tasks list
+    const applyTaskFilters = (baseTasks: Task[], urlObj: URL) => {
+      let filtered = [...baseTasks];
+      const startDateStr = urlObj.searchParams.get('startDate');
+      const endDateStr = urlObj.searchParams.get('endDate');
+      const dateFilter = urlObj.searchParams.get('dateFilter');
+      const statusFilter = urlObj.searchParams.get('status');
+      const teamIdFilter = urlObj.searchParams.get('teamId');
+
+      if (teamIdFilter) {
+        filtered = filtered.filter(t => t.teamId === teamIdFilter);
+      }
+      if (startDateStr) {
+        const start = new Date(startDateStr).getTime();
+        filtered = filtered.filter(t => t.deadline && new Date(t.deadline).getTime() >= start);
+      }
+      if (endDateStr) {
+        const end = new Date(endDateStr).getTime();
+        filtered = filtered.filter(t => t.deadline && new Date(t.deadline).getTime() <= end);
+      }
+      if (dateFilter === 'overdue') {
+        filtered = filtered.filter(t => t.status !== 'completed' && t.status !== 'Done');
+      }
+      if (statusFilter) {
+        if (statusFilter.toLowerCase() === 'todo') {
+          filtered = filtered.filter(t => t.status !== 'completed' && t.status !== 'Done');
+        } else if (statusFilter.toLowerCase() === 'done') {
+          filtered = filtered.filter(t => t.status === 'completed' || t.status === 'Done');
+        } else if (statusFilter.toLowerCase() !== 'all') {
+          filtered = filtered.filter(t => t.status === statusFilter);
+        }
+      }
+      return filtered;
+    };
 
     // --- Team tasks ---
-    if (url?.match(/^\/teams\/[^/?]+\/tasks/)) {
-      const filteredTasks = tasks.filter(t => t.teamId === GUEST_PERSONAL_TEAM_ID);
+    const teamTasksMatch = url?.match(/^\/teams\/([^/?]+)\/tasks/);
+    if (teamTasksMatch && url) {
+      const urlObj = new URL(url, 'http://localhost');
+      const teamId = teamTasksMatch[1];
+      const baseFiltered = tasks.filter(t => t.teamId === teamId);
+      const filteredTasks = applyTaskFilters(baseFiltered, urlObj);
+      
       return respond(200, {
         items: filteredTasks,
         page: 1,
@@ -96,25 +136,9 @@ export const guestAdapter = async (config: InternalAxiosRequestConfig): Promise<
     }
 
     // --- Tasks list (paginated) ---
-    if (url?.match(/^\/tasks(\?|$)/)) {
+    if (url?.match(/^\/tasks(\?|$)/) && url) {
       const urlObj = new URL(url, 'http://localhost');
-      const startDateStr = urlObj.searchParams.get('startDate');
-      const endDateStr = urlObj.searchParams.get('endDate');
-      const dateFilter = urlObj.searchParams.get('dateFilter');
-      
-      let filteredTasks = [...tasks];
-      
-      if (startDateStr) {
-        const start = new Date(startDateStr).getTime();
-        filteredTasks = filteredTasks.filter(t => t.deadline && new Date(t.deadline).getTime() >= start);
-      }
-      if (endDateStr) {
-        const end = new Date(endDateStr).getTime();
-        filteredTasks = filteredTasks.filter(t => t.deadline && new Date(t.deadline).getTime() <= end);
-      }
-      if (dateFilter === 'overdue') {
-        filteredTasks = filteredTasks.filter(t => t.status !== 'completed');
-      }
+      const filteredTasks = applyTaskFilters(tasks, urlObj);
 
       return respond(200, {
         items: filteredTasks,

@@ -164,8 +164,8 @@ export default function TeamDetailsPage() {
         () => flattenInfiniteTasks(tasksQuery.data),
         [tasksQuery.data]
     );
-    const unassignedTasks = useMemo(() => tasks.filter((t) => !t.assignedTo), [tasks]);
-    const assignedTasks = useMemo(() => tasks.filter((t) => t.assignedTo), [tasks]);
+    const unassignedTasks = useMemo(() => isPersonal ? [] : tasks.filter((t) => !t.assignedTo), [tasks, isPersonal]);
+    const assignedTasks = useMemo(() => isPersonal ? tasks : tasks.filter((t) => t.assignedTo), [tasks, isPersonal]);
 
     const tasksByMember = useMemo(() => {
         const map: Record<string, Task[]> = {};
