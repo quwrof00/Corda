@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, CheckSquare, Menu, Terminal, LogOut, X, Lock } from "lucide-react";
+import { LayoutDashboard, Users, CheckSquare, Menu, Terminal, LogOut, X, Lock, Settings } from "lucide-react";
 import { usePersonalWorkspace } from "@/hooks/usePersonalWorkspace";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
@@ -99,10 +99,11 @@ export default function MobileNav() {
                             })}
                         </nav>
 
-                        {/* Personal Workspace */}
-                        {personalTeamId && (
-                            <div className="mt-6 pt-6 border-t border-zinc-900">
-                                <h3 className="px-6 text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Personal</h3>
+                        {/* Personal Workspace & Settings */}
+                        <div className="mt-6 pt-6 border-t border-zinc-900">
+                            <h3 className="px-6 text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2">Personal</h3>
+                            
+                            {personalTeamId && (
                                 <Link
                                     href={`/teams/${personalTeamId}`}
                                     onClick={() => setIsOpen(false)}
@@ -116,8 +117,22 @@ export default function MobileNav() {
                                     <Lock className={clsx("h-5 w-5", pathname === `/teams/${personalTeamId}` ? "text-white" : "text-zinc-600")} />
                                     My Workspace
                                 </Link>
-                            </div>
-                        )}
+                            )}
+
+                            <Link
+                                href="/settings"
+                                onClick={() => setIsOpen(false)}
+                                className={clsx(
+                                    "flex items-center gap-3 px-6 py-4 text-sm font-bold uppercase tracking-wider border-b border-zinc-900 hover:bg-zinc-900 transition-colors",
+                                    pathname === "/settings"
+                                        ? "bg-zinc-900 text-white border-l-4 border-l-emerald-500"
+                                        : "text-zinc-500 hover:text-zinc-300"
+                                )}
+                            >
+                                <Settings className={clsx("h-5 w-5", pathname === "/settings" ? "text-white" : "text-zinc-600")} />
+                                Settings
+                            </Link>
+                        </div>
                     </div>
 
                     <div className="p-4 border-t border-zinc-800 bg-zinc-900/50">

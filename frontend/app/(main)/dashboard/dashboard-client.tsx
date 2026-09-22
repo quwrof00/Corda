@@ -19,6 +19,8 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { TaskListSkeleton, TeamGridSkeleton } from "@/components/shared/SkeletonLoader";
 import { TaskItem } from "@/components/tasks/TaskItem";
 import { useInfiniteScrollTrigger } from "@/hooks/useInfiniteScrollTrigger";
+import { useGuestMode } from "@/hooks/useGuestMode";
+import GuestWarningModal from "@/components/GuestWarningModal";
 
 function formatDaysLeft(dateString?: string) {
   if (!dateString) return "";
@@ -106,13 +108,15 @@ export default function DashboardClient() {
     };
   }, []);
 
+  const { isGuest } = useGuestMode();
+
   const todayTasksQuery = useInfiniteTasks({ 
     startDate: todayRange.start, 
     endDate: todayRange.end, 
     dateFilter: "overdue", // Ensures only pending tasks are counted/returned
     sortBy: "newest", 
     limit: 6 
-  }, { enabled: !!session });
+  }, { enabled: !!session || isGuest });
 
   const weekTasksQuery = useInfiniteTasks({ 
     startDate: weekRange.start, 
@@ -120,16 +124,16 @@ export default function DashboardClient() {
     dateFilter: "overdue", // Ensures only pending tasks are counted/returned
     sortBy: "newest", 
     limit: 6 
-  }, { enabled: !!session });
+  }, { enabled: !!session || isGuest });
 
   const overdueTasksQuery = useInfiniteTasks({ 
     endDate: currentNow, // Due before now
     dateFilter: "overdue", // Triggers the "not completed" logic on server
     sortBy: "newest", 
     limit: 6 
-  }, { enabled: !!session });
+  }, { enabled: !!session || isGuest });
 
-  const teamsQuery = useInfiniteTeams({ enabled: !!session, limit: 6 });
+  const teamsQuery = useInfiniteTeams({ enabled: !!session || isGuest, limit: 6 });
   const [activeFilter, setActiveFilter] = useState<"Today" | "This Week" | "Overdue">("Today");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const { openTaskModal, setPageContext } = useModalStore();
@@ -242,12 +246,12 @@ export default function DashboardClient() {
   });
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (status === "unauthenticated" && !isGuest) {
       router.push("/login");
     }
-  }, [status, router]);
+  }, [status, isGuest, router]);
 
-  if (!session && status !== "loading") {
+  if (!session && !isGuest && status !== "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -314,6 +318,8 @@ export default function DashboardClient() {
       animate="visible"
       className="min-h-screen bg-background text-zinc-900 dark:text-zinc-200 selection:bg-zinc-200 dark:selection:bg-zinc-800 p-6 md:p-12 relative"
     >
+      <GuestWarningModal />
+
       {user?.wallpaperUrl && (
         <>
           <Image

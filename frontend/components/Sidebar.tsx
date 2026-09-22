@@ -19,6 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { fetchTaskPage } from "@/hooks/useTasks";
 import { fetchTeamsPage } from "@/hooks/useTeams";
 import { useInvites } from "@/hooks/useInvites";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 export default function Sidebar() {
     const pathname = usePathname();
@@ -28,6 +29,8 @@ export default function Sidebar() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userSession = session?.user as any;
     const userId = userSession?.id;
+
+    const { isGuest, exitGuestMode } = useGuestMode();
 
     const { data: user } = useUser(userId, { enabled: !!userId });
 
@@ -86,7 +89,7 @@ export default function Sidebar() {
         root.style.setProperty('--sidebar-width', isCollapsed ? '5rem' : '16rem');
     }, [isCollapsed]);
 
-    if (!session) return null;
+    if (!session && !isGuest) return null;
 
     const navItems = [
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -363,16 +366,16 @@ export default function Sidebar() {
                     <div className="border-t border-[var(--border-time)] pt-4 bg-white dark:bg-zinc-950">
                         <Link href="/profile" className={clsx("flex items-center gap-3 mb-4 cursor-pointer group hover:opacity-80 px-2", isCollapsed && "justify-center")}>
                             <div className="h-9 w-9 min-w-[2.25rem] bg-zinc-100 dark:bg-zinc-900 border border-[var(--border-time)] flex items-center justify-center relative rounded-full overflow-hidden">
-                                {session.user?.image ? (
+                                {session?.user?.image ? (
                                     <Image
-                                        src={session.user.image}
+                                        src={session.user.image as string}
                                         alt={session.user.name || "User"}
                                         fill
                                         sizes="36px"
                                         className="object-cover"
                                     />
                                 ) : (
-                                    <User size={16} className="text-zinc-500" />
+                                <User size={16} className="text-zinc-500" />
                                 )}
                             </div>
                             <AnimatePresence>
@@ -383,20 +386,20 @@ export default function Sidebar() {
                                         exit={{ opacity: 0, width: 0 }}
                                         className="flex-1 overflow-hidden"
                                     >
-                                        <p className="truncate text-xs font-bold text-zinc-900 dark:text-zinc-200 uppercase">{session.user?.name}</p>
-                                        <p className="truncate text-[10px] text-zinc-500 uppercase font-mono">ID: {session.user?.email?.split('@')[0]}</p>
+                                        <p className="truncate text-xs font-bold text-zinc-900 dark:text-zinc-200 uppercase">{isGuest ? 'Guest User' : session?.user?.name}</p>
+                                        <p className="truncate text-[10px] text-zinc-500 uppercase font-mono">{isGuest ? 'Local Session' : `ID: ${session?.user?.email?.split('@')[0]}`}</p>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
                         </Link>
 
                         <button
-                            onClick={() => setLogoutModalOpen(true)}
+                            onClick={() => isGuest ? exitGuestMode() : setLogoutModalOpen(true)}
                             className={clsx(
                                 "w-full flex items-center gap-2 py-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 dark:hover:text-red-500 uppercase tracking-wider border border-zinc-200 dark:border-zinc-800 hover:border-red-200 dark:hover:border-red-900 transition-colors rounded-lg",
                                 isCollapsed ? "justify-center px-0" : "justify-center px-4"
                             )}
-                            title={isCollapsed ? "Sign Out" : undefined}
+                            title={isCollapsed ? (isGuest ? "Sign In" : "Sign Out") : undefined}
                         >
                             <LogOut size={14} className="min-w-[0.875rem]" />
                             <AnimatePresence>
@@ -407,7 +410,7 @@ export default function Sidebar() {
                                         exit={{ opacity: 0, width: 0 }}
                                         className="whitespace-nowrap overflow-hidden"
                                     >
-                                        Sign Out
+                                        {isGuest ? 'Sign In' : 'Sign Out'}
                                     </motion.span>
                                 )}
                             </AnimatePresence>

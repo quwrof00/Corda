@@ -21,6 +21,7 @@ export default function RegisterForm() {
 
     useEffect(() => {
         if (status === "authenticated") {
+            localStorage.removeItem('guestMode');
             router.push("/dashboard");
         }
     }, [status, router]);
@@ -159,7 +160,10 @@ export default function RegisterForm() {
 
                         <button
                             type="button"
-                            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+                            onClick={() => {
+                                localStorage.removeItem('guestMode');
+                                signIn("google", { callbackUrl: "/dashboard" });
+                            }}
                             className="w-full bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 font-medium py-3 text-sm font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:-translate-y-[1px]"
                         >
                             <svg className="h-5 w-5" viewBox="0 0 24 24">

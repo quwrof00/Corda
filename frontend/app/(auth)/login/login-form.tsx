@@ -10,10 +10,12 @@ import { Lock, Mail, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 export default function LoginForm() {
     const router = useRouter();
     const { status } = useSession();
+    const { enterGuestMode } = useGuestMode();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -46,6 +48,7 @@ export default function LoginForm() {
             }
         } else {
             toast.success("Welcome back!");
+            localStorage.removeItem('guestMode');
             router.push("/dashboard");
         }
     };
@@ -165,7 +168,10 @@ export default function LoginForm() {
                             whileHover={{ y: -2 }}
                             whileTap={{ scale: 0.98 }}
                             type="button"
-                            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+                            onClick={() => {
+                                localStorage.removeItem('guestMode');
+                                signIn("google", { callbackUrl: "/dashboard" });
+                            }}
                             className="w-full bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 font-medium py-3 text-sm font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
                         >
                             <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -187,6 +193,16 @@ export default function LoginForm() {
                                 />
                             </svg>
                             Google
+                        </motion.button>
+
+                        <motion.button
+                            whileHover={{ y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            type="button"
+                            onClick={() => enterGuestMode()}
+                            className="w-full bg-transparent border border-zinc-700 hover:bg-zinc-800 text-zinc-300 font-medium py-3 text-sm font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all mt-4"
+                        >
+                            Continue as Guest
                         </motion.button>
                     </form>
                 )}
