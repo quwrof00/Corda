@@ -21,7 +21,7 @@ export function useGuestMode() {
   const exitGuestMode = () => {
     localStorage.removeItem('guestMode');
     setIsGuest(false);
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   return { isGuest, initialized, enterGuestMode, exitGuestMode };

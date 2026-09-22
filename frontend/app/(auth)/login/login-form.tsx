@@ -24,9 +24,9 @@ export default function LoginForm() {
 
     useEffect(() => {
         if (status === "authenticated") {
-            router.push("/dashboard");
+            window.location.href = "/dashboard";
         }
-    }, [status, router]);
+    }, [status]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,7 +49,7 @@ export default function LoginForm() {
         } else {
             toast.success("Welcome back!");
             localStorage.removeItem('guestMode');
-            router.push("/dashboard");
+            window.location.href = "/dashboard";
         }
     };
 

@@ -22,9 +22,9 @@ export default function RegisterForm() {
     useEffect(() => {
         if (status === "authenticated") {
             localStorage.removeItem('guestMode');
-            router.push("/dashboard");
+            window.location.href = "/dashboard";
         }
-    }, [status, router]);
+    }, [status]);
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
