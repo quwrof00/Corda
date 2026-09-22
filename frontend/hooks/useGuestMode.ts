@@ -2,7 +2,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export function useGuestMode() {
-  const [isGuest, setIsGuest] = useState(false);
+  const [isGuest, setIsGuest] = useState(() => {
+    // Lazy initializer: read synchronously so it's correct on first render,
+    // preventing a false redirect to /login before the effect fires.
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('guestMode') === 'true';
+    }
+    return false;
+  });
   const router = useRouter();
 
   useEffect(() => {
