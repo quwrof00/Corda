@@ -283,7 +283,7 @@ export default function TasksClient() {
         startDate: customStartDate || undefined,
         endDate: customEndDate || undefined,
         limit: 20
-    }, { enabled: !!session });
+    }, { enabled: !!session || (typeof window !== 'undefined' && localStorage.getItem('guestMode') === 'true') });
 
     const tasks = useMemo(() => flattenInfiniteTasks(tasksData), [tasksData]);
     const teams = useMemo(() => teamsData || [], [teamsData]);
@@ -406,7 +406,8 @@ export default function TasksClient() {
     };
 
     const shouldShowSkeleton = status === "loading" || isLoading;
-    if (!session && status !== "loading") return null;
+    const isGuest = typeof window !== 'undefined' && localStorage.getItem('guestMode') === 'true';
+    if (!session && !isGuest && status !== "loading") return null;
     const userId = session?.user?.id;
 
     return (

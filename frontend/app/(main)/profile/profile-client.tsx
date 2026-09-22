@@ -80,7 +80,10 @@ export default function ProfileClient() {
         }
     }, [user, session]);
 
-    if (!session && status !== "loading") return null;
+    if (!session && status !== "loading") {
+        const isGuest = typeof window !== 'undefined' && localStorage.getItem('guestMode') === 'true';
+        if (!isGuest) return null;
+    }
 
     const handleAddSkill = () => {
         const trimmed = newSkill.trim();

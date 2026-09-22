@@ -29,7 +29,10 @@ export default function SettingsClient() {
         }
     }, [user, session]);
 
-    if (!session && status !== "loading") return null;
+    if (!session && status !== "loading") {
+        const isGuest = typeof window !== 'undefined' && localStorage.getItem('guestMode') === 'true';
+        if (!isGuest) return null;
+    }
 
     const handleSave = () => {
         if (!userId) return;

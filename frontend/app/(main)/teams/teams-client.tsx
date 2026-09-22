@@ -50,7 +50,8 @@ export default function TeamsClient() {
     const pendingInvitesCount = invitesData?.received?.length || 0;
 
     useEffect(() => {
-        if (status === "unauthenticated") {
+        const isGuest = typeof window !== 'undefined' && localStorage.getItem('guestMode') === 'true';
+        if (status === "unauthenticated" && !isGuest) {
             router.push("/login");
         }
     }, [status, router]);
@@ -69,7 +70,8 @@ export default function TeamsClient() {
     });
 
     const shouldShowSkeleton = status === "loading" || isLoading;
-    if (!session && status !== "loading") return null;
+    const isGuest = typeof window !== 'undefined' && localStorage.getItem('guestMode') === 'true';
+    if (!session && !isGuest && status !== "loading") return null;
 
     return (
         <motion.main
