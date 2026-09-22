@@ -49,7 +49,7 @@ export default function TeamsClient() {
     const { openTeamModal, openInvitesModal } = useModalStore();
     const { data: invitesData } = useInvites({ enabled: !!session });
     const pendingInvitesCount = invitesData?.received?.length || 0;
-    const { isGuest } = useGuestMode();
+    const { isGuest, initialized } = useGuestMode();
 
     useEffect(() => {
         if (status === "unauthenticated" && !isGuest) {
@@ -71,7 +71,18 @@ export default function TeamsClient() {
     });
 
     const shouldShowSkeleton = status === "loading" || isLoading;
-    if (!session && !isGuest && status !== "loading") return null;
+    if (!initialized) return null;
+    if (isGuest) return (
+        <main className="min-h-screen bg-background p-6 lg:p-12 flex items-center justify-center">
+            <div className="text-center space-y-4 max-w-sm">
+                <Users className="w-12 h-12 text-zinc-600 mx-auto" />
+                <h2 className="text-xl font-bold text-zinc-200 uppercase tracking-tight font-mono">Teams require an account</h2>
+                <p className="text-zinc-500 text-sm">Sign in to create and collaborate with teams.</p>
+                <a href="/login" className="inline-block mt-4 px-6 py-2 text-sm font-bold uppercase tracking-wider text-white bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg transition-colors">Sign In</a>
+            </div>
+        </main>
+    );
+    if (!session && status !== "loading") return null;
 
     return (
         <motion.main

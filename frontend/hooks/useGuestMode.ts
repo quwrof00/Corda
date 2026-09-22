@@ -2,19 +2,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export function useGuestMode() {
-  const [isGuest, setIsGuest] = useState(() => {
-    // Lazy initializer: read synchronously so it's correct on first render,
-    // preventing a false redirect to /login before the effect fires.
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('guestMode') === 'true';
-    }
-    return false;
-  });
+  const [isGuest, setIsGuest] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const guestState = localStorage.getItem('guestMode') === 'true';
-    setIsGuest(guestState);
+    // This runs only on the client, after hydration — the only safe place to read localStorage.
+    setIsGuest(localStorage.getItem('guestMode') === 'true');
+    setInitialized(true);
   }, []);
 
   const enterGuestMode = () => {
@@ -29,5 +24,5 @@ export function useGuestMode() {
     router.push('/login');
   };
 
-  return { isGuest, enterGuestMode, exitGuestMode };
+  return { isGuest, initialized, enterGuestMode, exitGuestMode };
 }

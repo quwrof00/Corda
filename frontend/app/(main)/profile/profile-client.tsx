@@ -51,7 +51,7 @@ const categorizeSkills = (skills: string[]) => {
 
 export default function ProfileClient() {
     const { data: session, status } = useSession();
-    const { isGuest } = useGuestMode();
+    const { isGuest, initialized } = useGuestMode();
     const userId = session?.user?.id;
 
     const { data: user, isLoading } = useUser(userId ?? "", { enabled: !!userId });
@@ -81,9 +81,18 @@ export default function ProfileClient() {
         }
     }, [user, session]);
 
-    if (!session && status !== "loading") {
-        if (!isGuest) return null;
-    }
+    if (!initialized) return null;
+    if (isGuest) return (
+        <main className="min-h-screen bg-background p-6 lg:p-12 flex items-center justify-center">
+            <div className="text-center space-y-4 max-w-sm">
+                <User className="w-12 h-12 text-zinc-600 mx-auto" />
+                <h2 className="text-xl font-bold text-zinc-200 uppercase tracking-tight font-mono">Sign in to view your profile</h2>
+                <p className="text-zinc-500 text-sm">Create an account to manage your profile and skills.</p>
+                <a href="/login" className="inline-block mt-4 px-6 py-2 text-sm font-bold uppercase tracking-wider text-white bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg transition-colors">Sign In</a>
+            </div>
+        </main>
+    );
+    if (!session && status !== "loading") return null;
 
     const handleAddSkill = () => {
         const trimmed = newSkill.trim();

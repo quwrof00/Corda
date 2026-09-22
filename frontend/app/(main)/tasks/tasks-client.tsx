@@ -252,7 +252,7 @@ const FilterDropdown = ({
 
 export default function TasksClient() {
     const { data: session, status } = useSession();
-    const { isGuest } = useGuestMode();
+    const { isGuest, initialized } = useGuestMode();
     const { data: teamsData } = useTeams();
 
     // Filters & Sort State
@@ -408,7 +408,8 @@ export default function TasksClient() {
     };
 
     const shouldShowSkeleton = status === "loading" || isLoading;
-    if (!session && !isGuest && status !== "loading") return null;
+    if (!initialized || status === "loading") return null;
+    if (!session && !isGuest) return null;
     const userId = session?.user?.id;
 
     return (
