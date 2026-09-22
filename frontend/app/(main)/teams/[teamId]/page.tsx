@@ -51,7 +51,7 @@ export default function TeamDetailsPage() {
     const isPersonal = team?.name === "Personal";
     const tasksQuery = useInfiniteTasks(
         { teamId, limit: 30, sortBy: isPersonal ? "newest" : undefined }, 
-        { enabled: !!teamId && !!session }
+        { enabled: !!teamId && (!!session || isGuest) }
     );
 
     const deleteTeamMutation = useDeleteTeam();

@@ -52,10 +52,11 @@ export default function TeamsClient() {
     const { isGuest, initialized } = useGuestMode();
 
     useEffect(() => {
+        if (!initialized) return;
         if (status === "unauthenticated" && !isGuest) {
             router.push("/login");
         }
-    }, [status, router, isGuest]);
+    }, [status, router, isGuest, initialized]);
 
     const visibleTeams = useMemo(
         () => flattenInfiniteTeams(paginatedTeams).filter((team: Team) => team.name !== "Personal"),
