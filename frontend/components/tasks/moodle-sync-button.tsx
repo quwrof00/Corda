@@ -5,7 +5,7 @@ import { LoadingBars } from "@/components/shared/LoadingBars";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { FolderSync, X } from "lucide-react";
-import axios from "axios";
+import { api } from "@/lib/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -29,7 +29,7 @@ export default function MoodleSyncButton({ variant = "button" }: MoodleSyncButto
     const { data: config, isLoading: isLoadingConfig } = useQuery({
         queryKey: ["moodle-config"],
         queryFn: async () => {
-            const res = await axios.get("/api/moodle");
+            const res = await api.get("/api/moodle");
             return res.data;
         },
     });
@@ -47,7 +47,7 @@ export default function MoodleSyncButton({ variant = "button" }: MoodleSyncButto
             force?: boolean;
             timezoneOffset?: number;
         }) => {
-            const res = await axios.post("/api/moodle", { icsUrl, syncNow, force, timezoneOffset });
+            const res = await api.post("/api/moodle", { icsUrl, syncNow, force, timezoneOffset });
             return res.data;
         },
         onSuccess: (data) => {
