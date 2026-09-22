@@ -97,11 +97,30 @@ export const guestAdapter = async (config: InternalAxiosRequestConfig): Promise<
 
     // --- Tasks list (paginated) ---
     if (url?.match(/^\/tasks(\?|$)/)) {
+      const urlObj = new URL(url, 'http://localhost');
+      const startDateStr = urlObj.searchParams.get('startDate');
+      const endDateStr = urlObj.searchParams.get('endDate');
+      const dateFilter = urlObj.searchParams.get('dateFilter');
+      
+      let filteredTasks = [...tasks];
+      
+      if (startDateStr) {
+        const start = new Date(startDateStr).getTime();
+        filteredTasks = filteredTasks.filter(t => t.deadline && new Date(t.deadline).getTime() >= start);
+      }
+      if (endDateStr) {
+        const end = new Date(endDateStr).getTime();
+        filteredTasks = filteredTasks.filter(t => t.deadline && new Date(t.deadline).getTime() <= end);
+      }
+      if (dateFilter === 'overdue') {
+        filteredTasks = filteredTasks.filter(t => t.status !== 'completed');
+      }
+
       return respond(200, {
-        items: tasks,
+        items: filteredTasks,
         page: 1,
         limit: 100,
-        total: tasks.length,
+        total: filteredTasks.length,
         hasMore: false,
         nextPage: null
       });

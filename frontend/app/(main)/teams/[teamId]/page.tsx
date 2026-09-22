@@ -10,6 +10,7 @@ import { useSession } from "next-auth/react";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { usePersonalWorkspace } from "@/hooks/usePersonalWorkspace";
 import { io, Socket } from "socket.io-client";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -42,6 +43,7 @@ export default function TeamDetailsPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { data: session, status } = useSession();
+    const { isGuest, initialized } = useGuestMode();
     const { data: personalTeamId } = usePersonalWorkspace();
 
     const { data: team, isLoading: teamLoading } = useTeam(teamId);
@@ -318,7 +320,13 @@ export default function TeamDetailsPage() {
         teamLoading ||
         membersLoading ||
         tasksQuery.isPending;
-    if (!session && status !== "loading") return null;
+    
+    if (!initialized) return null;
+    if (!session && !isGuest && status !== "loading") {
+        router.push("/login");
+        return null;
+    }
+    
     if (!team && !shouldShowSkeleton) return <div className="p-10 text-center bg-background text-zinc-500 font-sans">Team Not Found</div>;
 
     const isActualLeader = session?.user?.email === team?.leader?.email;
