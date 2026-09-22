@@ -7,9 +7,11 @@ import { useUser, useUpdateUser } from "@/hooks/useUser";
 import { Save, User, FileUp, Trash2, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 export default function SettingsClient() {
     const { data: session, status } = useSession();
+    const { isGuest } = useGuestMode();
     const userId = session?.user?.id;
 
     const { data: user, isLoading } = useUser(userId ?? "", { enabled: !!userId });
@@ -30,7 +32,6 @@ export default function SettingsClient() {
     }, [user, session]);
 
     if (!session && status !== "loading") {
-        const isGuest = typeof window !== 'undefined' && localStorage.getItem('guestMode') === 'true';
         if (!isGuest) return null;
     }
 

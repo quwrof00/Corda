@@ -12,6 +12,7 @@ import { flattenInfiniteTasks, useInfiniteTasks, useUpdateTask, Task } from "@/h
 import { useTeams } from "@/hooks/useTeams";
 import { buildTaskTree } from "@/lib/taskTreeUtils";
 import { useInfiniteScrollTrigger } from "@/hooks/useInfiniteScrollTrigger";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return inputs.filter(Boolean).join(' ');
@@ -251,6 +252,7 @@ const FilterDropdown = ({
 
 export default function TasksClient() {
     const { data: session, status } = useSession();
+    const { isGuest } = useGuestMode();
     const { data: teamsData } = useTeams();
 
     // Filters & Sort State
@@ -283,7 +285,7 @@ export default function TasksClient() {
         startDate: customStartDate || undefined,
         endDate: customEndDate || undefined,
         limit: 20
-    }, { enabled: !!session || (typeof window !== 'undefined' && localStorage.getItem('guestMode') === 'true') });
+    }, { enabled: !!session || isGuest });
 
     const tasks = useMemo(() => flattenInfiniteTasks(tasksData), [tasksData]);
     const teams = useMemo(() => teamsData || [], [teamsData]);
@@ -406,7 +408,6 @@ export default function TasksClient() {
     };
 
     const shouldShowSkeleton = status === "loading" || isLoading;
-    const isGuest = typeof window !== 'undefined' && localStorage.getItem('guestMode') === 'true';
     if (!session && !isGuest && status !== "loading") return null;
     const userId = session?.user?.id;
 

@@ -11,6 +11,7 @@ import { useModalStore } from "@/hooks/useModalStore";
 import { flattenInfiniteTeams, useInfiniteTeams } from "@/hooks/useTeams";
 import { useInvites } from "@/hooks/useInvites";
 import InvitesModal from "@/components/teams/InvitesModal";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 interface Team {
     id: string;
@@ -48,13 +49,13 @@ export default function TeamsClient() {
     const { openTeamModal, openInvitesModal } = useModalStore();
     const { data: invitesData } = useInvites({ enabled: !!session });
     const pendingInvitesCount = invitesData?.received?.length || 0;
+    const { isGuest } = useGuestMode();
 
     useEffect(() => {
-        const isGuest = typeof window !== 'undefined' && localStorage.getItem('guestMode') === 'true';
         if (status === "unauthenticated" && !isGuest) {
             router.push("/login");
         }
-    }, [status, router]);
+    }, [status, router, isGuest]);
 
     const visibleTeams = useMemo(
         () => flattenInfiniteTeams(paginatedTeams).filter((team: Team) => team.name !== "Personal"),
@@ -70,7 +71,6 @@ export default function TeamsClient() {
     });
 
     const shouldShowSkeleton = status === "loading" || isLoading;
-    const isGuest = typeof window !== 'undefined' && localStorage.getItem('guestMode') === 'true';
     if (!session && !isGuest && status !== "loading") return null;
 
     return (

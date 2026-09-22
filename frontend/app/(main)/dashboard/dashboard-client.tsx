@@ -247,27 +247,19 @@ export default function DashboardClient() {
 
   useEffect(() => {
     if (status === "unauthenticated" && !isGuest) {
-      // Direct check to avoid race condition with React state initialization
-      const reallyGuest = typeof window !== 'undefined' ? localStorage.getItem('guestMode') === 'true' : false;
-      if (!reallyGuest) {
-        router.push("/login");
-      }
+      router.push("/login");
     }
   }, [status, isGuest, router]);
 
   if (!session && !isGuest && status !== "loading") {
-    // Direct check to avoid flashing loading state or wrongly aborting render for guests
-    const reallyGuest = typeof window !== 'undefined' ? localStorage.getItem('guestMode') === 'true' : false;
-    if (!reallyGuest) {
-      return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-background">
-          <div className="flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 dark:border-white"></div>
-            <p className="text-sm text-zinc-500 animate-pulse">Session expired. Redirecting...</p>
-          </div>
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 dark:border-white"></div>
+          <p className="text-sm text-zinc-500 animate-pulse">Session expired. Redirecting...</p>
         </div>
-      );
-    }
+      </div>
+    );
   }
 
   const renderTaskList = (

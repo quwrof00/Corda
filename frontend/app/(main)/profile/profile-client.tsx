@@ -7,8 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useUser, useUpdateUser } from "@/hooks/useUser";
 import { Save, User, X, FileUp, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-
 import { cn } from "@/lib/utils";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 // Skill categorization
 const SKILL_CATEGORIES = {
@@ -51,6 +51,7 @@ const categorizeSkills = (skills: string[]) => {
 
 export default function ProfileClient() {
     const { data: session, status } = useSession();
+    const { isGuest } = useGuestMode();
     const userId = session?.user?.id;
 
     const { data: user, isLoading } = useUser(userId ?? "", { enabled: !!userId });
@@ -81,7 +82,6 @@ export default function ProfileClient() {
     }, [user, session]);
 
     if (!session && status !== "loading") {
-        const isGuest = typeof window !== 'undefined' && localStorage.getItem('guestMode') === 'true';
         if (!isGuest) return null;
     }
 

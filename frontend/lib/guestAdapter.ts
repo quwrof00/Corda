@@ -1,8 +1,18 @@
 import { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { Task } from '@/hooks/useTasks';
 
-const GUEST_PERSONAL_TEAM_ID = 'guest-personal-team';
+export const GUEST_PERSONAL_TEAM_ID = 'guest-personal-team';
 const TASKS_STORAGE_KEY = 'guest_tasks';
+
+const GUEST_PERSONAL_TEAM = {
+  id: GUEST_PERSONAL_TEAM_ID,
+  name: 'Personal',
+  desc: 'Your personal workspace',
+  members: [],
+  leader: null,
+  tasks: [],
+  _count: { tasks: 0 },
+};
 
 function getGuestTasks(): Task[] {
   try {
@@ -18,40 +28,44 @@ function saveGuestTasks(tasks: Task[]) {
 }
 
 export const guestAdapter = async (config: InternalAxiosRequestConfig): Promise<AxiosResponse> => {
-  const { url, method, data, params } = config;
+  const { url, method, data } = config;
 
-  const respond = (status: number, responseData: any): AxiosResponse => {
-    return {
-      data: responseData,
-      status,
-      statusText: status === 200 ? 'OK' : 'Created',
-      headers: {},
-      config,
-      request: {}
-    } as AxiosResponse;
-  };
+  const respond = (status: number, responseData: unknown): AxiosResponse => ({
+    data: responseData,
+    status,
+    statusText: status === 200 ? 'OK' : status === 201 ? 'Created' : 'OK',
+    headers: {},
+    config,
+    request: {}
+  } as AxiosResponse);
 
-  // Ensure tasks are initialized
   const tasks = getGuestTasks();
 
   if (method === 'get') {
+    // --- User/personal workspace ---
     if (url === '/user/personal') {
       return respond(200, { id: GUEST_PERSONAL_TEAM_ID });
     }
 
-    if (url?.startsWith('/tasks') || url?.includes('/tasks?')) {
-      // Mock fetching tasks
-      let filteredTasks = [...tasks];
-      
-      // If fetching single task by id
-      const match = url.match(/^\/tasks\/([^?]+)/);
-      if (match) {
-        const taskId = match[1];
-        const task = filteredTasks.find(t => t.id === taskId);
-        return respond(200, task || {});
+    // --- Single team by id ---
+    const teamByIdMatch = url?.match(/^\/teams\/([^/?]+)$/);
+    if (teamByIdMatch) {
+      // For the guest personal team, return it. For any other team ID, return 404-like empty.
+      if (teamByIdMatch[1] === GUEST_PERSONAL_TEAM_ID) {
+        return respond(200, GUEST_PERSONAL_TEAM);
       }
+      return respond(200, GUEST_PERSONAL_TEAM); // graceful fallback
+    }
 
-      // Mock pagination/filtering
+    // --- Team members ---
+    if (url?.match(/^\/teams\/[^/?]+\/members/)) {
+      // Return a single "guest" member so the page doesn't crash
+      return respond(200, []);
+    }
+
+    // --- Team tasks ---
+    if (url?.match(/^\/teams\/[^/?]+\/tasks/)) {
+      const filteredTasks = tasks.filter(t => t.teamId === GUEST_PERSONAL_TEAM_ID);
       return respond(200, {
         items: filteredTasks,
         page: 1,
@@ -62,19 +76,38 @@ export const guestAdapter = async (config: InternalAxiosRequestConfig): Promise<
       });
     }
 
-    if (url?.startsWith('/teams')) {
-      // Return empty list of teams (excluding personal)
+    // --- Teams list (paginated) ---
+    if (url?.match(/^\/teams(\?|$)/)) {
       return respond(200, {
-        items: [],
+        items: [GUEST_PERSONAL_TEAM],
         page: 1,
         limit: 12,
-        total: 0,
+        total: 1,
         hasMore: false,
         nextPage: null
       });
     }
-    
-    // Fallback for user/teams etc.
+
+    // --- Single task ---
+    const taskByIdMatch = url?.match(/^\/tasks\/([^?]+)/);
+    if (taskByIdMatch) {
+      const task = tasks.find(t => t.id === taskByIdMatch[1]);
+      return respond(200, task || {});
+    }
+
+    // --- Tasks list (paginated) ---
+    if (url?.match(/^\/tasks(\?|$)/)) {
+      return respond(200, {
+        items: tasks,
+        page: 1,
+        limit: 100,
+        total: tasks.length,
+        hasMore: false,
+        nextPage: null
+      });
+    }
+
+    // Fallback
     return respond(200, {});
   }
 
@@ -91,6 +124,8 @@ export const guestAdapter = async (config: InternalAxiosRequestConfig): Promise<
       saveGuestTasks([createdTask, ...tasks]);
       return respond(201, createdTask);
     }
+    // Moodle and other POSTs — silently ignore
+    return respond(200, {});
   }
 
   if (method === 'put') {
@@ -98,31 +133,29 @@ export const guestAdapter = async (config: InternalAxiosRequestConfig): Promise<
     if (match) {
       const taskId = match[1];
       const updates = typeof data === 'string' ? JSON.parse(data) : data;
-      
-      let updatedTask = null;
+      let updatedTask: Task | null = null;
       const newTasks = tasks.map(t => {
         if (t.id === taskId) {
-          updatedTask = { ...t, ...updates };
+          updatedTask = { ...t, ...updates } as Task;
           return updatedTask;
         }
         return t;
-      });
-      
+      }).filter((t): t is Task => t !== null);
       saveGuestTasks(newTasks);
       return respond(200, updatedTask || {});
     }
+    return respond(200, {});
   }
 
   if (method === 'delete') {
     const match = url?.match(/^\/tasks\/([^?]+)/);
     if (match) {
       const taskId = match[1];
-      const newTasks = tasks.filter(t => t.id !== taskId);
-      saveGuestTasks(newTasks);
+      saveGuestTasks(tasks.filter(t => t.id !== taskId));
       return respond(200, { success: true });
     }
+    return respond(200, { success: true });
   }
 
-  // Default fallback mock response
   return respond(200, {});
 };

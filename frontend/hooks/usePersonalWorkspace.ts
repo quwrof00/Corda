@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { useGuestMode } from "@/hooks/useGuestMode";
 
 const GUEST_PERSONAL_TEAM_ID = 'guest-personal-team';
 
 export function usePersonalWorkspace() {
-    const isGuest = typeof window !== 'undefined' && localStorage.getItem('guestMode') === 'true';
+    const { isGuest } = useGuestMode();
 
     return useQuery({
         queryKey: ["personalWorkspace"],
@@ -14,6 +15,6 @@ export function usePersonalWorkspace() {
             return data.id as string;
         },
         staleTime: Infinity,
-        enabled: isGuest ? true : undefined,
+        enabled: isGuest || undefined, // always enabled for guest; for real users react-query default (true)
     });
 }
