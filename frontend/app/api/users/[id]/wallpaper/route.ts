@@ -173,7 +173,7 @@ export async function PUT(
         const body = await req.json();
         const { url } = body;
 
-        if (!url) {
+        if (url === undefined) {
             return NextResponse.json({ error: "No URL provided" }, { status: 400 });
         }
 

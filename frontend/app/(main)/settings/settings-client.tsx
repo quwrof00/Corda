@@ -186,17 +186,18 @@ export default function SettingsClient() {
 
         try {
             const response = await fetch(`/api/users/${userId}/wallpaper`, {
-                method: "DELETE",
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url: null }),
             });
 
-            if (!response.ok) throw new Error("Delete failed");
+            if (!response.ok) throw new Error("Remove failed");
 
-            removeUrlFromHistory(previousUrl);
-            toast.success("Wallpaper deleted successfully");
+            toast.success("Wallpaper removed successfully");
         } catch (error) {
             console.error(error);
             setWallpaperUrl(previousUrl); 
-            toast.error("Failed to delete wallpaper");
+            toast.error("Failed to remove wallpaper");
         } finally {
             setWallpaperUploadStatus("IDLE");
         }
