@@ -23,6 +23,40 @@ export default function SettingsClient() {
     const [isEditing, setIsEditing] = useState(false);
     const [wallpaperUploadStatus, setWallpaperUploadStatus] = useState<"IDLE" | "UPLOADING" | "COMPLETE">("IDLE");
     const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
+    const [wallpaperHistory, setWallpaperHistory] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (!userId) return;
+        const storedHistory = localStorage.getItem(`wallpaperHistory_${userId}`);
+        if (storedHistory) {
+            try {
+                setWallpaperHistory(JSON.parse(storedHistory));
+            } catch (e) {
+                console.error("Failed to parse wallpaper history", e);
+            }
+        } else {
+            setWallpaperHistory([]);
+        }
+    }, [userId]);
+
+    const addUrlToHistory = (url: string) => {
+        if (!userId) return;
+        setWallpaperHistory(prev => {
+            if (prev.includes(url)) return prev;
+            const newHistory = [url, ...prev].slice(0, 5); // Keep last 5
+            localStorage.setItem(`wallpaperHistory_${userId}`, JSON.stringify(newHistory));
+            return newHistory;
+        });
+    };
+
+    const removeUrlFromHistory = (url: string) => {
+        if (!userId) return;
+        setWallpaperHistory(prev => {
+            const newHistory = prev.filter(u => u !== url);
+            localStorage.setItem(`wallpaperHistory_${userId}`, JSON.stringify(newHistory));
+            return newHistory;
+        });
+    };
 
     useEffect(() => {
         if (user) {
@@ -130,6 +164,7 @@ export default function SettingsClient() {
             const data = await response.json();
             URL.revokeObjectURL(previewUrl);
             setWallpaperUrl(data.wallpaperUrl);
+            addUrlToHistory(data.wallpaperUrl);
             setWallpaperUploadStatus("COMPLETE");
             setTimeout(() => setWallpaperUploadStatus("IDLE"), 1000);
             toast.success("Wallpaper uploaded successfully");
@@ -156,6 +191,7 @@ export default function SettingsClient() {
 
             if (!response.ok) throw new Error("Delete failed");
 
+            removeUrlFromHistory(previousUrl);
             toast.success("Wallpaper deleted successfully");
         } catch (error) {
             console.error(error);
@@ -163,6 +199,54 @@ export default function SettingsClient() {
             toast.error("Failed to delete wallpaper");
         } finally {
             setWallpaperUploadStatus("IDLE");
+        }
+    };
+
+    const handleHistorySelect = async (url: string) => {
+        if (!userId || url === wallpaperUrl) return;
+        
+        const previousUrl = wallpaperUrl;
+        setWallpaperUrl(url);
+        setWallpaperUploadStatus("UPLOADING");
+
+        try {
+            const response = await fetch(`/api/users/${userId}/wallpaper`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url }),
+            });
+
+            if (!response.ok) throw new Error("Failed to update");
+
+            toast.success("Wallpaper updated successfully");
+        } catch (error) {
+            console.error(error);
+            setWallpaperUrl(previousUrl);
+            toast.error("Failed to update wallpaper");
+        } finally {
+            setWallpaperUploadStatus("IDLE");
+        }
+    };
+
+    const handleHistoryDelete = async (url: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!userId) return;
+
+        try {
+            const response = await fetch(`/api/users/${userId}/wallpaper?url=${encodeURIComponent(url)}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) throw new Error("Delete failed");
+
+            removeUrlFromHistory(url);
+            if (url === wallpaperUrl) {
+                setWallpaperUrl(null);
+            }
+            toast.success("History wallpaper deleted");
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to delete wallpaper");
         }
     };
 
@@ -272,6 +356,35 @@ export default function SettingsClient() {
                                     <label htmlFor="wallpaper-upload" className={cn("flex items-center justify-center gap-3 p-8 bg-zinc-900/20 border-2 border-dashed border-[var(--border-time)] hover:border-[var(--accent-time)] rounded-lg cursor-pointer transition-all", wallpaperUploadStatus !== "IDLE" && "opacity-50 cursor-not-allowed")}>
                                         {wallpaperUploadStatus !== "IDLE" ? <LoadingBars className="w-6 h-6 text-emerald-500" /> : <><FileUp className="w-6 h-6 text-emerald-500" /><div className="text-center"><span className="text-white text-base font-mono uppercase block">Upload Image</span><span className="text-zinc-600 text-[10px] uppercase">(JPG/PNG/WEBP/AVIF)</span></div></>}
                                     </label>
+                                </div>
+                            )}
+
+                            {wallpaperHistory.length > 0 && (
+                                <div className="mt-8 border-t border-[var(--border-time)] pt-6">
+                                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4 font-mono">Previously Used</h3>
+                                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                                        {wallpaperHistory.map((url) => (
+                                            <div
+                                                key={url}
+                                                onClick={() => handleHistorySelect(url)}
+                                                className={cn(
+                                                    "relative w-24 h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 cursor-pointer transition-all group",
+                                                    wallpaperUrl === url ? "border-emerald-500" : "border-transparent hover:border-zinc-700"
+                                                )}
+                                            >
+                                                <img src={url} alt="History Wallpaper" className="absolute inset-0 w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <button
+                                                        onClick={(e) => handleHistoryDelete(url, e)}
+                                                        className="p-1.5 bg-red-950/80 text-red-400 hover:text-red-300 rounded-md transition-colors"
+                                                        title="Delete permanently"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>

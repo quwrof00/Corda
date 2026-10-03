@@ -1,14 +1,16 @@
 "use client";
-import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, ChevronRight, ArrowUpDown, Filter, ChevronDown, ListFilter, Repeat } from "lucide-react";
+import { Plus, Calendar, AlertCircle, CheckCircle2, Play, Pause, Ban, Flag, ChevronRight, ArrowUpDown, Filter, ChevronDown, ListFilter, Repeat, Edit2, Trash2 } from "lucide-react";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
 import CalendarOverlay from "@/components/tasks/CalendarOverlay";
 import { useModalStore } from "@/hooks/useModalStore";
+import { toast } from "sonner";
 
 import { TaskListSkeleton } from "@/components/shared/SkeletonLoader";
-import { flattenInfiniteTasks, useInfiniteTasks, useUpdateTask, Task } from "@/hooks/useTasks";
+import { flattenInfiniteTasks, useInfiniteTasks, useUpdateTask, useDeleteTask, Task } from "@/hooks/useTasks";
+import ConfirmModal from "@/components/ConfirmModal";
 import { useTeams } from "@/hooks/useTeams";
 import { buildTaskTree } from "@/lib/taskTreeUtils";
 import { useInfiniteScrollTrigger } from "@/hooks/useInfiniteScrollTrigger";
@@ -43,10 +45,12 @@ interface TaskItemProps {
     onToggleExpand: (taskId: string, e: React.MouseEvent) => void;
     isExpanded: boolean;
     onAddSubtask: (taskId: string, teamId: string, e: React.MouseEvent) => void;
+    onEdit: (task: Task, e: React.MouseEvent) => void;
+    onDelete: (taskId: string, e: React.MouseEvent) => void;
     celebratingTaskId?: never;
 }
 
-const TaskItem = ({ task, onSelect, onStatusUpdate, getPriorityColor, onToggleExpand, isExpanded, onAddSubtask }: TaskItemProps) => {
+const TaskItem = ({ task, onSelect, onStatusUpdate, getPriorityColor, onToggleExpand, isExpanded, onAddSubtask, onEdit, onDelete }: TaskItemProps) => {
     const hasChildren = task.children && task.children.length > 0;
 
     return (
@@ -149,6 +153,20 @@ const TaskItem = ({ task, onSelect, onStatusUpdate, getPriorityColor, onToggleEx
 
             {/* Hover Actions - always visible for better UX */}
             <div className="flex items-center gap-1 pl-4 border-l border-zinc-800 ml-4">
+                <button
+                    onClick={(e) => onEdit(task, e)}
+                    className="p-1.5 text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors rounded-md"
+                    title="Edit Task"
+                >
+                    <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                    onClick={(e) => onDelete(task.id, e)}
+                    className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-950/50 transition-colors rounded-md"
+                    title="Delete Task"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
                 <button
                     onClick={(e) => onAddSubtask(task.id, task.teamId || "", e)}
                     className="p-1.5 text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors rounded-md"
@@ -297,10 +315,42 @@ export default function TasksClient() {
         return () => setPageContext({});
     }, [setPageContext]);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [initialEditMode, setInitialEditMode] = useState(false);
+    const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
     const updateTaskMutation = useUpdateTask();
+    const deleteTaskMutation = useDeleteTask();
+
+    const handleSelectTask = (task: Task) => {
+        setInitialEditMode(false);
+        setSelectedTask(task);
+    };
+
+    const handleEditTask = (task: Task, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setInitialEditMode(true);
+        setSelectedTask(task);
+    };
+
+    const handleDeleteTask = (taskId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setTaskToDelete(taskId);
+    };
+
+    const confirmDelete = async () => {
+        if (!taskToDelete) return;
+        try {
+            await deleteTaskMutation.mutateAsync({ id: taskToDelete });
+            toast.success("Task deleted successfully");
+            refetch();
+        } catch {
+            toast.error("Failed to delete task");
+        } finally {
+            setTaskToDelete(null);
+        }
+    };
 
     const handleStatusUpdate = async (taskId: string, newStatus: string, e?: React.MouseEvent) => {
         e?.stopPropagation();
@@ -601,12 +651,14 @@ export default function TasksClient() {
                                 <TaskItem
                                     key={task.id}
                                     task={task}
-                                    onSelect={setSelectedTask}
+                                    onSelect={handleSelectTask}
                                     onStatusUpdate={handleStatusUpdate}
                                     getPriorityColor={getPriorityColor}
                                     onToggleExpand={handleToggleExpand}
                                     isExpanded={expandedIds.has(task.id)}
                                     onAddSubtask={handleCreateSubtask}
+                                    onEdit={handleEditTask}
+                                    onDelete={handleDeleteTask}
                                 />
                             ))}
                             {hasNextPage && (
@@ -650,8 +702,20 @@ export default function TasksClient() {
                     refreshTasks={refetch}
                     currentUserId={userId}
                     onCreateSubtask={(parentId) => handleCreateSubtask(parentId, selectedTask.teamId!)}
+                    initialEditMode={initialEditMode}
                 />
             )}
+
+            <ConfirmModal
+                isOpen={!!taskToDelete}
+                onClose={() => setTaskToDelete(null)}
+                onConfirm={confirmDelete}
+                title="Delete Task"
+                description="Are you sure you want to delete this task? This action cannot be undone."
+                variant="danger"
+                confirmText="Delete"
+                loading={deleteTaskMutation.isPending}
+            />
 
             <CalendarOverlay
                 isOpen={isCalendarOpen}

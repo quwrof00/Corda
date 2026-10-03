@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { put, del } from "@vercel/blob";
 import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(
     req: NextRequest,
@@ -55,30 +56,7 @@ export async function POST(
 
         console.log(`[Wallpaper Upload] File received. Name: ${file.name}, Size: ${file.size} bytes, Type: ${file.type}`);
 
-        const apiUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        const cookie = req.headers.get("cookie");
 
-        const userResponse = await fetch(
-            `${apiUrl}/api/users/${id}`,
-            {
-                headers: {
-                    Cookie: cookie || "",
-                },
-            }
-        );
-
-        if (userResponse.ok) {
-            const user = await userResponse.json();
-            // Delete old wallpaper if exists
-            if (user.wallpaperUrl) {
-                try {
-                    console.log("[Wallpaper Upload] Deleting old wallpaper...");
-                    await del(user.wallpaperUrl);
-                } catch (err) {
-                    console.error("[Wallpaper Upload] Error deleting old wallpaper:", err);
-                }
-            }
-        }
 
         // Upload to Vercel Blob
         const blob = await put(`wallpapers/${id}-${Date.now()}-${file.name}`, file, {
@@ -87,21 +65,12 @@ export async function POST(
         });
 
         // Update user record with wallpaper URL
-        const response = await fetch(
-            `${apiUrl}/api/users/${id}`,
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Cookie: cookie || "",
-                },
-                body: JSON.stringify({
-                    wallpaperUrl: blob.url
-                }),
-            }
-        );
+        const updatedUser = await prisma.user.update({
+            where: { id },
+            data: { wallpaperUrl: blob.url }
+        });
 
-        if (!response.ok) {
+        if (!updatedUser) {
             // If database update fails, delete the uploaded blob
             await del(blob.url);
             throw new Error("Failed to update user");
@@ -126,6 +95,7 @@ export async function DELETE(
 ) {
     const params = await props.params;
     const { id } = params;
+    const urlToDelete = req.nextUrl.searchParams.get("url");
 
     try {
         const session = await getServerSession(getAuthOptions());
@@ -138,48 +108,36 @@ export async function DELETE(
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const apiUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        const cookie = req.headers.get("cookie");
-
         // Get current wallpaper URL from user
-        const userResponse = await fetch(
-            `${apiUrl}/api/users/${id}`,
-            {
-                headers: {
-                    Cookie: cookie || "",
-                },
-            }
-        );
+        const user = await prisma.user.findUnique({
+            where: { id },
+            select: { wallpaperUrl: true }
+        });
 
-        if (!userResponse.ok) {
+        if (!user) {
             throw new Error("Failed to fetch user");
         }
 
-        const user = await userResponse.json();
+        const targetUrl = urlToDelete || user.wallpaperUrl;
 
-        if (user.wallpaperUrl) {
+        if (targetUrl) {
             // Delete from Vercel Blob
             try {
-                await del(user.wallpaperUrl);
+                await del(targetUrl);
             } catch (err) {
                 console.error("Error deleting blob:", err);
             }
 
-            // Update user record to remove wallpaper URL
-            const response = await fetch(
-                `${apiUrl}/api/users/${id}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Cookie: cookie || "",
-                    },
-                    body: JSON.stringify({ wallpaperUrl: null }),
-                }
-            );
+            // If the deleted URL is the active one, update DB to null
+            if (targetUrl === user.wallpaperUrl) {
+                const updatedUser = await prisma.user.update({
+                    where: { id },
+                    data: { wallpaperUrl: null }
+                });
 
-            if (!response.ok) {
-                throw new Error("Failed to update user");
+                if (!updatedUser) {
+                    throw new Error("Failed to update user");
+                }
             }
         }
 
@@ -189,6 +147,54 @@ export async function DELETE(
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         return NextResponse.json(
             { error: errorMessage || "Failed to delete wallpaper" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function PUT(
+    req: NextRequest,
+    props: { params: Promise<{ id: string }> }
+) {
+    const params = await props.params;
+    const { id } = params;
+
+    try {
+        const session = await getServerSession(getAuthOptions());
+
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        if (session.user.id !== id) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        const body = await req.json();
+        const { url } = body;
+
+        if (!url) {
+            return NextResponse.json({ error: "No URL provided" }, { status: 400 });
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id },
+            data: { wallpaperUrl: url }
+        });
+
+        if (!updatedUser) {
+            throw new Error("Failed to update user");
+        }
+
+        return NextResponse.json({
+            success: true,
+            wallpaperUrl: updatedUser.wallpaperUrl
+        }, { status: 200 });
+    } catch (error) {
+        console.error("Wallpaper update error:", error);
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json(
+            { error: errorMessage || "Failed to update wallpaper" },
             { status: 500 }
         );
     }

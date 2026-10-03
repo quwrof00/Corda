@@ -24,9 +24,10 @@ interface TaskDetailDrawerProps {
     currentUserId?: string;
     onCreateSubtask?: (parentId: string, teamId: string) => void;
     members?: Member[];
+    initialEditMode?: boolean;
 }
 
-export default function TaskDetailDrawer({ selectedTask, setSelectedTask, updateTaskMutation, refreshTasks, isLeader = false, teamName, currentUserId, onCreateSubtask, members }: TaskDetailDrawerProps) {
+export default function TaskDetailDrawer({ selectedTask, setSelectedTask, updateTaskMutation, refreshTasks, isLeader = false, teamName, currentUserId, onCreateSubtask, members, initialEditMode = false }: TaskDetailDrawerProps) {
     const queryClient = useQueryClient();
     const deleteTaskMutation = useDeleteTask();
     const [actionPending, setActionPending] = useState<"status" | "save" | "delete" | "recurrence" | null>(null);
@@ -112,7 +113,7 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
         }
     };
 
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditing, setIsEditing] = useState(initialEditMode);
     const [editForm, setEditForm] = useState({
         title: "",
         description: "",
@@ -133,8 +134,8 @@ export default function TaskDetailDrawer({ selectedTask, setSelectedTask, update
                 assignedToId: selectedTask.assignedToId || selectedTask.assignedTo?.id || ""
             });
         }
-        setIsEditing(false);
-    }, [selectedTask]);
+        setIsEditing(initialEditMode);
+    }, [selectedTask, initialEditMode]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
