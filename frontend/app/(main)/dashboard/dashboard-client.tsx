@@ -6,10 +6,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useUser } from "@/hooks/useUser";
-import { flattenInfiniteTasks, useInfiniteTasks, useUpdateTask, useDailyRanks, useUpdateDailyRank, Task } from "@/hooks/useTasks";
+import { flattenInfiniteTasks, useInfiniteTasks, useUpdateTask, Task } from "@/hooks/useTasks";
 import { flattenInfiniteTeams, useInfiniteTeams } from "@/hooks/useTeams";
 import { buildTaskTree, flattenTree } from "@/lib/taskTreeUtils";
-import { getLocalDateStr, sortDailyTasksWithPrecedence } from "@/lib/dailyPriorityUtils";
 import { CheckCircle2, ArrowRight, Users, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -191,30 +190,6 @@ export default function DashboardClient() {
     });
   };
 
-  const todayDateStr = useMemo(() => getLocalDateStr(), []);
-  const { data: dailyRanksData } = useDailyRanks(todayDateStr, { enabled: !!session || isGuest });
-  const updateDailyRankMutation = useUpdateDailyRank();
-
-  const dailyRanksMap = useMemo(() => {
-    const map = new Map<string, number>();
-    if (Array.isArray(dailyRanksData)) {
-      dailyRanksData.forEach((r) => map.set(r.taskId, r.rank));
-    }
-    return map;
-  }, [dailyRanksData]);
-
-  const handleUpdateDailyRank = async (taskId: string, rank: number | null) => {
-    try {
-      await updateDailyRankMutation.mutateAsync({
-        dateStr: todayDateStr,
-        taskId,
-        rank,
-      });
-    } catch (err) {
-      console.error("Failed to update daily rank", err);
-    }
-  };
-
   const todayTasks = useMemo(
     () => flattenInfiniteTasks(todayTasksQuery.data).filter((task) => task.status !== "completed"),
     [todayTasksQuery.data]
@@ -229,17 +204,11 @@ export default function DashboardClient() {
   );
   const teams = useMemo(() => flattenInfiniteTeams(teamsQuery.data), [teamsQuery.data]);
 
-  // Flat list today tasks with daily priority taking higher precedence
-  const todayFlatRankedTasks = useMemo(() => {
-    const sorted = sortDailyTasksWithPrecedence(todayTasks, dailyRanksMap);
-    return sorted.map((t) => ({ ...t, level: 0 }));
-  }, [todayTasks, dailyRanksMap]);
-
   const groupedTasks = useMemo(() => ({
-    today: todayFlatRankedTasks,
+    today: flattenTree(buildTaskTree(todayTasks), expandedIds),
     week: flattenTree(buildTaskTree(weekTasks), expandedIds),
     overdue: flattenTree(buildTaskTree(overdueTasks), expandedIds),
-  }), [todayFlatRankedTasks, weekTasks, overdueTasks, expandedIds]);
+  }), [todayTasks, weekTasks, overdueTasks, expandedIds]);
 
   const stats = useMemo(() => ({
     deadlinesToday: todayTasksQuery.data?.pages[0]?.total || 0
@@ -336,9 +305,6 @@ export default function DashboardClient() {
                 showStatus={true}
                 showDeadline={true}
                 formatDaysLeft={formatDaysLeft}
-                dailyRank={dailyRanksMap.get(task.id)}
-                maxDailyRank={todayTasks.length}
-                onUpdateDailyRank={id === "section-today" ? handleUpdateDailyRank : undefined}
               />
             ))}
             {hasMore && sentinelRef ? <div ref={sentinelRef} className="h-4 w-full" /> : null}
@@ -586,9 +552,6 @@ export default function DashboardClient() {
                 isPersonalWorkspace: selectedTask?.team?.name === 'Personal',
               });
             }}
-            dailyRank={selectedTask ? dailyRanksMap.get(selectedTask.id) : undefined}
-            maxDailyRank={todayTasks.length}
-            onUpdateDailyRank={handleUpdateDailyRank}
           />
         )
       }
