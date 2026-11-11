@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useUser } from "@/hooks/useUser";
-import { flattenInfiniteTasks, useInfiniteTasks, useUpdateTask, Task } from "@/hooks/useTasks";
+import { flattenInfiniteTasks, useInfiniteTasks, useUpdateTask, useDailyRanks, useUpdateDailyRank, Task } from "@/hooks/useTasks";
 import { flattenInfiniteTeams, useInfiniteTeams } from "@/hooks/useTeams";
 import { buildTaskTree, flattenTree } from "@/lib/taskTreeUtils";
+import { getLocalDateStr, sortDailyTasksWithPrecedence } from "@/lib/dailyPriorityUtils";
 import { CheckCircle2, ArrowRight, Users, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ import { TaskItem } from "@/components/tasks/TaskItem";
 import { useInfiniteScrollTrigger } from "@/hooks/useInfiniteScrollTrigger";
 import { useGuestMode } from "@/hooks/useGuestMode";
 import GuestWarningModal from "@/components/GuestWarningModal";
+import { useDashboardSettings } from "@/hooks/useDashboardSettings";
 
 function formatDaysLeft(dateString?: string) {
   if (!dateString) return "";
@@ -83,6 +85,7 @@ export default function DashboardClient() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { data: user } = useUser(session?.user?.id ?? "", { enabled: !!session?.user?.id });
+  const { showTeams } = useDashboardSettings();
 
   // Calculate localized date ranges for accurate filtering
   const { todayRange, weekRange, currentNow } = useMemo(() => {
@@ -188,6 +191,30 @@ export default function DashboardClient() {
     });
   };
 
+  const todayDateStr = useMemo(() => getLocalDateStr(), []);
+  const { data: dailyRanksData } = useDailyRanks(todayDateStr, { enabled: !!session || isGuest });
+  const updateDailyRankMutation = useUpdateDailyRank();
+
+  const dailyRanksMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (Array.isArray(dailyRanksData)) {
+      dailyRanksData.forEach((r) => map.set(r.taskId, r.rank));
+    }
+    return map;
+  }, [dailyRanksData]);
+
+  const handleUpdateDailyRank = async (taskId: string, rank: number | null) => {
+    try {
+      await updateDailyRankMutation.mutateAsync({
+        dateStr: todayDateStr,
+        taskId,
+        rank,
+      });
+    } catch (err) {
+      console.error("Failed to update daily rank", err);
+    }
+  };
+
   const todayTasks = useMemo(
     () => flattenInfiniteTasks(todayTasksQuery.data).filter((task) => task.status !== "completed"),
     [todayTasksQuery.data]
@@ -202,11 +229,17 @@ export default function DashboardClient() {
   );
   const teams = useMemo(() => flattenInfiniteTeams(teamsQuery.data), [teamsQuery.data]);
 
+  // Flat list today tasks with daily priority taking higher precedence
+  const todayFlatRankedTasks = useMemo(() => {
+    const sorted = sortDailyTasksWithPrecedence(todayTasks, dailyRanksMap);
+    return sorted.map((t) => ({ ...t, level: 0 }));
+  }, [todayTasks, dailyRanksMap]);
+
   const groupedTasks = useMemo(() => ({
-    today: flattenTree(buildTaskTree(todayTasks), expandedIds),
+    today: todayFlatRankedTasks,
     week: flattenTree(buildTaskTree(weekTasks), expandedIds),
     overdue: flattenTree(buildTaskTree(overdueTasks), expandedIds),
-  }), [todayTasks, weekTasks, overdueTasks, expandedIds]);
+  }), [todayFlatRankedTasks, weekTasks, overdueTasks, expandedIds]);
 
   const stats = useMemo(() => ({
     deadlinesToday: todayTasksQuery.data?.pages[0]?.total || 0
@@ -303,6 +336,9 @@ export default function DashboardClient() {
                 showStatus={true}
                 showDeadline={true}
                 formatDaysLeft={formatDaysLeft}
+                dailyRank={dailyRanksMap.get(task.id)}
+                maxDailyRank={todayTasks.length}
+                onUpdateDailyRank={id === "section-today" ? handleUpdateDailyRank : undefined}
               />
             ))}
             {hasMore && sentinelRef ? <div ref={sentinelRef} className="h-4 w-full" /> : null}
@@ -400,10 +436,10 @@ export default function DashboardClient() {
         </div>
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className={cn("grid grid-cols-1 gap-8", showTeams && "lg:grid-cols-3")}>
 
           {/* A. My Tasks (Primary - 2 cols on wide, goes to 1st pos) */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className={cn("space-y-6", showTeams ? "lg:col-span-2" : "w-full")}>
             <div className="flex items-center justify-between drop-shadow-lg [text-shadow:_0_1px_5px_rgb(0_0_0_/_0.8)]">
               <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
                 <CheckCircle2 className="w-5 h-5 text-zinc-200" />
@@ -446,72 +482,74 @@ export default function DashboardClient() {
           </div>
 
           {/* B. My Teams (Secondary) */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between drop-shadow-lg [text-shadow:_0_1px_5px_rgb(0_0_0_/_0.8)]">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
-                <Users className="w-5 h-5 text-zinc-200" />
-                My Teams
-              </h2>
-              <Link href="/teams" className="text-xs font-bold text-zinc-300 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-colors mr-2">
-                View All <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
+          {showTeams && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between drop-shadow-lg [text-shadow:_0_1px_5px_rgb(0_0_0_/_0.8)]">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
+                  <Users className="w-5 h-5 text-zinc-200" />
+                  My Teams
+                </h2>
+                <Link href="/teams" className="text-xs font-bold text-zinc-300 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-colors mr-2">
+                  View All <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
 
-            <div ref={dashboardTeamsRootRef} className="grid gap-4 h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent content-start">
-              {shouldShowTeamsSkeleton ? (
-                <TeamGridSkeleton count={3} compact />
-              ) : teams && teams.length > 0 ? (
-                <>
-                {teams.map((team) => (
-                  <motion.div
-                    key={team.id}
-                    onClick={() => router.push(`/teams/${team.id}`)}
-                    className="relative group p-5 rounded-xl bg-card/85 backdrop-blur-sm border border-[var(--border-time)] hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer transition-all hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50"
-                    whileHover={{ y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-[var(--border-time)] flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold shadow-sm group-hover:bg-zinc-200 dark:group-hover:bg-zinc-800 transition-colors">
-                          {team.name.substring(0, 2).toUpperCase()}
+              <div ref={dashboardTeamsRootRef} className="grid gap-4 h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent content-start">
+                {shouldShowTeamsSkeleton ? (
+                  <TeamGridSkeleton count={3} compact />
+                ) : teams && teams.length > 0 ? (
+                  <>
+                  {teams.map((team) => (
+                    <motion.div
+                      key={team.id}
+                      onClick={() => router.push(`/teams/${team.id}`)}
+                      className="relative group p-5 rounded-xl bg-card/85 backdrop-blur-sm border border-[var(--border-time)] hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer transition-all hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50"
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-[var(--border-time)] flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold shadow-sm group-hover:bg-zinc-200 dark:group-hover:bg-zinc-800 transition-colors">
+                            {team.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-zinc-800 dark:text-zinc-200 leading-tight group-hover:text-black dark:group-hover:text-white transition-colors">{team.name}</h3>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-600 uppercase tracking-wider font-bold">Member</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-bold text-zinc-800 dark:text-zinc-200 leading-tight group-hover:text-black dark:group-hover:text-white transition-colors">{team.name}</h3>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-600 uppercase tracking-wider font-bold">Member</p>
+                        {/* Alert for unassigned tasks */}
+                        {(team._count?.tasks || 0) > 0 && (
+                          <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" title={`${team._count?.tasks} unassigned tasks`}></div>
+                        )}
+                      </div>
+
+                      {/* Task Stats - Text Only */}
+                      <div className="flex items-center gap-4 text-xs font-mono mt-2">
+                        <div className="flex flex-col">
+                          <span className="text-zinc-500 uppercase text-[10px] font-bold">Total</span>
+                          <span className="text-zinc-900 dark:text-white font-medium">{team.tasks?.length || 0}</span>
+                        </div>
+                        <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800" />
+                        <div className="flex flex-col">
+                          <span className="text-zinc-500 uppercase text-[10px] font-bold">Unassigned</span>
+                          <span className="text-amber-500 font-medium">{team._count?.tasks || 0}</span>
                         </div>
                       </div>
-                      {/* Alert for unassigned tasks */}
-                      {(team._count?.tasks || 0) > 0 && (
-                        <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" title={`${team._count?.tasks} unassigned tasks`}></div>
-                      )}
-                    </div>
-
-                    {/* Task Stats - Text Only */}
-                    <div className="flex items-center gap-4 text-xs font-mono mt-2">
-                      <div className="flex flex-col">
-                        <span className="text-zinc-500 uppercase text-[10px] font-bold">Total</span>
-                        <span className="text-zinc-900 dark:text-white font-medium">{team.tasks?.length || 0}</span>
-                      </div>
-                      <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800" />
-                      <div className="flex flex-col">
-                        <span className="text-zinc-500 uppercase text-[10px] font-bold">Unassigned</span>
-                        <span className="text-amber-500 font-medium">{team._count?.tasks || 0}</span>
-                      </div>
-                    </div>
 
 
-                  </motion.div>
-                ))}
-                {teamsQuery.hasNextPage && <div ref={teamsSentinelRef} className="h-4 w-full" />}
-                {teamsQuery.isFetchingNextPage && <TeamGridSkeleton count={2} compact />}
-                </>
-              ) : (
-                <div className="p-6 text-center border border-zinc-200 dark:border-zinc-900 rounded-xl bg-card/50">
-                  <p className="text-sm text-zinc-500 dark:text-zinc-600">You are not in any teams.</p>
-                </div>
-              )}
+                    </motion.div>
+                  ))}
+                  {teamsQuery.hasNextPage && <div ref={teamsSentinelRef} className="h-4 w-full" />}
+                  {teamsQuery.isFetchingNextPage && <TeamGridSkeleton count={2} compact />}
+                  </>
+                ) : (
+                  <div className="p-6 text-center border border-zinc-200 dark:border-zinc-900 rounded-xl bg-card/50">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-600">You are not in any teams.</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
 
@@ -520,7 +558,7 @@ export default function DashboardClient() {
       {/* Task Detail Drawer */}
       {
         selectedTask && !shouldShowTasksSkeleton && (
-          <TaskDetailDrawer
+      <TaskDetailDrawer
             selectedTask={selectedTask}
             setSelectedTask={setSelectedTask}
             updateTaskMutation={updateTaskMutation}
@@ -533,9 +571,9 @@ export default function DashboardClient() {
               // User can delete if:
               // 1. Task is from Personal workspace (team name is "Personal")
               // 2. User is the leader of the task's team
-              selectedTask.team?.name === 'Personal' ||
+              selectedTask?.team?.name === 'Personal' ||
               (teams || []).some(team =>
-                team.id === selectedTask.teamId &&
+                team.id === selectedTask?.teamId &&
                 (team as Team).leader?.email === session?.user?.email
               )
             }
@@ -545,9 +583,12 @@ export default function DashboardClient() {
                 assignedToId: session?.user?.id,
                 parentId: parentId,
                 teamId: teamId,
-                isPersonalWorkspace: selectedTask.team?.name === 'Personal',
+                isPersonalWorkspace: selectedTask?.team?.name === 'Personal',
               });
             }}
+            dailyRank={selectedTask ? dailyRanksMap.get(selectedTask.id) : undefined}
+            maxDailyRank={todayTasks.length}
+            onUpdateDailyRank={handleUpdateDailyRank}
           />
         )
       }

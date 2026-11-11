@@ -4,10 +4,11 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser, useUpdateUser } from "@/hooks/useUser";
-import { Save, User, FileUp, Trash2, Settings } from "lucide-react";
+import { User, FileUp, Trash2, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useGuestMode } from "@/hooks/useGuestMode";
+import { useDashboardSettings } from "@/hooks/useDashboardSettings";
 
 export default function SettingsClient() {
     const { data: session, status } = useSession();
@@ -18,9 +19,9 @@ export default function SettingsClient() {
     const shouldShowSkeleton = status === "loading" || isLoading || !user;
 
     const updateUserMutation = useUpdateUser();
+    const { showTeams, setShowTeams } = useDashboardSettings();
 
     const [autoDeleteStaleTasks, setAutoDeleteStaleTasks] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
     const [wallpaperUploadStatus, setWallpaperUploadStatus] = useState<"IDLE" | "UPLOADING" | "COMPLETE">("IDLE");
     const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
     const [wallpaperHistory, setWallpaperHistory] = useState<string[]>([]);
@@ -78,18 +79,19 @@ export default function SettingsClient() {
     );
     if (!session && status !== "loading") return null;
 
-    const handleSave = () => {
+    const handleToggleAutoDelete = () => {
         if (!userId) return;
+        const nextVal = !autoDeleteStaleTasks;
+        setAutoDeleteStaleTasks(nextVal);
 
         updateUserMutation.mutate(
-            { id: userId, data: { autoDeleteStaleTasks } },
+            { id: userId, data: { autoDeleteStaleTasks: nextVal } },
             {
                 onSuccess: () => {
-                    setIsEditing(false);
-                    toast.success("Settings updated successfully");
+                    toast.success(nextVal ? "Auto-delete enabled" : "Auto-delete disabled");
                     
                     // If the user opted in, immediately trigger the cleanup job
-                    if (autoDeleteStaleTasks) {
+                    if (nextVal) {
                         toast.promise(
                             fetch("/api/cleanup", { method: "GET" }).then(res => {
                                 if (!res.ok) throw new Error("Cleanup trigger returned " + res.status);
@@ -104,6 +106,7 @@ export default function SettingsClient() {
                     }
                 },
                 onError: () => {
+                    setAutoDeleteStaleTasks(!nextVal);
                     toast.error("Failed to update settings");
                 }
             }
@@ -269,20 +272,6 @@ export default function SettingsClient() {
                             <p className="text-zinc-500 text-xs font-mono uppercase mt-1">ID: {userId?.substring(0, 8)}...</p>
                         </div>
                     </div>
-                    {isEditing && (
-                        <motion.button
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleSave}
-                            disabled={updateUserMutation.isPending}
-                            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-lg shadow-sm transition-all text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-wait cursor-pointer"
-                        >
-                            {updateUserMutation.isPending ? <LoadingBars className="w-3 h-3" /> : <Save className="w-3 h-3" />}
-                            Save Changes
-                        </motion.button>
-                    )}
                 </div>
 
                 {shouldShowSkeleton ? (
@@ -304,9 +293,12 @@ export default function SettingsClient() {
                                         </div>
                                         <button
                                             type="button"
-                                            onClick={() => { setAutoDeleteStaleTasks(!autoDeleteStaleTasks); setIsEditing(true); }}
+                                            role="switch"
+                                            aria-checked={autoDeleteStaleTasks}
+                                            onClick={handleToggleAutoDelete}
+                                            disabled={updateUserMutation.isPending}
                                             className={cn(
-                                                "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                                "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
                                                 autoDeleteStaleTasks ? "bg-emerald-500" : "bg-zinc-800"
                                             )}
                                         >
@@ -314,6 +306,33 @@ export default function SettingsClient() {
                                                 className={cn(
                                                     "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
                                                     autoDeleteStaleTasks ? "translate-x-5" : "translate-x-0"
+                                                )}
+                                            />
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-4 border-t border-[var(--border-time)]">
+                                        <div>
+                                            <p className="text-white text-sm font-mono uppercase">Dashboard Teams List</p>
+                                            <p className="text-zinc-500 text-xs mt-1">Display your teams list on the dashboard. When disabled, only the tasks list is shown across the dashboard.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            role="switch"
+                                            aria-checked={showTeams}
+                                            onClick={() => {
+                                                const nextValue = !showTeams;
+                                                setShowTeams(nextValue);
+                                                toast.success(nextValue ? "Teams list visible on dashboard" : "Teams list hidden from dashboard");
+                                            }}
+                                            className={cn(
+                                                "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                                showTeams ? "bg-emerald-500" : "bg-zinc-800"
+                                            )}
+                                        >
+                                            <span
+                                                className={cn(
+                                                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                                    showTeams ? "translate-x-5" : "translate-x-0"
                                                 )}
                                             />
                                         </button>
@@ -374,13 +393,13 @@ export default function SettingsClient() {
                                                 )}
                                             >
                                                 <img src={url} alt="History Wallpaper" className="absolute inset-0 w-full h-full object-cover" />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                                     <button
                                                         onClick={(e) => handleHistoryDelete(url, e)}
-                                                        className="p-1.5 bg-red-950/80 text-red-400 hover:text-red-300 rounded-md transition-colors"
+                                                        className="pointer-events-auto absolute top-1 right-1 p-1 bg-black/80 hover:bg-red-950/90 text-zinc-300 hover:text-red-400 border border-white/10 hover:border-red-900/40 rounded transition-all shadow-md cursor-pointer"
                                                         title="Delete permanently"
                                                     >
-                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                        <Trash2 className="w-3 h-3" />
                                                     </button>
                                                 </div>
                                             </div>
